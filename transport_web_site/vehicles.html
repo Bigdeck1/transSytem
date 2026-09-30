@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
+    />
+    <meta
+      name="description"
+      content="Browse our full fleet of vehicles — JRR Transportation."
+    />
+    <title>Our Fleet — JRR Transportation</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>"
+    />
+    
+  </head>
+  <body>
+    <div class="ambient-mesh"></div>
+    <div class="page-container" id="app">
+      <!-- ── Navbar ── -->
+      <nav class="navbar" role="navigation" aria-label="Main navigation">
+        <div class="navbar-inner">
+          <a href="index.html" class="navbar-brand" aria-label="JRR Home">
+            <div class="brand-icon" aria-hidden="true"><i data-lucide="car"></i></div>
+            <span class="brand-name">JRR<span>.</span></span>
+          </a>
+          <ul class="nav-links" role="list">
+            <li><a href="index.html">Home</a></li>
+            <li>
+              <a href="vehicles.html" class="active" aria-current="page"
+                >Vehicles</a
+              >
+            </li>
+            <li><a href="about.html">About</a></li>
+          </ul>
+          <div class="btn-book-nav-wrap">
+            <a href="booking.html" class="btn-book-nav">Book a Ride</a>
+          </div>
+          <button class="theme-toggle-btn" aria-label="Toggle dark mode"><i data-lucide="moon"></i></button>
+          <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu"><i data-lucide="menu"></i></button>
+        </div>
+        <div
+          class="mobile-menu"
+          id="mobile-menu"
+          role="menu"
+          aria-label="Mobile navigation"
+        >
+          <a href="index.html" role="menuitem">Home</a>
+          <a
+            href="vehicles.html"
+            class="active"
+            role="menuitem"
+            aria-current="page"
+            >Vehicles</a
+          >
+          <a href="about.html" role="menuitem">About</a>
+          <a href="booking.html" class="btn-book-mobile" role="menuitem"
+            >Book a Ride</a
+          >
+        </div>
+      </nav>
+
+      <main class="main-content">
+        <div class="page-header">
+          <button
+            class="btn-back"
+            onclick="history.back()"
+            aria-label="Go back to previous page"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1>Our Fleet</h1>
+        </div>
+
+        <!-- Quick stats -->
+        <div
+          class="section-inner"
+          style="padding: 1.5rem var(--section-px) 0; margin: 0 auto"
+        >
+          <div
+            class="fleet-stats reveal"
+            role="list"
+            aria-label="Fleet statistics"
+          >
+            <div class="fleet-stat" role="listitem">
+              <span class="fleet-stat-num">6</span>
+              <span class="fleet-stat-lbl">Vehicle Types</span>
+            </div>
+            <div class="fleet-stat" role="listitem">
+              <span class="fleet-stat-num">8</span>
+              <span class="fleet-stat-lbl">Max Passengers</span>
+            </div>
+            <div class="fleet-stat" role="listitem">
+              <span class="fleet-stat-num">24/7</span>
+              <span class="fleet-stat-lbl">Available</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carousel -->
+        <section class="carousel-section" aria-label="Vehicle fleet carousel">
+          <div
+            class="section-inner"
+            style="padding: 1.5rem var(--section-px) 0.5rem; margin: 0 auto"
+          >
+            <div class="reveal">
+              <h2 class="section-title">Choose Your Ride</h2>
+              <p class="section-sub">
+                Swipe or use the arrows to browse our full fleet. Tap
+                <em>Select &amp; Book</em> to reserve instantly.
+              </p>
+            </div>
+          </div>
+
+          <div
+            class="carousel-track-wrap"
+            role="region"
+            aria-label="Vehicle carousel"
+            aria-roledescription="carousel"
+          >
+            <div class="carousel-track" id="carousel-track"></div>
+          </div>
+
+          <div class="carousel-nav">
+            <button
+              class="carousel-btn"
+              id="c-prev"
+              aria-label="Previous vehicle"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <div
+              class="carousel-dots"
+              id="c-dots"
+              role="tablist"
+              aria-label="Vehicle slides"
+            ></div>
+            <span
+              class="carousel-counter"
+              id="c-counter"
+              aria-live="polite"
+              aria-atomic="true"
+            ></span>
+            <button class="carousel-btn" id="c-next" aria-label="Next vehicle">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+
+          <p class="carousel-hint" aria-hidden="true">
+            ← → arrow keys · drag to swipe
+          </p>
+        </section>
+      </main>
+
+      <!-- ── Footer ── -->
+      <footer class="footer" role="contentinfo">
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="about.html">About Us</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Privacy Policy</a>
+        </nav>
+        <div class="footer-socials" aria-label="Social media links">
+          <a href="#" aria-label="JRR on Twitter"><i data-lucide="twitter"></i></a>
+          <a href="#" aria-label="JRR on Facebook"><i data-lucide="facebook"></i></a>
+          <a href="#" aria-label="JRR on Instagram"><i data-lucide="instagram"></i></a>
+        </div>
+        <p class="footer-copy">
+          &copy; <span class="year"></span> JRR Transportation. All rights
+          reserved.
+        </p>
+      </footer>
+    </div>
+    <!-- /.page-container -->
+
+    <div
+      id="toast-container"
+      class="toast-container"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/app.js"></script>
+    <script>
+      (function () {
+        const track = document.getElementById("carousel-track");
+        const dotsEl = document.getElementById("c-dots");
+        const counter = document.getElementById("c-counter");
+        const prevBtn = document.getElementById("c-prev");
+        const nextBtn = document.getElementById("c-next");
+
+        let current = 0;
+        let startX = 0;
+        let dragDelta = 0;
+        let isDragging = false;
+        let wasDrag = false;
+
+        const CARD_W = window.innerWidth <= 520 ? 290 : 400;
+        const GAP = 20;
+        const DRAG_THRESHOLD = 8;
+        const SWIPE_THRESHOLD = 60;
+
+        function bookVehicle(id) {
+          const v = vehicles.find((x) => x.id === id);
+          if (!v) return;
+          saveSelectedVehicle(v);
+          showToast(`${v.name} selected!`, "success");
+          setTimeout(() => {
+            window.location.href = "booking.html";
+          }, 600);
+        }
+
+        function renderCards() {
+          track.innerHTML = vehicles
+            .map(
+              (v, i) => `
+            <div class="carousel-card" data-i="${i}" role="group" aria-roledescription="slide" aria-label="${v.name} — ${v.category}">
+              <div class="carousel-card-img" style="background-image:url('${v.image}')" role="img" aria-label="${v.name} vehicle">
+                <span class="carousel-badge" aria-hidden="true">${v.category}</span>
+              </div>
+              <div class="carousel-card-body">
+                <p class="carousel-card-name">${v.name}</p>
+                <p class="carousel-card-desc">${v.description}</p>
+                <span class="carousel-cap-pill" aria-label="Capacity: ${v.capacity}">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  ${v.capacity}
+                </span>
+                <button class="carousel-select-btn"
+                        data-id="${v.id}"
+                        type="button"
+                        aria-label="Select ${v.name} and proceed to booking">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  Select &amp; Book
+                </button>
+              </div>
+            </div>
+          `,
+            )
+            .join("");
+
+          dotsEl.innerHTML = vehicles
+            .map(
+              (v, i) => `
+            <button class="c-dot" data-i="${i}" role="tab" aria-label="Go to ${v.name}" aria-selected="false"></button>
+          `,
+            )
+            .join("");
+
+          track.querySelectorAll(".carousel-select-btn").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              bookVehicle(btn.dataset.id);
+            });
+          });
+
+          track.addEventListener("click", (e) => {
+            if (wasDrag) return;
+            if (e.target.closest(".carousel-select-btn")) return;
+            const card = e.target.closest(".carousel-card");
+            if (card) {
+              const i = parseInt(card.dataset.i);
+              if (i !== current) go(i);
+            }
+          });
+
+          dotsEl.addEventListener("click", (e) => {
+            const dot = e.target.closest(".c-dot");
+            if (dot) go(parseInt(dot.dataset.i));
+          });
+        }
+
+        function go(idx) {
+          current = Math.max(0, Math.min(idx, vehicles.length - 1));
+          const offset = (CARD_W + GAP) * current;
+          track.style.transform = `translateX(-${offset}px)`;
+
+          track.querySelectorAll(".carousel-card").forEach((c, i) => {
+            c.classList.remove("is-active", "is-adjacent");
+            c.setAttribute("aria-hidden", i !== current ? "true" : "false");
+            if (i === current) c.classList.add("is-active");
+            else if (Math.abs(i - current) === 1)
+              c.classList.add("is-adjacent");
+          });
+
+          dotsEl.querySelectorAll(".c-dot").forEach((d, i) => {
+            d.classList.toggle("on", i === current);
+            d.setAttribute("aria-selected", i === current ? "true" : "false");
+          });
+
+          counter.textContent = `${current + 1} / ${vehicles.length}`;
+          prevBtn.disabled = current === 0;
+          nextBtn.disabled = current === vehicles.length - 1;
+        }
+
+        prevBtn.addEventListener("click", () => go(current - 1));
+        nextBtn.addEventListener("click", () => go(current + 1));
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            go(current - 1);
+          }
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            go(current + 1);
+          }
+        });
+
+        const wrap = document.querySelector(".carousel-track-wrap");
+
+        wrap.addEventListener("pointerdown", (e) => {
+          if (e.target.closest(".carousel-select-btn")) return;
+          startX = e.clientX;
+          dragDelta = 0;
+          wasDrag = false;
+          isDragging = true;
+          wrap.setPointerCapture(e.pointerId);
+        });
+
+        wrap.addEventListener("pointermove", (e) => {
+          if (!isDragging) return;
+          dragDelta = e.clientX - startX;
+          if (Math.abs(dragDelta) > DRAG_THRESHOLD) {
+            wasDrag = true;
+            track.classList.add("is-dragging");
+          }
+        });
+
+        wrap.addEventListener("pointerup", () => {
+          if (!isDragging) return;
+          isDragging = false;
+          track.classList.remove("is-dragging");
+          if (wasDrag) {
+            if (dragDelta < -SWIPE_THRESHOLD) go(current + 1);
+            else if (dragDelta > SWIPE_THRESHOLD) go(current - 1);
+            else go(current);
+          }
+          dragDelta = 0;
+          setTimeout(() => {
+            wasDrag = false;
+          }, 0);
+        });
+
+        renderCards();
+        go(0);
+      })();
+    </script>
+    <script>lucide.createIcons();</script>
+  </body>
+</html>

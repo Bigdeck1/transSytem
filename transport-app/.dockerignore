@@ -1,0 +1,9 @@
+# JRR Transport App — Docker ignore list
+node_modules
+dist
+.git
+.expo
+*.md
+*.log
+.env
+.env.local

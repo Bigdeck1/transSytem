@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <title>Vishnuu | Fleet Assets </title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/shared.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+  <style>
+    .vehicle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .vehicle-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .vehicle-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .vehicle-tag {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="visible">
+    <div class="loader"></div>
+    <p>Synchronizing Fleet Assets...</p>
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand-small">
+      <div>
+        <img src="../../assets/VishnuuLogo.png" alt="JRR Logo" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <h2><span id="welcomeTitle">VISHNUU</span></h2>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul id="menu-list">
+        <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+        <li><a href="employee_management.html"><i data-lucide="users"></i><span>Employees</span></a></li>
+        <li><a href="attendance_monitoring_page.html"><i data-lucide="calendar-check"></i><span>Attendance</span></a>
+        </li>
+        <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
+        <li><a href="vehicles_page.html" class="active"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
+        <li><a href="scheduling_page.html"><i data-lucide="map"></i><span>Dispatch</span></a></li>
+        <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
+        <li><a href="billing.html"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
+        <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
+        <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
+        <li><a href="tax_calculator_page.html"><i data-lucide="calculator"></i><span>Tax Calculator</span></a></li>
+        <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
+        <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle" id="theme-toggle">
+        <span>Mode</span>
+        <i data-lucide="sun" id="theme-icon" size="16"></i>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar">AD</div>
+        <div class="admin-text">
+          <p class="name">Administrator</p>
+          <p class="email">admin@jrrtransport.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Fleet Assets</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">Monitor vehicle status, maintenance logs, and dispatch
+          availability.</p>
+      </div>
+      <button class="btn-primary" id="addBtn">
+        <i data-lucide="plus-circle" size="18"></i>
+        Add New Vehicle
+      </button>
+    </header>
+
+    <div class="filters-row" style="display: flex; gap: 16px; margin-bottom: 24px;">
+      <div style="flex: 1;"></div>
+      <select id="filterSelect"
+        style="padding: 10px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); outline: none; font-weight: 600;">
+        <option value="all">All Status</option>
+        <option value="available">Available</option>
+        <option value="in-use">In Transit</option>
+        <option value="maintenance">Maintenance</option>
+      </select>
+    </div>
+
+    <!-- STATS SUMMARY -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div
+        style="background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+        <div style="font-size: 11px; font-weight: 800; color: var(--text-muted);">TOTAL</div>
+        <div id="stat-total" style="font-size: 24px; font-weight: 900; color: var(--primary);">0</div>
+      </div>
+      <div
+        style="background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+        <div style="font-size: 11px; font-weight: 800; color: var(--success);">AVAILABLE</div>
+        <div id="stat-available" style="font-size: 24px; font-weight: 900; color: var(--success);">0</div>
+      </div>
+      <div
+        style="background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+        <div style="font-size: 11px; font-weight: 800; color: var(--primary-light);">IN USE</div>
+        <div id="stat-inuse" style="font-size: 24px; font-weight: 900; color: var(--primary-light);">0</div>
+      </div>
+      <div
+        style="background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+        <div style="font-size: 11px; font-weight: 800; color: var(--warning);">SERVICE</div>
+        <div id="stat-maintenance" style="font-size: 24px; font-weight: 900; color: var(--warning);">0</div>
+      </div>
+    </div>
+
+    <div id="vehicleList" class="vehicle-grid">
+      <!-- Dynamic Content -->
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="vehicleModal" class="modal"
+    style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="modal-content"
+      style="background: var(--card-bg); padding: 32px; border-radius: var(--radius-lg); width: 450px; position: relative;">
+      <h2 id="modalTitle" style="margin-top:0; font-weight: 800; color: var(--primary-dark);">Add Asset</h2>
+      <form id="vehicleForm" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="text" name="vehicle_number" placeholder="Internal ID (e.g. TRK-01)" required maxlength="20"
+          style="padding:10px; border-radius:8px; border:1px solid var(--border); background:#f8fafc;">
+        <input type="text" name="plate" placeholder="License Plate" required maxlength="15"
+          style="padding:10px; border-radius:8px; border:1px solid var(--border); background:#f8fafc;">
+        <input type="text" name="vehicle_type" placeholder="Type (e.g. 10-Wheeler)" required maxlength="50"
+          style="padding:10px; border-radius:8px; border:1px solid var(--border); background:#f8fafc;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <input type="text" name="brand" placeholder="Brand" required maxlength="50"
+            style="padding:10px; border-radius:8px; border:1px solid var(--border); background:#f8fafc;">
+          <input type="text" name="model" placeholder="Model" required maxlength="50"
+            style="padding:10px; border-radius:8px; border:1px solid var(--border); background:#f8fafc;">
+        </div>
+        <select name="status" required
+          style="padding:10px; border-radius:8px; border:1px solid var(--border); background:#f8fafc;">
+          <option value="available">Available</option>
+          <option value="in-use">In Use</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="retired">Retired</option>
+        </select>
+        <div style="display: flex; gap: 12px; margin-top: 12px;">
+          <button type="submit" class="btn-primary" style="flex: 1; justify-content: center;">Save Asset</button>
+          <button type="button" id="closeModalBtn"
+            style="padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--text-muted); cursor: pointer; font-weight: 700;">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ASSESSMENT AUDIT MODAL -->
+  <div id="assessmentModal" class="modal"
+    style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2050; justify-content: center; align-items: center;">
+    <div class="modal-content"
+      style="background: var(--card-bg); padding: 32px; border-radius: var(--radius-lg); width: 650px; max-height: 85vh; overflow-y: auto; position: relative;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <div>
+          <h2 id="assessModalTitle" style="margin:0; font-weight: 800; color: var(--primary);">Vehicle Safety Assessment
+          </h2>
+          <p id="assessModalSubtitle" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Pre-Trip /
+            Post-Trip Safety Inspection History</p>
+        </div>
+        <button type="button" id="closeAssessModalBtn"
+          style="border: none; background: none; font-size: 24px; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="assessmentAuditList" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Dynamic Assessment Cards -->
+      </div>
+
+      <div id="maintenanceClearanceSection"
+        style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: none;">
+        <div
+          style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+          <strong style="color: #dc2626;">⚠️ Vehicle Flagged for Maintenance / Safety Defect</strong>
+          <p style="font-size: 12px; color: #7f1d1d; margin-top: 4px;">Review repair completion before authorizing this
+            asset back to active fleet service.</p>
+        </div>
+        <button type="button" id="clearMaintenanceBtn" class="btn-primary"
+          style="width: 100%; justify-content: center; background: #16a34a;">
+          <i data-lucide="check-circle" size="18"></i> Authorize & Return to Available Fleet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLEET EXPENSE AUDIT MODAL -->
+  <div id="expenseModal" class="modal"
+    style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2050; justify-content: center; align-items: center;">
+    <div class="modal-content"
+      style="background: var(--card-bg); padding: 32px; border-radius: var(--radius-lg); width: 680px; max-height: 85vh; overflow-y: auto; position: relative;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <div>
+          <h2 id="expenseModalTitle" style="margin:0; font-weight: 800; color: var(--primary);">Fleet Fuel & Operating
+            Expenses</h2>
+          <p id="expenseModalSubtitle" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Refill logs,
+            toll receipts, and fuel economy</p>
+        </div>
+        <button type="button" id="closeExpenseModalBtn"
+          style="border: none; background: none; font-size: 24px; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <!-- Expense Summary Stats -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div
+          style="background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid var(--border); text-align: center;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
+            Fuel Spent</div>
+          <div id="expFuelSpent" style="font-size: 18px; font-weight: 800; color: #1e40af; margin-top: 4px;">₱0.00</div>
+        </div>
+        <div
+          style="background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid var(--border); text-align: center;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
+            Liters</div>
+          <div id="expTotalLiters" style="font-size: 18px; font-weight: 800; color: #0284c7; margin-top: 4px;">0 L</div>
+        </div>
+        <div
+          style="background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid var(--border); text-align: center;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tolls &
+            Misc</div>
+          <div id="expTollSpent" style="font-size: 18px; font-weight: 800; color: #16a34a; margin-top: 4px;">₱0.00</div>
+        </div>
+      </div>
+
+      <div id="expenseAuditList" style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Dynamic Expense Cards -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/theme.js"></script>
+  <script src="../js/sidebarPaths.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/alarm_service.js"></script>
+  <script src="../js/vehicles_page.js"></script>
+  <script>
+    lucide.createIcons();
+
+    async function initVehicles() {
+      const loader = document.getElementById("loading-overlay");
+      try {
+        if (typeof window.initVehicles_page === "function") {
+          await window.initVehicles_page();
+        }
+      } catch (err) {
+        console.error("Vehicles page error:", err);
+      } finally {
+        if (loader) loader.classList.remove("visible");
+      }
+    }
+
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      initVehicles();
+    } else {
+      window.addEventListener("DOMContentLoaded", initVehicles);
+    }
+  </script>
+</body>
+
+</html>

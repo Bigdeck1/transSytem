@@ -1,0 +1,38 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 18: DIGITAL REPORTING & CSV/PDF EXPORT
+    %% =========================================================================
+
+    Start([Start: Operations / Finance Manager opens report_page.html]) --> In_Filter[/Input: Select Report Type, Date Range & Format/]
+
+    In_Filter --> ChooseReportType{Decision: Which Report Type?}
+    ChooseReportType -- Fleet Performance --> Q_Fleet[(Database: Query trips + vehicles Table)]
+    ChooseReportType -- Driver Operations --> Q_Drivers[(Database: Query trips + employees Table)]
+    ChooseReportType -- Financial Summary --> Q_Finance[(Database: Query invoices + trip_expenses Table)]
+    ChooseReportType -- Incident Audit --> Q_Incidents[(Database: Query incident_reports Table)]
+
+    In_Filter -. Financial Inflow .-> Off_InInvoices>["OFF-PAGE: From Module 09 (Invoices)"]
+    In_Filter -. Road Expenses Inflow .-> Off_InExpenses>["OFF-PAGE: From Module 08 (Expenses)"]
+
+    Q_Fleet & Q_Drivers & Q_Finance & Q_Incidents --> Sub_Aggregate[[Predefined Process: Aggregate Operational Metrics]]
+    Sub_Aggregate --> CalcMetrics[Action: Compute Total Distance km, Diesel Liters, Gross Revenues, Fuel Toll Costs, Profit Margins]
+
+    CalcMetrics --> ChooseFormat{Decision: Output Format Selected?}
+
+    %% Format Path 1: PDF Document
+    ChooseFormat -- PDF Document --> RenderPDF[Action: Compile Vector Layout with Tables & Chart SVGs]
+    RenderPDF --> Out_PDF[/"Document: Downloadable / Printable PDF File (JRR_Report.pdf)"/]
+
+    %% Format Path 2: Excel / CSV Data
+    ChooseFormat -- Excel / CSV --> StreamCSV[Action: Serialize Dataset to RFC4180 Comma-Separated Values]
+    StreamCSV --> Out_CSV[/"Document: Raw Spreadsheet File (JRR_Report.csv)"/]
+
+    %% Format Path 3: Direct Print Paper
+    ChooseFormat -- Direct Print --> OpenPrint[Action: Trigger Window Browser Print Preview Dialog]
+    OpenPrint --> Out_Paper[/"Document: Physical Hardcopy Print Layout"/]
+
+    Out_PDF & Out_CSV & Out_Paper --> EndReport([Report Successfully Generated & Exported])
+
+    %% Hyperlinks
+    click Off_InInvoices "./09_billing_and_invoicing.mmd" "Open Module 09: Billing & Invoicing"
+    click Off_InExpenses "./08_trip_expenses.mmd" "Open Module 08: Trip Expenses"

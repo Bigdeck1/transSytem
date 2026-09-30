@@ -1,0 +1,52 @@
+/* =========================
+   BLUE THEME LOADING OVERLAY
+========================= */
+
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(37, 99, 235, 0.18); /* soft blue overlay */
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+#loading-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Blue spinner */
+.loader {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(37, 99, 235, 0.15);
+  border-top-color: #2563eb; /* primary blue */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+/* Optional: softer glow */
+.loader {
+  box-shadow: 0 0 18px rgba(37, 99, 235, 0.25);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#loading-overlay p {
+  color: #1e40af; /* dark blue text */
+  font-family: "Inter", sans-serif;
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}

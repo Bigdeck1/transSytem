@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
+    />
+    <meta
+      name="description"
+      content="JRR Transportation — reliable, safe, and efficient rides for individuals and groups."
+    />
+    <title>JRR Transportation — Go Anywhere with JRR</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>"
+    />
+  </head>
+  <body>
+    <div class="ambient-mesh"></div>
+    <div class="page-container" id="app">
+      <!-- ── Navbar ── -->
+      <nav class="navbar" role="navigation" aria-label="Main navigation">
+        <div class="navbar-inner">
+          <a href="index.html" class="navbar-brand" aria-label="JRR Home">
+            <div class="brand-icon" aria-hidden="true"><i data-lucide="car"></i></div>
+            <span class="brand-name">JRR<span>.</span></span>
+          </a>
+          <ul class="nav-links" role="list">
+            <li>
+              <a href="index.html" class="active" aria-current="page">Home</a>
+            </li>
+            <li><a href="vehicles.html">Vehicles</a></li>
+            <li><a href="about.html">About</a></li>
+          </ul>
+          <div class="btn-book-nav-wrap">
+            <a href="booking.html" class="btn-book-nav">Book a Ride</a>
+          </div>
+          <button class="theme-toggle-btn" aria-label="Toggle dark mode"><i data-lucide="moon"></i></button>
+          <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu"><i data-lucide="menu"></i></button>
+        </div>
+        <div
+          class="mobile-menu"
+          id="mobile-menu"
+          role="menu"
+          aria-label="Mobile navigation"
+        >
+          <a
+            href="index.html"
+            class="active"
+            role="menuitem"
+            aria-current="page"
+            >Home</a
+          >
+          <a href="vehicles.html" role="menuitem">Vehicles</a>
+          <a href="about.html" role="menuitem">About</a>
+          <a href="booking.html" class="btn-book-mobile" role="menuitem"
+            >Book a Ride</a
+          >
+        </div>
+      </nav>
+
+      <!-- ── Main Content ── -->
+      <main class="main-content">
+        <!-- Hero -->
+        <div class="hero-wrap" style="position: relative; overflow: hidden; padding-top: 4rem;">
+          <!-- Ambient glowing orbs behind hero -->
+          <div style="position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; background: var(--primary); filter: blur(120px); border-radius: 50%; opacity: 0.2; z-index: 0; animation: pulse 8s infinite alternate;"></div>
+          <div style="position: absolute; bottom: -50px; right: -50px; width: 300px; height: 300px; background: var(--accent); filter: blur(100px); border-radius: 50%; opacity: 0.15; z-index: 0; animation: pulse 6s infinite alternate-reverse;"></div>
+          
+          <div
+            class="hero"
+            style="
+              background: 
+                linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0.4) 100%),
+                url('https://lh3.googleusercontent.com/aida-public/AB6AXuBe4LQwqRd4LktvChopqWBWm-7OvQfK96iWpwyYWMfS-3eUMQLVOR6qNzzT07wJ1bZX6iagT4ZqtP1ZmqG5go3bh8siyZ6dHz2Q3ohU_eQQfkLbSNoD0DhJBhxriR6VQL79dQP6HeDix5A5iXcOOvhQtepCvIV_fDpXTzVmvqWlawxLfMr2KI5WWnHvZkQw0yUiDKBYzlen1r1UIb9dGwkRwlJ3KtZ-06qGM-pte4_ByBIODz7p8VkKOSmVWw1_rDWGqbwRBJGj8UZT') center/cover;
+              border: 1px solid var(--border);
+              min-height: 600px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 4rem;
+              padding: 4rem;
+              box-shadow: var(--shadow-lg);
+              z-index: 1;
+            "
+          >
+            <div class="hero-content" style="max-width: 100%; display: flex; flex-direction: column; justify-content: center;">
+              <span style="display: inline-block; padding: 6px 14px; background: rgba(59, 130, 246, 0.2); color: #93c5fd; border-radius: 99px; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1.5rem; width: fit-content; border: 1px solid rgba(59, 130, 246, 0.3);">The Modern Fleet</span>
+              <h1 style="color: #ffffff; font-size: clamp(3rem, 5vw, 4.5rem); line-height: 1.05; letter-spacing: -2px; margin-bottom: 1.5rem;">
+                Go anywhere with <span style="background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">JRR</span>
+              </h1>
+              <p style="color: rgba(255,255,255,0.85); font-size: 1.2rem; margin-bottom: 2.5rem; max-width: 480px; line-height: 1.6;">
+                Your trusted partner for seamless, reliable transportation. Experience comfort and peace of mind on every ride.
+              </p>
+              <div style="display: flex; gap: 1rem; align-items: center;">
+                <a href="booking.html" class="btn-primary" style="padding: 16px 36px; font-size: 1.1rem; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);">
+                  Book a Ride <i data-lucide="arrow-right" style="width: 20px; height: 20px;"></i>
+                </a>
+                <a href="vehicles.html" style="font-weight: 700; color: #ffffff; padding: 16px; transition: var(--transition);">
+                  View Fleet
+                </a>
+              </div>
+            </div>
+
+            <!-- Hero Floating Glass Card -->
+            <div style="display: flex; align-items: center; justify-content: center; position: relative;">
+              <div style="background: rgba(15,23,42,0.4); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.15); padding: 2.5rem; border-radius: 20px; width: 85%; z-index: 10; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); transform: translateY(20px); animation: float 6s ease-in-out infinite;">
+                <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 1.5rem; color: #ffffff;">Book in 3 Easy Steps</h3>
+                
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: flex-start;">
+                  <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(59, 130, 246, 0.2); color: #93c5fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i data-lucide="car"></i></div>
+                  <div>
+                    <h4 style="font-weight: 700; font-size: 1rem; color: #ffffff;">1. Choose Vehicle</h4>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">From sedans to 8-seaters</p>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: flex-start;">
+                  <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(59, 130, 246, 0.2); color: #93c5fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i data-lucide="calendar"></i></div>
+                  <div>
+                    <h4 style="font-weight: 700; font-size: 1rem; color: #ffffff;">2. Select Date & Time</h4>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">Whenever you need us</p>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                  <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(59, 130, 246, 0.2); color: #93c5fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i data-lucide="check-circle"></i></div>
+                  <div>
+                    <h4 style="font-weight: 700; font-size: 1rem; color: #ffffff;">3. Confirm Booking</h4>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">Instant dispatching</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <style>
+              @keyframes float {
+                0% { transform: translateY(10px); }
+                50% { transform: translateY(-10px); }
+                100% { transform: translateY(10px); }
+              }
+              @keyframes pulse {
+                0% { opacity: 0.15; transform: scale(1); }
+                100% { opacity: 0.3; transform: scale(1.1); }
+              }
+              @media (max-width: 992px) {
+                .hero { grid-template-columns: 1fr !important; padding: 2rem !important; gap: 2rem !important; }
+              }
+            </style>
+          </div>
+        </div>
+
+        <!-- Why Choose JRR -->
+        <section class="section" aria-labelledby="why-heading" style="position: relative; z-index: 2;">
+          <div class="section-inner">
+            <div class="reveal" style="text-align: center; margin-bottom: 4rem;">
+              <span style="color: var(--primary); font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1.5px;">Benefits</span>
+              <h2 class="section-title" id="why-heading" style="font-size: 3rem; margin-top: 0.5rem;">Why Choose JRR?</h2>
+              <p class="section-sub" style="margin: 0 auto;">
+                Discover the benefits of riding with JRR. We offer services designed to meet every transportation need.
+              </p>
+            </div>
+            <div class="grid-3">
+              <div class="feature-card reveal" style="border-top: 4px solid var(--primary);">
+                <div class="feature-icon" aria-hidden="true" style="background: rgba(59, 130, 246, 0.1);"><i data-lucide="zap"></i></div>
+                <h3>Fast &amp; Reliable</h3>
+                <p>Our drivers are committed to providing quick and dependable rides every time, with real-time GPS tracking.</p>
+              </div>
+              <div class="feature-card reveal" style="border-top: 4px solid var(--accent); transform: translateY(20px);">
+                <div class="feature-icon" aria-hidden="true" style="background: rgba(99, 102, 241, 0.1); color: var(--accent);"><i data-lucide="clock"></i></div>
+                <h3>On-Time Service</h3>
+                <p>We ensure punctuality on every booking, so you always stay on schedule. Never miss a flight or meeting.</p>
+              </div>
+              <div class="feature-card reveal" style="border-top: 4px solid #10b981;">
+                <div class="feature-icon" aria-hidden="true" style="background: rgba(16, 185, 129, 0.1); color: #10b981;"><i data-lucide="map-pin"></i></div>
+                <h3>Wide Coverage</h3>
+                <p>We operate across a broad area, connecting you to your destinations with ease and comfort.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Our Services -->
+        <section class="section" aria-labelledby="services-heading" style="background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+          <div class="section-inner">
+            <div class="reveal" style="text-align: center; margin-bottom: 4rem;">
+              <span style="color: var(--primary); font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1.5px;">Offerings</span>
+              <h2 class="section-title" id="services-heading" style="font-size: 3rem; margin-top: 0.5rem;">Our Services</h2>
+              <p class="section-sub" style="margin: 0 auto;">
+                Explore our transportation options, tailored to fit your schedule and preferences.
+              </p>
+            </div>
+            <div class="grid-3">
+              <div class="service-card reveal">
+                <div class="service-img" role="img" aria-label="Premium vehicle interior" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBOyqBvCOr2kgDOnfuvWAKgE1vkvICl418PgBiOmaMmWS0MgiNfB7GKakiYv1xsSzYM-3-jYQE0p_tmGw7jpaZxOwRgPt6FZyFe_PHPh3reH_MlX1TqEN4VF-G1H9Eg5XJ5f3uqOa_uR7zUhVOi8fJtLzyJKYhse7jRhv-ujWLmZuN3lDFKg1ECaEbNpWtpQmxkXNdex3DuYcXxB34fjUX__sonPXCrRj8MM4velrMYzqXMg1azeonHc_3IT4GTki2fOC2ikEquer0e');"></div>
+                <div class="service-content">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <h3>Premium Rides</h3>
+                    <div style="background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 6px; color: var(--primary);"><i data-lucide="star" style="width: 16px; height: 16px;"></i></div>
+                  </div>
+                  <p>Experience luxury and comfort with our premium vehicle selection.</p>
+                </div>
+              </div>
+              <div class="service-card reveal">
+                <div class="service-img" role="img" aria-label="Professional JRR driver" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBqySPV4KEXmowsiwUtf2xzPwVOeB3I34Z-DbIovdz6OXidZKeW7wO8E56HPMV_HaVh-cFncdrsgy3iUOPiLbsknMWcXqFgETNOgBBzxM_1l-G-nlWVKzNk1cOo-S7fq78mDM0kXsoHsIFYWKD1AOOHvNNFBgcisTjDmDB_AtexHqGjVICrRouHrwY6dKlxQlMpXyyJqIkJ95F58ItUywPYIU3jzZ5z1RIcwr36ZCzxl02TQwO8x9cO6Fav9Clqdg5c1r_lS2akw3nI');"></div>
+                <div class="service-content">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <h3>Professional Drivers</h3>
+                    <div style="background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 6px; color: var(--primary);"><i data-lucide="user-check" style="width: 16px; height: 16px;"></i></div>
+                  </div>
+                  <p>Our drivers are highly trained and dedicated to your safety and comfort.</p>
+                </div>
+              </div>
+              <div class="service-card reveal">
+                <div class="service-img" role="img" aria-label="Route map and navigation" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCu302AcEHHxo8Gd8I4Wjbmt7acJbGOZDafzADFi0lIlgTQVz8UoJpxExyntRCZa70GGCUjgtMx025TM1919Ut9qwIzHIqCQR00iRMFpW-C_E9oajaIxhk23gKpoBM8zzqiOCY6lm_aIc9tZIdPX020FinVNMjHvY-HUByUK9aw8-VBJAPOBdfJi_w4K-0PAf4rndJgR5VgStS-JgzP30JB93yGbhr5HRmCCrXtZDWf0AuRB_BwESh1Ogdn9TWuAmm4o3dfbCsdcI_s');"></div>
+                <div class="service-content">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <h3>Route Optimization</h3>
+                    <div style="background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 6px; color: var(--primary);"><i data-lucide="map" style="width: 16px; height: 16px;"></i></div>
+                  </div>
+                  <p>We use advanced technology to find the fastest, safest routes to your destination.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CTA -->
+        <div class="reveal" style="padding: 2rem var(--section-px);">
+          <section class="cta-section" aria-labelledby="cta-heading" style="position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem;">
+            <!-- Background pattern for CTA -->
+            <div style="position: absolute; inset: 0; opacity: 0.1; background-image: radial-gradient(#fff 2px, transparent 2px); background-size: 30px 30px;"></div>
+            
+            <div style="position: relative; z-index: 10;">
+              <h2 id="cta-heading" style="font-size: 3.5rem; letter-spacing: -1px;">Ready to Ride?</h2>
+              <p style="font-size: 1.25rem; max-width: 600px; margin: 0 auto 2.5rem; opacity: 0.95;">
+                Join thousands of satisfied customers and experience the JRR difference. Book your ride today and we'll handle the rest!
+              </p>
+              <a href="booking.html" class="btn-secondary" style="padding: 16px 40px; font-size: 1.1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                Book Now <i data-lucide="arrow-right"></i>
+              </a>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <!-- ── Footer ── -->
+      <footer class="footer" role="contentinfo">
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="about.html">About Us</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Privacy Policy</a>
+        </nav>
+        <div class="footer-socials" aria-label="Social media links">
+          <a href="#" aria-label="JRR on Twitter"><i data-lucide="twitter"></i></a>
+          <a href="#" aria-label="JRR on Facebook"><i data-lucide="facebook"></i></a>
+          <a href="#" aria-label="JRR on Instagram"><i data-lucide="instagram"></i></a>
+        </div>
+        <p class="footer-copy">
+          &copy; <span class="year"></span> JRR Transportation. All rights
+          reserved.
+        </p>
+      </footer>
+    </div>
+    <!-- /.page-container -->
+
+    <div
+      id="toast-container"
+      class="toast-container"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/app.js"></script>
+    <script>lucide.createIcons();</script>
+  </body>
+</html>

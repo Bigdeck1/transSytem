@@ -1,0 +1,57 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 04: TRIP SCHEDULING & CONFLICT PREVENTER
+    %% =========================================================================
+
+    Start([Start: Dispatcher opens scheduling_page.html]) --> In_Locations[/Input: Select Origin Pickup & Destination Delivery/]
+    In_Locations --> Sub_RouteCalc[[Predefined Process: POST /api/tracking/estimate-route]]
+
+    Sub_RouteCalc --> Ext_OSRM[Action: Call OSRM Route Engine\nLeg 1: HQ -> Pickup\nLeg 2: Pickup -> Delivery]
+    Ext_OSRM --> Out_RouteData[/Display: Polyline Route, Total Distance km, Duration mins/]
+
+    Out_RouteData --> In_CargoData[/Input: Package Dimensions L x W x H & Cargo Weight/]
+    In_CargoData --> Sub_VolCalc[[Predefined Process: POST /api/tracking/estimate-package]]
+    Sub_VolCalc --> Out_Recom[/Display: Volumetric Weight & Recommended Truck Category/]
+
+    %% Resource Selection Inflows
+    Out_Recom --> In_Assign[/Input: Select Driver, Select Vehicle, Select Client, Pickup & Delivery Times/]
+    
+    In_Assign -. Receives Available Driver .-> Off_InDriver>["OFF-PAGE: From Module 02 (Employees)"]
+    In_Assign -. Receives Available Vehicle .-> Off_InVeh>["OFF-PAGE: From Module 03 (Vehicles)"]
+    In_Assign -. Receives Registered Client .-> Off_InClient>["OFF-PAGE: From Module 10 (Clients)"]
+
+    In_Assign --> ClickSchedule[Action: Click 'Schedule Trip' / POST /api/trips]
+    ClickSchedule --> Sub_ConflictGuard[[Predefined Process: Operational Conflict Engine]]
+
+    %% Conflict Checks
+    Sub_ConflictGuard --> Dec_TimeValid{Decision: Delivery Time > Pickup Time?}
+    Dec_TimeValid -- No --> Out_ErrTime[/Display Error: 'Delivery time must be after pickup time'/] --> In_Assign
+
+    Dec_TimeValid -- Yes --> CheckDriver[(Database: SELECT id FROM trips WHERE driver_id = id AND status IN active)]
+    CheckDriver --> Dec_DriverBusy{Decision: Driver Already Assigned to Ongoing Trip?}
+    Dec_DriverBusy -- Yes --> Out_ErrDriver[/Display Error: 'Driver is already assigned to active trip'/] --> In_Assign
+
+    Dec_DriverBusy -- No --> CheckVeh[(Database: SELECT id FROM trips WHERE vehicle_id = id AND status IN active)]
+    CheckVeh --> Dec_VehBusy{Decision: Vehicle Already Assigned to Ongoing Trip?}
+    Dec_VehBusy -- Yes --> Out_ErrVeh[/Display Error: 'Vehicle is already assigned to active trip'/] --> In_Assign
+
+    %% All Clear -> Save Trip & Lock Resources
+    Dec_VehBusy -- No --> Sub_GenTRK[[Predefined Process: Generate Unique Tracking Code TRK-XXXX]]
+    Sub_GenTRK --> WriteTrip[(Database: INSERT INTO trips Table\nstatus = 'scheduled' / 'pending')]
+
+    WriteTrip --> Conn_Lock((L1))
+    Conn_Lock --> LockDriver[(Database: UPDATE employees SET status = 'in-use' WHERE id = driver_id)]
+    Conn_Lock --> LockVeh[(Database: UPDATE vehicles SET status = 'in-use' WHERE id = vehicle_id)]
+    Conn_Lock --> WriteNotif[(Database: INSERT INTO notifications FOR driver_id)]
+
+    WriteNotif --> Off_NotifyDriver>["OFF-PAGE: To Module 16\nDriver Receives New Trip Notification"]
+    WriteNotif --> Out_TripSuccess[/Display Toast: 'Trip Scheduled Successfully & Code Generated'/]
+
+    Out_TripSuccess --> Off_NextTransit>["OFF-PAGE: To Module 05\nReady for Live GPS Tracking & Milestone Email"]
+
+    %% Hyperlinks
+    click Off_InDriver "./02_employee_management.mmd" "Open Module 02: Employees"
+    click Off_InVeh "./03_vehicle_fleet_and_inspection.mmd" "Open Module 03: Vehicles"
+    click Off_InClient "./10_client_management.mmd" "Open Module 10: Clients"
+    click Off_NotifyDriver "./16_notification_center.mmd" "Open Module 16: Notifications"
+    click Off_NextTransit "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Live Tracking"

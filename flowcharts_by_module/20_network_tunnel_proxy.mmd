@@ -1,0 +1,37 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 20: CLOUDFLARE TUNNEL & REMOTE MOBILE PROXY
+    %% =========================================================================
+
+    Start([Start: Server Administrator executes scripts/start_tunnel.bat]) --> LaunchBat[Action: Run PowerShell / CMD Batch Script]
+
+    LaunchBat --> CheckLocalServer[Action: Verify Express Engine is listening on localhost:3000]
+    CheckLocalServer --> Sub_SpawnTunnel[[Predefined Process: Execute cloudflared.exe tunnel --url http://localhost:3000]]
+
+    Sub_SpawnTunnel --> ConnectEdge[Action: cloudflared initiates outbound QUIC / WebSocket connection to Cloudflare Edge Network]
+    ConnectEdge --> Dec_ConnSuccess{Decision: Cloudflare Edge Connected?}
+
+    Dec_ConnSuccess -- No (Network / Firewall Error) --> Out_ErrConn[/Display Terminal Error: 'Could not connect to Cloudflare edge'/] --> EndFailed([Tunnel Startup Aborted])
+
+    Dec_ConnSuccess -- Yes --> AssignURL[Action: Cloudflare generates unique public HTTPS URL\ne.g. https://xxxx-xxxx.trycloudflare.com]
+    AssignURL --> PrintTerminal[/Output to Terminal: 'Tunnel established! Remote access live at [URL]'/]
+
+    PrintTerminal --> Conn_P1((P1))
+
+    %% Remote Inflow Connections
+    Conn_P1 --> Off_ToDriverMobile>["OFF-PAGE: To Module 05\nRemote Drivers Access HTTPS URL on Mobile Phones"]
+    Conn_P1 --> Off_ToPublicClient>["OFF-PAGE: To Module 14\nPublic Customers Access Real-Time Tracking Link"]
+    Conn_P1 --> Off_ToAdminMonitor>["OFF-PAGE: To Module 17\nSuper Admin Monitors Proxy Uptime via GET /api/health"]
+
+    Off_ToAdminMonitor --> Sub_HealthCheck[[Predefined Process: GET /api/health over Public Proxy]]
+    Sub_HealthCheck --> Dec_Health200{Decision: Returns HTTP 200 { status: 'online' }?}
+
+    Dec_Health200 -- Yes --> Out_Healthy[/Server Heartbeat OK: Encrypted HTTPS Proxy Operational/]
+    Dec_Health200 -- No --> Out_Unhealthy[/Proxy Warning: Latency or network disruption detected/]
+
+    Out_Healthy --> EndTunnel([Continuous Tunnel Session Active])
+
+    %% Hyperlinks
+    click Off_ToDriverMobile "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Live Tracking"
+    click Off_ToPublicClient "./14_public_tracking.mmd" "Open Module 14: Public Tracking"
+    click Off_ToAdminMonitor "./17_admin_audit_and_health.mmd" "Open Module 17: Admin Audit & Health"

@@ -1,0 +1,553 @@
+@import "./variables.css";
+@import "./shared.css";
+
+/* =========================
+   WHITE + BLUE SIMPLE THEME
+   (Updated for your Client Page)
+========================= */
+
+/* ===== THEME ===== */
+:root {
+  /* Module-specific overrides merged with variables.css */
+}
+
+/* =========================
+   GLOBAL BASE
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Outfit", "Inter", sans-serif;
+}
+
+body {
+  background: linear-gradient(to bottom right, #ffffff, var(--bg-main));
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.container {
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+}
+
+/* =========================
+   HEADER
+========================= */
+.page-header .title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.page-header h1 {
+  font-size: clamp(1.5rem, 2vw, 2.2rem);
+  font-weight: 800;
+  color: var(--primary-blue);
+}
+
+.page-header p {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.icon-lg {
+  width: 40px;
+  height: 40px;
+  color: var(--primary-blue);
+}
+
+/* =========================
+   FILTER SECTION
+========================= */
+.filter-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+}
+
+.search-wrapper {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.search-wrapper i {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-wrapper input:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   CLIENT LIST + CARDS
+========================= */
+.client-list {
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+}
+
+.client-card {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.client-card:hover {
+  background: #F8FAFC;
+  transform: scale(1.01);
+}
+
+.client-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.client-info {
+  display: flex;
+  gap: 0.8rem;
+  flex: 1;
+}
+
+.client-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--info-bg);
+  color: var(--primary-navy);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+}
+
+/* keep classes for compatibility, but blue palette only */
+.client-icon.business,
+.client-icon.individual {
+  background: var(--info-bg);
+  color: var(--primary-navy);
+}
+
+.client-basic h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.client-basic p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* =========================
+   BADGES (BLUE ONLY)
+========================= */
+.badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--info-bg);
+  color: var(--primary-navy);
+  border: 1px solid rgba(37, 99, 235, 0.20);
+}
+
+/* keep your old names, but force them to blue theme */
+.badge.active,
+.badge.inactive,
+.badge.business,
+.badge.individual {
+  background: var(--info-bg);
+  color: var(--primary-navy);
+  border: 1px solid rgba(37, 99, 235, 0.20);
+}
+
+/* =========================
+   DETAILS PANEL
+========================= */
+.client-details {
+  margin-top: 1rem;
+  background: #F8FAFC;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid var(--border);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.detail-grid label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.detail-grid p {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* =========================
+   ACTION BUTTONS
+========================= */
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-edit {
+  background: var(--primary-blue);
+  color: white;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+}
+.btn-edit:hover {
+  background: var(--primary-navy);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+}
+
+/* Delete is still "blue palette" (no red) */
+.btn-delete {
+  background: #E3F2FD;
+  color: var(--primary-navy);
+  border: 1px solid rgba(37, 99, 235, 0.22);
+}
+.btn-delete:hover {
+  background: var(--info-bg);
+  transform: translateY(-1px);
+}
+
+.empty {
+  text-align: center;
+  padding: 2.5rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* =========================
+   MODERN MODAL DESIGN (BLUE)
+========================= */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.25);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 5000;
+}
+
+.modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  width: min(450px, 92%);
+  background: var(--card-bg);
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 18px 45px rgba(37, 99, 235, 0.25);
+  transform: translateY(20px) scale(0.97);
+  opacity: 0;
+  transition: all 0.28s ease;
+  border: 1px solid var(--border);
+}
+
+.modal.show .modal-content {
+  opacity: 1;
+  transform: translateY(0px) scale(1);
+}
+
+.modal-content h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-navy);
+  margin-bottom: 0.3rem;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* Modal Action Buttons */
+.modal-actions {
+  margin-top: 1.4rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+}
+
+.close-btn {
+  background: var(--info-bg);
+  color: var(--primary-navy);
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  cursor: pointer;
+  font-weight: 800;
+  transition: 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #BBDEFB;
+}
+
+.save-btn {
+  background: var(--primary-blue);
+  color: white;
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+  transition: 0.2s ease;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+}
+
+.save-btn:hover {
+  background: var(--primary-navy);
+}
+
+/* =========================
+   "+ NEW CLIENT" BUTTON
+========================= */
+.add-client-btn {
+  background: var(--primary-blue);
+  color: white;
+  padding: 0.65rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.25s ease;
+  margin-top: 0.5rem;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+}
+
+.add-client-btn:hover {
+  background: var(--primary-navy);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+}
+
+/* =========================
+   RESPONSIVE BREAKPOINTS
+========================= */
+@media (max-width: 1024px) {
+  .container {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header .title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .client-info {
+    flex-direction: row;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-card {
+    padding: 1rem;
+  }
+
+  .filter-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .client-basic h3 {
+    font-size: 1rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* =========================
+   EXTRA POLISH (BLUE THEME)
+   Add this at the bottom
+========================= */
+
+/* Make selects look consistent */
+.filter-row select,
+.filter-row input {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  font-size: 0.95rem;
+  color: var(--text-main);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-row select:focus,
+.filter-row input:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* Smooth clickable card feel */
+.client-card:active {
+  transform: scale(0.995);
+}
+
+/* Better divider last item */
+.client-card:last-child {
+  border-bottom: none;
+}
+
+/* Optional: subtle scrollbar for long lists */
+.client-list {
+  scrollbar-width: thin; /* firefox */
+  scrollbar-color: rgba(37, 99, 235, 0.35) transparent;
+}
+
+.client-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.client-list::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.25);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.client-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.35);
+  background-clip: content-box;
+}
+
+/* Make any icon inside buttons inherit the theme better */
+.actions button svg,
+.actions button i {
+  color: currentColor;
+  opacity: 0.95;
+}
+
+/* If you have links anywhere */
+a {
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--primary-navy);
+  text-decoration: underline;
+}
+
+/* Optional: consistent focus outline for accessibility */
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

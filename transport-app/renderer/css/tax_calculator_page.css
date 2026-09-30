@@ -1,0 +1,259 @@
+@import "./variables.css";
+@import "./shared.css";
+
+/* ==========================
+   BLUE + WHITE VERSION
+   (Converted from your Tax Calculator CSS)
+========================== */
+
+:root {
+  /* Module-specific overrides merged with variables.css */
+}
+
+/* RESET & BASE */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:"Outfit", "Inter", sans-serif;
+}
+
+body{
+  background:var(--bg-main);
+  color:var(--text-main);
+  line-height:1.5;
+  font-size:1rem;
+  display:flex;
+}
+
+/* MAIN CONTENT */
+.main-content{
+  flex:1;
+  padding:1.5rem;
+  background:var(--bg-main);
+}
+
+/* CONTAINER */
+.container{
+  max-width:1200px;
+  margin:0 auto;
+  padding:1rem;
+}
+
+/* HEADER */
+header{
+  text-align:center;
+  margin-bottom:2rem;
+}
+
+header h1{
+  font-size:2.25rem;
+  color:var(--primary-blue);
+  font-weight:800;
+}
+
+header p{
+  color:var(--text-muted);
+  font-size:1rem;
+}
+
+/* GRID LAYOUT */
+.grid{
+  display:grid;
+  grid-template-columns:1fr 2fr;
+  gap:1.5rem;
+}
+
+/* CARD */
+.card{
+  background:var(--card-bg);
+  padding:1.5rem;
+  border-radius:12px;
+  border:1px solid var(--border);
+  box-shadow:0 6px 18px rgba(37,99,235,0.10);
+  transition:0.2s ease;
+}
+
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 22px rgba(37,99,235,0.16);
+}
+
+.card h2{
+  margin-bottom:1rem;
+  color:var(--primary-navy);
+  font-weight:800;
+}
+
+/* LABELS & INPUTS */
+label{
+  font-weight:700;
+  display:block;
+  margin-top:1rem;
+  margin-bottom:0.4rem;
+  color:var(--text-main);
+}
+
+.input-group{
+  position:relative;
+}
+
+.input-group span{
+  position:absolute;
+  top:50%;
+  left:12px;
+  transform:translateY(-50%);
+  color:var(--text-muted);
+}
+
+.input-group input{
+  width:100%;
+  padding:0.75rem 0.75rem 0.75rem 2.25rem;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  outline:none;
+  transition:0.2s ease;
+}
+
+.input-group input:focus{
+  border-color:rgba(37,99,235,0.45);
+  box-shadow:0 0 0 4px rgba(37,99,235,0.12);
+}
+
+/* SELECT */
+select{
+  width:100%;
+  padding:0.75rem;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  transition:0.2s ease;
+}
+
+select:focus{
+  border-color:rgba(37,99,235,0.45);
+  box-shadow:0 0 0 4px rgba(37,99,235,0.12);
+  outline:none;
+}
+
+/* BUTTON */
+button{
+  margin-top:1.5rem;
+  width:100%;
+  padding:0.75rem;
+  background:var(--primary-blue);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 6px 14px rgba(37,99,235,0.18);
+  transition:0.2s ease, transform 0.15s ease;
+}
+
+button:hover{
+  background:var(--primary-navy);
+  transform:translateY(-2px);
+  box-shadow:0 10px 18px rgba(37,99,235,0.24);
+}
+
+/* NOTE */
+.note{
+  font-size:0.85rem;
+  color:var(--text-muted);
+}
+
+/* INFO BOX */
+.info{
+  margin-top:1rem;
+  padding:1rem;
+  background:var(--info-bg);
+  border:1px solid rgba(37,99,235,0.20);
+  border-radius:10px;
+  font-size:0.9rem;
+  color:var(--primary-navy);
+}
+
+/* RESULT SUMMARY */
+.result .summary{
+  display:flex;
+  gap:1rem;
+  margin-top:1rem;
+}
+
+.result .summary div{
+  flex:1;
+  padding:1rem;
+  border-radius:10px;
+  text-align:center;
+  font-weight:700;
+  background:var(--info-bg);
+  border:1px solid rgba(37,99,235,0.20);
+  color:var(--primary-navy);
+}
+
+/* Keep old class names but force blue palette */
+.result .net,
+.result .tax{
+  background:var(--info-bg);
+  border:1px solid rgba(37,99,235,0.20);
+  color:var(--primary-navy);
+}
+
+.result h3{
+  margin-top:1.25rem;
+  color:var(--primary-navy);
+  font-weight:800;
+}
+
+/* BREAKDOWN LIST */
+.breakdown{
+  list-style:none;
+  margin-top:1rem;
+}
+
+.breakdown li{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  padding:0.75rem 0;
+  color:var(--text-main);
+}
+
+/* TAKEHOME BOXES */
+.takehome{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1rem;
+}
+
+.takehome div{
+  background:#F8FAFC;
+  border:1px solid rgba(37,99,235,0.12);
+  border-radius:10px;
+  padding:1rem;
+  text-align:center;
+  font-weight:700;
+  transition:0.2s ease;
+  color:var(--primary-navy);
+}
+
+.takehome div:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 18px rgba(37,99,235,0.14);
+}
+
+/* RESPONSIVE */
+@media (max-width:1100px){
+  .grid{ grid-template-columns:1fr; }
+}
+
+@media (max-width:768px){
+  .takehome{ grid-template-columns:repeat(2,1fr); }
+  .main-content{ padding:1rem; }
+}
+
+@media (max-width:500px){
+  .takehome{ grid-template-columns:1fr; }
+}

@@ -1,0 +1,66 @@
+-- JRR TRANSPORT SYSTEM - SAMPLE DATA INSERTION SCRIPT
+-- Copy and paste this into your Supabase SQL Editor
+
+-- 1. CLEANUP (Optional: Uncomment if you want to clear existing test data first)
+-- TRUNCATE employees, vehicles, attendance CASCADE;
+
+-- 2. INSERT SAMPLE EMPLOYEES
+-- Includes the new daily_rate and salary columns
+INSERT INTO employees (
+    employee_id, 
+    full_name, 
+    email, 
+    phone, 
+    position, 
+    department, 
+    status, 
+    daily_rate, 
+    salary, 
+    hire_date
+) VALUES 
+('EMP0001', 'John Michael Reyes', 'john.reyes@jrrtransport.com', '09123456789', 'Senior Driver', 'Operations', 'available', 750.00, 18000.00, '2023-01-15'),
+('EMP0002', 'Maria Clara Santos', 'm.santos@jrrtransport.com', '09223334444', 'Logistics Coordinator', 'Admin', 'available', 650.00, 16500.00, '2023-03-10'),
+('EMP0003', 'Ricardo Dalisay', 'carding@jrrtransport.com', '09445556666', 'Truck Driver', 'Operations', 'in-use', 700.00, 17500.00, '2023-05-20'),
+('EMP0004', 'Elena Cruz', 'elena.c@jrrtransport.com', '09998887777', 'Maintenance Tech', 'Maintenance', 'available', 600.00, 15000.00, '2023-06-01'),
+('EMP0005', 'Gabriel Valencia', 'g.valencia@jrrtransport.com', '09112223333', 'Delivery Driver', 'Operations', 'pending', 550.00, 14000.00, '2024-01-10');
+
+-- 3. INSERT SAMPLE VEHICLES
+INSERT INTO vehicles (
+    plate_number, 
+    model, 
+    type, 
+    capacity, 
+    status, 
+    last_maintenance
+) VALUES 
+('NJK-1234', 'Isuzu Giga', 'Heavy Truck', '20 Tons', 'available', '2024-03-01'),
+('ABC-5678', 'Mitsubishi Fuso', 'Medium Truck', '10 Tons', 'in-use', '2024-02-15'),
+('XYZ-9012', 'Toyota Hiace', 'Delivery Van', '1.5 Tons', 'maintenance', '2024-04-10'),
+('LMN-4321', 'Hino 500', 'Heavy Truck', '25 Tons', 'available', '2024-01-20');
+
+-- 4. INSERT SAMPLE ATTENDANCE (Recent dates)
+-- Adjusting to ensure we have data for the current month
+INSERT INTO attendance (
+    employee_id, 
+    status, 
+    time_in, 
+    time_out, 
+    date
+) VALUES 
+('EMP0001', 'present', '2024-04-20 08:00:00', '2024-04-20 17:00:00', '2024-04-20'),
+('EMP0002', 'present', '2024-04-20 08:15:00', '2024-04-20 17:15:00', '2024-04-20'),
+('EMP0003', 'present', '2024-04-20 07:45:00', '2024-04-20 18:00:00', '2024-04-20'),
+('EMP0001', 'present', '2024-04-21 08:00:00', '2024-04-21 17:00:00', '2024-04-21'),
+('EMP0002', 'absent', NULL, NULL, '2024-04-21');
+
+-- 5. INSERT SAMPLE TRIPS/DISPATCH
+INSERT INTO trips (
+    trip_id, 
+    vehicle_plate, 
+    driver_id, 
+    destination, 
+    status, 
+    departure_time
+) VALUES 
+('TRP-001', 'ABC-5678', 'EMP0003', 'Batangas Port', 'in-transit', '2024-04-23 10:00:00'),
+('TRP-002', 'NJK-1234', 'EMP0001', 'Subic Free Port', 'completed', '2024-04-22 06:00:00');

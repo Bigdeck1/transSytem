@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <title>Vishnu | Scheduling & Dispatch </title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/shared.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+  <style>
+    .scheduling-grid {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 24px;
+      height: calc(100vh - 160px);
+    }
+
+    .trip-list-panel {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .trip-details-panel {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      padding: 32px;
+      overflow-y: auto;
+    }
+
+    .trip-item {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .trip-item:hover {
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .trip-item.active {
+      border-left: 4px solid var(--primary);
+      background: rgba(59, 130, 246, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="visible">
+    <div class="loader"></div>
+    <p>Loading Dispatch Schedule...</p>
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand-small">
+      <div>
+        <img src="../../assets/VishnuuLogo.png" alt="JRR Logo" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <h2><span id="welcomeTitle">VISHNUU</span></h2>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul id="menu-list">
+        <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+        <li><a href="employee_management.html"><i data-lucide="users"></i><span>Employees</span></a></li>
+        <li><a href="attendance_monitoring_page.html"><i data-lucide="calendar-check"></i><span>Attendance</span></a>
+        </li>
+        <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
+        <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
+        <li><a href="scheduling_page.html" class="active"><i data-lucide="map"></i><span>Dispatch</span></a></li>
+        <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
+        <li><a href="billing.html"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
+        <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
+        <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
+        <li><a href="tax_calculator_page.html"><i data-lucide="calculator"></i><span>Tax Calculator</span></a></li>
+        <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
+        <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle" id="theme-toggle">
+        <span>Mode</span>
+        <i data-lucide="sun" id="theme-icon" size="16"></i>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar">AD</div>
+        <div class="admin-text">
+          <p class="name">Administrator</p>
+          <p class="email">admin@jrrtransport.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Dispatch Control</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">Manage routes, assign drivers, and monitor delivery
+          status.</p>
+        <p id="current-date" style="font-size: 13px; color: var(--text-light); margin-top: 2px; font-weight: 600;"></p>
+      </div>
+      <button class="btn-primary" id="newTripBtn">
+        <i data-lucide="plus-circle" size="18"></i>
+        Create New Trip
+      </button>
+    </header>
+
+    <div class="scheduling-grid">
+      <!-- LIST COLUMN -->
+      <div class="trip-list-panel">
+        <div style="padding: 16px; border-bottom: 1px solid var(--border);">
+          <div style="position: relative;">
+            <i data-lucide="search" size="14"
+              style="position: absolute; left: 12px; top: 11px; color: var(--text-light);"></i>
+            <input type="text" id="searchInput" placeholder="Search trips..."
+              style="padding: 8px 12px 8px 36px; font-size: 13px;">
+          </div>
+        </div>
+        <div id="tripsContainer" style="overflow-y: auto; flex: 1;">
+          <!-- Dynamic List Items -->
+        </div>
+      </div>
+
+      <!-- DETAILS COLUMN -->
+      <div id="tripDetails" class="trip-details-panel">
+        <div class="no-trip-selected"
+          style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
+          <i data-lucide="map-pin" size="48" style="margin-bottom: 16px; opacity: 0.2;"></i>
+          <p>Select a trip to view route details</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRIP MODAL -->
+  <div id="newTripModal" class="modal">
+    <div class="modal-content" style="width: 600px;">
+      <span class="close-modal close-btn">&times;</span>
+      <h2 style="margin-top: 0; margin-bottom: 24px;">Trip Dispatcher</h2>
+      <form id="newTripForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="grid-column: span 2;">
+          <label>TRIP ID</label>
+          <input type="text" id="tripNumberInput" placeholder="e.g. TRP-9900" required maxlength="20" readonly
+            style="background: rgba(0,0,0,0.05);">
+        </div>
+        <div>
+          <label>DRIVER</label>
+          <select id="driverSelect" required></select>
+        </div>
+        <div>
+          <label>VEHICLE</label>
+          <select id="vehicleSelect" required></select>
+        </div>
+        <div>
+          <label>CLIENT</label>
+          <select id="clientSelect" required></select>
+        </div>
+        <div>
+          <label>CARGO TYPE</label>
+          <input type="text" id="cargoInput" placeholder="e.g. Construction Mats" required maxlength="100">
+        </div>
+
+        <!-- AUTOMATED PACKAGE ESTIMATION WIDGET -->
+        <div
+          style="grid-column: span 2; background: var(--bg-hover, rgba(0,0,0,0.02)); border: 1px dashed var(--border); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 700; font-size: 13px; color: var(--primary);">📦 Automated Package
+              Estimation</span>
+            <span id="packageEstimateBadge"
+              style="font-size: 11px; font-weight: 700; background: var(--primary-light, #eff6ff); color: var(--primary, #1e40af); padding: 4px 8px; border-radius: 6px;">Auto-Estimator
+              Ready</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label style="font-size: 11px;">LENGTH (CM)</label>
+              <input type="number" id="pkgLength" placeholder="e.g. 100" min="1"
+                style="padding: 6px 10px; font-size: 12px;">
+            </div>
+            <div>
+              <label style="font-size: 11px;">WIDTH (CM)</label>
+              <input type="number" id="pkgWidth" placeholder="e.g. 80" min="1"
+                style="padding: 6px 10px; font-size: 12px;">
+            </div>
+            <div>
+              <label style="font-size: 11px;">HEIGHT (CM)</label>
+              <input type="number" id="pkgHeight" placeholder="e.g. 60" min="1"
+                style="padding: 6px 10px; font-size: 12px;">
+            </div>
+            <div>
+              <label style="font-size: 11px;">WEIGHT (KG)</label>
+              <input type="number" id="pkgWeight" placeholder="e.g. 50" min="0.1" step="0.1"
+                style="padding: 6px 10px; font-size: 12px;">
+            </div>
+          </div>
+          <div style="display: flex; gap: 16px; margin-bottom: 10px; font-size: 12px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="pkgFragile"> Fragile Handling
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="pkgExpress"> Express Delivery
+            </label>
+          </div>
+          <div id="packageEstimateSummary"
+            style="font-size: 12px; line-height: 1.5; color: var(--text-main); background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Volumetric Weight: <strong id="estVolWeight">0.00 kg</strong></span>
+              <span>Chargeable Weight: <strong id="estChargeableWeight">0.00 kg</strong></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+              <span>Suggested Vehicle: <strong id="estVehicleTier"
+                  style="color: var(--primary);">Standard</strong></span>
+              <span>Est. Base Fare: <strong id="estFareAmount" style="color: #16a34a;">₱0.00</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label>PICKUP LOCATION</label>
+          <input type="text" id="pickupLocationInput" required maxlength="200" placeholder="Enter pickup address">
+        </div>
+        <div>
+          <label>DELIVERY LOCATION</label>
+          <input type="text" id="deliveryLocationInput" required maxlength="200" placeholder="Enter delivery address">
+        </div>
+
+        <!-- DUAL-LEG TRACKING ESTIMATION CARD -->
+        <div
+          style="grid-column: span 2; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 700; font-size: 12px; color: #334155;">📍 Tracking & Route Estimation (HQ ➔ Origin
+              ➔ Destination)</span>
+            <button type="button" id="calcRouteBtn"
+              style="background: #e2e8f0; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">Calculate
+              Route</button>
+          </div>
+          <div id="dualLegSummary" style="font-size: 11px; color: #64748b; line-height: 1.4;">
+            <div><strong>Leg 1 (Dispatch):</strong> HQ Depot ➔ Pickup Point (<span id="leg1Stats">Est. ~15 km • 25
+                mins</span>)</div>
+            <div><strong>Leg 2 (Transit):</strong> Pickup Point ➔ Destination (<span id="leg2Stats">Est. ~35 km • 50
+                mins</span>)</div>
+          </div>
+        </div>
+
+        <div>
+          <label>PICKUP DATE/TIME</label>
+          <input type="datetime-local" id="pickupTimeInput" required>
+        </div>
+        <div>
+          <label>DELIVERY EST. TIME</label>
+          <input type="datetime-local" id="deliveryTimeInput" required>
+        </div>
+        <div style="grid-column: span 2; margin-top: 12px;">
+          <div id="driverInfo" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;"></div>
+          <div id="vehicleInfo" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;"></div>
+          <div id="clientInfo" style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;"></div>
+
+          <input type="hidden" id="customerNumberInput">
+          <input type="hidden" id="status" value="Scheduled">
+
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Initialize
+            Dispatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/theme.js"></script>
+  <script src="../js/sidebarPaths.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/alarm_service.js"></script>
+  <script src="../js/scheduling_page.js"></script>
+  <script>
+    lucide.createIcons();
+    window.addEventListener("load", () => {
+      const loader = document.getElementById("loading-overlay");
+      setTimeout(() => loader.classList.remove("visible"), 800);
+    });
+  </script>
+</body>
+
+</html>

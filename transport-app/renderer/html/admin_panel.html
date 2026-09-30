@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <title>Admin Panel | JRR Transport</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap&family=Inter:wght@400;500;600" rel="stylesheet">
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/admin_panel.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand-small">
+      <div>
+        <img src="../../assets/logo.png" alt="JRR Logo" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <h2>JRR Transport</h2>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul id="menu-list">
+        <li>
+          <a href="#" class="active" data-view="users">
+            <i data-lucide="shield"></i>
+            <span>User Management</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-view="monitor">
+            <i data-lucide="activity"></i>
+            <span>System Monitor</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-view="settings">
+            <i data-lucide="settings"></i>
+            <span>Settings</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-view="audit">
+            <i data-lucide="file-text"></i>
+            <span>Audit Logs</span>
+          </a>
+        </li>
+        <li>
+          <a href="index.html" id="logout-btn">
+            <i data-lucide="log-out"></i>
+            <span>Logout</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle" id="theme-toggle">
+        <span>Mode</span>
+        <i data-lucide="sun" id="theme-icon" size="16"></i>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar">SA</div>
+        <div class="admin-text">
+          <p class="name">Super Admin</p>
+          <p class="email" id="superAdminEmail">admin@jrr.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content admin-main">
+    
+    <!-- ─── 1. USER MANAGEMENT VIEW ─── -->
+    <div id="view-users" class="admin-view active">
+      <!-- Header -->
+      <header class="admin-header">
+        <div class="header-left">
+          <h1>Super Admin Panel</h1>
+          <p class="header-subtitle">Manage user accounts, approvals, and system access control.</p>
+        </div>
+        <div class="header-right">
+          <div class="header-badge">
+            <div class="badge-dot"></div>
+            System Online
+          </div>
+        </div>
+      </header>
+
+      <!-- Stats Cards -->
+      <section class="stats-row" id="statsRow">
+        <div class="admin-stat-card stat-total">
+          <div class="stat-icon-wrap">
+            <i data-lucide="users" size="24"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-number" id="statTotal">—</p>
+            <p class="stat-label">Total Users</p>
+          </div>
+        </div>
+        <div class="admin-stat-card stat-pending">
+          <div class="stat-icon-wrap">
+            <i data-lucide="clock" size="24"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-number" id="statPending">—</p>
+            <p class="stat-label">Pending Approval</p>
+          </div>
+        </div>
+        <div class="admin-stat-card stat-approved">
+          <div class="stat-icon-wrap">
+            <i data-lucide="check-circle" size="24"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-number" id="statApproved">—</p>
+            <p class="stat-label">Approved</p>
+          </div>
+        </div>
+        <div class="admin-stat-card stat-rejected">
+          <div class="stat-icon-wrap">
+            <i data-lucide="x-circle" size="24"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-number" id="statRejected">—</p>
+            <p class="stat-label">Rejected</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Table Section -->
+      <section class="table-section">
+        <div class="table-header">
+          <div class="table-tabs">
+            <button class="tab-btn active" data-tab="pending">
+              <i data-lucide="clock" size="16"></i>
+              Pending Approval
+              <span class="tab-count" id="pendingCount">0</span>
+            </button>
+            <button class="tab-btn" data-tab="all">
+              <i data-lucide="users" size="16"></i>
+              All Users
+              <span class="tab-count" id="allCount">0</span>
+            </button>
+          </div>
+          <div class="table-search">
+            <i data-lucide="search" size="16"></i>
+            <input type="text" id="searchInput" placeholder="Search users..." />
+          </div>
+        </div>
+
+        <!-- Loading Skeleton -->
+        <div class="table-loading" id="tableLoading">
+          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper" id="tableWrapper" style="display: none;">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Full Name</th>
+                <th>Status</th>
+                <th>Email Verified</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+          <div class="table-empty" id="tableEmpty" style="display: none;">
+            <i data-lucide="inbox" size="48"></i>
+            <p>No users found</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── 2. SYSTEM MONITOR VIEW ─── -->
+    <div id="view-monitor" class="admin-view" style="display: none;">
+      <!-- Header -->
+      <header class="admin-header">
+        <div class="header-left">
+          <h1>System Diagnostics & Health</h1>
+          <p class="header-subtitle">Real-time status updates of server infrastructure, database, and background workers.</p>
+        </div>
+        <div class="header-right">
+          <div class="header-badge">
+            <div class="badge-dot"></div>
+            All Systems Operational
+          </div>
+        </div>
+      </header>
+
+      <div class="monitor-grid">
+        <!-- Infrastructure Cards -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="server"></i> Infrastructure Status</h3>
+            <span class="health-badge-status online">Healthy</span>
+          </div>
+          <div class="health-status-row">
+            <div class="health-item">
+              <span class="health-item-label"><i data-lucide="globe"></i> JRR Core Server Gateway</span>
+              <span class="health-item-val" style="color: var(--success);">ONLINE</span>
+            </div>
+            <div class="health-item">
+              <span class="health-item-label"><i data-lucide="database"></i> Supabase Postgres Pool</span>
+              <span class="health-item-val" style="color: var(--success);">CONNECTED (9ms)</span>
+            </div>
+            <div class="health-item">
+              <span class="health-item-label"><i data-lucide="mail"></i> SMTP Gmail Gateway</span>
+              <span class="health-item-val" style="color: var(--success);">READY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resource Usage -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="cpu"></i> Server Resources</h3>
+            <span class="health-badge-status online" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">Normal Load</span>
+          </div>
+          <div class="resource-usage">
+            <div class="usage-metric">
+              <div class="usage-metric-header">
+                <span>CPU Core Load</span>
+                <span id="cpuUsageText">8%</span>
+              </div>
+              <div class="usage-progress-track">
+                <div class="usage-progress-bar cpu" id="cpuUsageBar" style="width: 8%;"></div>
+              </div>
+            </div>
+            <div class="usage-metric">
+              <div class="usage-metric-header">
+                <span>Memory (RAM) Allocation</span>
+                <span id="ramUsageText">1.2 GB / 8.0 GB (15%)</span>
+              </div>
+              <div class="usage-progress-track">
+                <div class="usage-progress-bar ram" id="ramUsageBar" style="width: 15%;"></div>
+              </div>
+            </div>
+            <div class="usage-metric">
+              <div class="usage-metric-header">
+                <span>Storage Cluster</span>
+                <span id="diskUsageText">42.4 GB / 100.0 GB (42%)</span>
+              </div>
+              <div class="usage-progress-track">
+                <div class="usage-progress-bar disk" id="diskUsageBar" style="width: 42.4%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Terminal logs -->
+        <div class="admin-card" style="grid-column: span 2;">
+          <div class="admin-card-header">
+            <h3><i data-lucide="terminal"></i> Live Security & Event Log Stream</h3>
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Streaming Live</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Displays real-time server security handshakes, IPC channels invocation, and audit alerts.</p>
+          <div class="log-console" id="logConsole">
+            <!-- Dynamic rolling logs here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 3. SETTINGS VIEW ─── -->
+    <div id="view-settings" class="admin-view" style="display: none;">
+      <!-- Header -->
+      <header class="admin-header">
+        <div class="header-left">
+          <h1>Portal Access Configuration</h1>
+          <p class="header-subtitle">Configure registration gating, SMTP security constraints, and Supabase client fallbacks.</p>
+        </div>
+      </header>
+
+      <div class="settings-grid">
+        <!-- Gatekeeper controls -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="shield-alert"></i> Account Gatekeeper</h3>
+          </div>
+          <div class="settings-form">
+            <div class="switch-control">
+              <div class="switch-control-info">
+                <h4>Mandatory Email Verification</h4>
+                <p>Require new signups to verify their email via SMTP code.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setMandatoryVerify" checked />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="switch-control">
+              <div class="switch-control-info">
+                <h4>Admin Account Approval</h4>
+                <p>Gates verified users behind administrator manual approval.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setAdminApproval" checked />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="switch-control">
+              <div class="switch-control-info">
+                <h4>Allow Plaintext Password Fallback</h4>
+                <p>Support direct local database logins (Legacy fallback).</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setPlaintextFallback" checked />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="settings-row-input">
+              <label for="setLockoutAttempts">Failed Attempts Lockout Threshold</label>
+              <select id="setLockoutAttempts">
+                <option value="3">3 Attempts</option>
+                <option value="5" selected>5 Attempts (Default)</option>
+                <option value="10">10 Attempts</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Infrastructure Credential values -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="key-round"></i> Environment Parameters</h3>
+          </div>
+          <div class="settings-form">
+            <div class="settings-group-title">SMTP Mail Configuration</div>
+            
+            <div class="settings-row-input">
+              <label for="setSmtpHost">SMTP Mail Server Host</label>
+              <input type="text" id="setSmtpHost" value="smtp.gmail.com" disabled />
+            </div>
+
+            <div class="settings-row-input">
+              <label for="setSmtpPort">SMTP Delivery Port</label>
+              <input type="text" id="setSmtpPort" value="587" disabled />
+            </div>
+
+            <div class="settings-row-input">
+              <label for="setSmtpUser">SMTP Gatekeeper Sender</label>
+              <input type="text" id="setSmtpUser" value="jrr.transport.security@gmail.com" disabled />
+            </div>
+
+            <div class="settings-group-title">Supabase Database Integration</div>
+
+            <div class="settings-row-input">
+              <label for="setSupaEndpoint">Supabase Endpoint URL</label>
+              <input type="text" id="setSupaEndpoint" value="https://xtpttransjrr.supabase.co" disabled />
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Save Button -->
+        <div class="analytics-grid-full" style="text-align: right; margin-top: -8px;">
+          <button class="btn-settings-save" id="saveSettingsBtn">
+            <i data-lucide="save" size="16"></i>
+            Save Gating Configuration
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics view removed -->
+
+    <!-- ─── 5. AUDIT LOGS VIEW ─── -->
+    <div id="view-audit" class="admin-view" style="display: none;">
+      <!-- Header -->
+      <header class="admin-header">
+        <div class="header-left">
+          <h1>Security & Administrative Audit Trail</h1>
+          <p class="header-subtitle">Chronological logs of administrative approvals, rejections, password resets, and login locks.</p>
+        </div>
+      </header>
+
+      <section class="table-section">
+        <div class="table-header">
+          <div style="font-weight: 700; font-size: 15px; color: var(--text-main);">
+            <i data-lucide="scroll-text" style="vertical-align: middle; margin-right: 6px; color: var(--primary-light);"></i>
+            Security Events Ledger
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="table-search" style="min-width: 220px;">
+              <i data-lucide="search" size="16"></i>
+              <input type="text" id="auditSearchInput" placeholder="Filter audit trail..." />
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Actor</th>
+                <th>Security Event Category</th>
+                <th>Target Username / Email</th>
+                <th>Status</th>
+                <th>IP / Client Node</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <!-- Dynamically rendered simulated high-fidelity security events -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Confirmation Modal -->
+  <div class="confirm-modal" id="confirmModal">
+    <div class="confirm-modal-content">
+      <div class="confirm-icon" id="confirmIcon"></div>
+      <h3 id="confirmTitle">Confirm Action</h3>
+      <p id="confirmMessage">Are you sure you want to proceed?</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn-cancel" id="confirmCancel">Cancel</button>
+        <button class="confirm-btn-ok" id="confirmOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <i data-lucide="check-circle" size="18" id="toastIcon"></i>
+    <span id="toastMessage"></span>
+  </div>
+
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/theme.js"></script>
+  <script src="../js/sidebarPaths.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/admin_panel.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

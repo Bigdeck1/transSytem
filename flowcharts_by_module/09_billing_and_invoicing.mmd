@@ -1,0 +1,51 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 09: INVOICING & ACCOUNTS RECEIVABLE
+    %% =========================================================================
+
+    Start([Start: Accountant opens billing.html]) --> Off_FromEPOD>["OFF-PAGE: Triggered by Module 06 (e-POD Completion)"]
+
+    Off_FromEPOD --> CallLastNum[[Predefined Process: GET /api/billing/last-number]]
+    CallLastNum --> ReadLastNum[(Database: Scan invoices table\nSuggest sequential invoice_number e.g. INV-2026-0045)]
+
+    ReadLastNum --> RenderInvoiceForm[/Display Create Invoice Modal/]
+    RenderInvoiceForm --> In_Data[/Input: Select Client, Select Trip, Amount, Issue Date, Due Date/]
+
+    In_Data -. Receives Client Profile .-> Off_Client>["OFF-PAGE: From Module 10 (Clients)"]
+    In_Data -. Receives Trip Expenses for Margin .-> Off_Exp>["OFF-PAGE: From Module 08 (Expenses)"]
+
+    In_Data --> ClickGenerate[Action: Click 'Generate Invoice' / POST /api/billing]
+    ClickGenerate --> Sub_Validate[[Predefined Process: Invoice Rule Validator]]
+
+    Sub_Validate --> Dec_ValidDates{Decision: Due Date >= Issue Date & Amount >= 0?}
+    Dec_ValidDates -- No --> Out_ErrDate[/Display Error: 'Due date cannot precede issue date'/] --> RenderInvoiceForm
+
+    Dec_ValidDates -- Yes --> CheckUnique[(Database: SELECT id FROM invoices WHERE invoice_number = input)]
+    CheckUnique --> Dec_NumUnique{Decision: Is Invoice Number Unique?}
+    Dec_NumUnique -- No --> Out_ErrDup[/Display Error: 'Invoice number already exists'/] --> RenderInvoiceForm
+
+    Dec_NumUnique -- Yes --> WriteInvoice[(Database: INSERT INTO invoices Table\nstatus = 'Pending')]
+
+    WriteInvoice --> Conn_Disp((D1))
+    Conn_Disp --> Out_DocInvoice[/"Document: Printable / PDF Invoice Issued to Client"/]
+    Conn_Disp --> Out_PendingState[/Invoice Status: 'Pending' in Accounts Receivable Table/]
+
+    %% Payment Reconciliation Loop
+    Out_PendingState --> PaymentWait([Client Remits Payment: Bank Transfer / Check / Cash])
+    PaymentWait --> ClerkUpdate[Action: Billing Officer clicks 'Mark Paid' / PUT /api/billing/:id]
+
+    ClerkUpdate --> WritePaid[(Database: UPDATE invoices SET status = 'Paid')]
+    WritePaid --> Sub_Stats[[Predefined Process: GET /api/billing/stats]]
+    
+    Sub_Stats --> UpdateStats[(Database: Recompute Total Revenue & Outstanding Receivables)]
+    UpdateStats --> Off_DashKPI>["OFF-PAGE: To Module 13\nExecutive Revenue KPI Updated"]
+    UpdateStats --> Off_ReportExport>["OFF-PAGE: To Module 18\nRecorded in Monthly Financial Balance Sheet"]
+
+    Off_ReportExport --> EndBilling([Payment Reconciled & Transaction Archived])
+
+    %% Hyperlinks
+    click Off_FromEPOD "./06_electronic_pod.mmd" "Open Module 06: e-POD"
+    click Off_Client "./10_client_management.mmd" "Open Module 10: Clients"
+    click Off_Exp "./08_trip_expenses.mmd" "Open Module 08: Trip Expenses"
+    click Off_DashKPI "./13_executive_dashboard.mmd" "Open Module 13: Executive Dashboard"
+    click Off_ReportExport "./18_digital_reporting.mmd" "Open Module 18: Digital Reporting"

@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "scheme": "transportmobileapp",
+    "name": "JRR Transport",
+    "slug": "transport_mobile_app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rencyy09.jrrtransport",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "JRR Transport needs your location to track deliveries and dispatch routes.",
+        "NSLocationAlwaysUsageDescription": "JRR Transport needs background location to provide live fleet tracking.",
+        "NSCameraUsageDescription": "JRR Transport needs camera access to capture delivery proof photos and expense receipts.",
+        "NSPhotoLibraryUsageDescription": "JRR Transport needs photo library access to attach delivery and receipt images."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e40af"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.rencyy09.transport_mobile_app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "VIBRATE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "240d53f3-8807-48cf-a94f-2659dab93e83"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "JRR Transport needs your location to track deliveries."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "JRR Transport needs camera to capture delivery proof photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "JRR Transport needs photo access to attach delivery images."
+        }
+      ]
+    ]
+  }
+}
+

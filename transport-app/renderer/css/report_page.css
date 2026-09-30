@@ -1,0 +1,211 @@
+@import "./variables.css";
+@import "./shared.css";
+
+/* =========================
+   BLUE + WHITE VERSION
+========================= */
+
+:root {
+  /* Module-specific overrides merged with variables.css */
+}
+
+/* =========================
+   BASE
+========================= */
+body {
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(to bottom right, #ffffff, var(--bg-main));
+  margin: 0;
+  padding: 2rem;
+  color: var(--text-main);
+}
+
+/* =========================
+   CONTAINER
+========================= */
+.container {
+  max-width: 1200px;
+  margin: auto;
+}
+
+/* =========================
+   TITLES
+========================= */
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary-blue);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+/* =========================
+   CARDS
+========================= */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.10);
+  padding: 1.5rem;
+  transition: 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
+}
+
+/* =========================
+   GRID
+========================= */
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.main-grid {
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+button {
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.data-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--border);
+  background: var(--card-bg);
+  transition: all 0.2s ease;
+}
+
+.data-btn.active {
+  border-color: var(--primary-blue);
+  background: var(--info-bg);
+  color: var(--primary-navy);
+}
+
+.data-btn:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
+/* =========================
+   DATE RANGE
+========================= */
+.date-range {
+  margin-top: 1rem;
+}
+
+.date-range input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  transition: 0.2s ease;
+}
+
+.date-range input:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* =========================
+   EXPORT BUTTON
+========================= */
+.export-btn {
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+
+.export-btn:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+}
+
+.export-btn.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* =========================
+   ICON BOX (Blue Only)
+========================= */
+.icon-box {
+  background: var(--primary-blue);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+}
+
+/* Keep old classes but force blue theme */
+.green,
+.red,
+.blue {
+  background: var(--primary-blue);
+  color: white;
+}
+
+/* =========================
+   LOADING OVERLAY (INLINE)
+========================= */
+.loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(37, 99, 235, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 4px solid rgba(37, 99, 235, 0.2);
+  border-top: 4px solid var(--primary-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =========================
+   SUMMARY CARD
+========================= */
+.summary-card {
+  margin-top: 2rem;
+}

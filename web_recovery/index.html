@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password | JRR Transport</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --bg-main: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius-md: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 25px -5px rgba(30, 64, 175, 0.1);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: var(--primary);
+            border-radius: 12px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 900;
+            font-size: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(30, 64, 175, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .alert.error {
+            background: #fef2f2;
+            color: var(--error);
+            border: 1px solid #fecaca;
+            display: block;
+        }
+
+        .alert.success {
+            background: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #a7f3d0;
+            display: block;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">JRR</div>
+        
+        <div id="loadingState">
+            <h1>Verifying Link...</h1>
+            <p>Please wait while we securely verify your password reset request.</p>
+        </div>
+
+        <div id="errorState" class="hidden">
+            <h1>Invalid Link</h1>
+            <div class="alert error" id="errorMessage">This password reset link is invalid or has expired.</div>
+            <p>Please return to the JRR Transport App and request a new password reset link.</p>
+        </div>
+
+        <div id="resetFormState" class="hidden">
+            <h1>Set New Password</h1>
+            <p>Please enter your new password below.</p>
+            
+            <div id="formAlert" class="alert"></div>
+
+            <form id="resetForm">
+                <div class="input-group">
+                    <label for="password">New Password</label>
+                    <input type="password" id="password" required minlength="6" placeholder="Enter new password">
+                </div>
+                <div class="input-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" required minlength="6" placeholder="Confirm new password">
+                </div>
+                <button type="submit" id="submitBtn">Update Password</button>
+            </form>
+        </div>
+
+        <div id="successState" class="hidden">
+            <h1>Password Updated!</h1>
+            <div class="alert success">Your password has been successfully changed.</div>
+            <p>You can now safely close this window and log in to the JRR Transport Desktop App with your new password.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase Client
+        // Note: It is safe to expose the SUPABASE_URL and SUPABASE_KEY (anon key) in client-side code.
+        const SUPABASE_URL = 'https://uocavssoqmwjstmvdgwq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvY2F2c3NvcW13anN0bXZkZ3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTg2NjEsImV4cCI6MjA3NzU3NDY2MX0.Ki2CEQ7Wqt4eTCOHs1o0mxKdcywtBh7eEk0JAe9H4xk';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // DOM Elements
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const resetFormState = document.getElementById('resetFormState');
+        const successState = document.getElementById('successState');
+        const errorMessage = document.getElementById('errorMessage');
+        const formAlert = document.getElementById('formAlert');
+        const resetForm = document.getElementById('resetForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function showError(msg) {
+            loadingState.classList.add('hidden');
+            resetFormState.classList.add('hidden');
+            errorState.classList.remove('hidden');
+            errorMessage.textContent = msg;
+        }
+
+
+        function showAlert(msg, isError) {
+            formAlert.textContent = msg;
+            formAlert.className = `alert ${isError ? 'error' : 'success'}`;
+        }
+
+        // 1. Check for recovery session token in URL hash
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event == "PASSWORD_RECOVERY") {
+                // Supabase successfully parsed the token from the URL and logged the user in temporarily
+                loadingState.classList.add('hidden');
+                resetFormState.classList.remove('hidden');
+            } else if (event === "SIGNED_IN" && !resetFormState.classList.contains('hidden')) {
+                // If they are just signed in normally, we can still let them reset if the form is already showing
+            }
+        });
+
+        // Fallback check if the event listener doesn't fire immediately
+        setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                loadingState.classList.add('hidden');
+                resetFormState.classList.remove('hidden');
+            } else if (!window.location.hash.includes('access_token') && !window.location.hash.includes('type=recovery')) {
+                // If there's no hash and no session, this is an invalid link
+                showError("This password reset link is invalid or has expired.");
+            }
+        }, 1500);
+
+        // 2. Handle Form Submission
+        resetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showAlert("Passwords do not match.", true);
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert("Password must be at least 6 characters.", true);
+                return;
+            }
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating...';
+                formAlert.classList.remove('error', 'success');
+                formAlert.style.display = 'none';
+
+                // Call Supabase to update the password for the currently active session
+                const { error } = await supabase.auth.updateUser({ password: password });
+
+                if (error) throw error;
+
+                // Success
+                resetFormState.classList.add('hidden');
+                successState.classList.remove('hidden');
+                
+                // Sign out immediately so the session isn't left open on the web
+                await supabase.auth.signOut();
+
+            } catch (err) {
+                console.error(err);
+                showAlert(err.message || "Failed to update password. Please try again.", true);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update Password';
+            }
+        });
+    </script>
+</body>
+</html>

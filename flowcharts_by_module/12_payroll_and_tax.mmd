@@ -1,0 +1,52 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 12: PAYROLL & PHILIPPINE TRAIN LAW TAX
+    %% =========================================================================
+
+    Start([Start: Payroll Officer opens payroll_management.html]) --> Off_AttendInflow>["OFF-PAGE: From Module 11 (Days Worked & Overtime)"]
+
+    Off_AttendInflow --> In_SelectEmp[/Input: Select Employee & Payroll Period (e.g. 1st to 15th)/]
+    In_SelectEmp --> FetchEmpData[(Database: Query employees Table for daily_rate, salary, position)]
+    FetchEmpData --> FetchAttendance[(Database: Query attendance Table for verified days worked in period)]
+
+    FetchAttendance --> Conn_Calc((C1))
+    Conn_Calc --> Sub_Gross[[Predefined Process: Compute Gross Earnings]]
+    Sub_Gross --> CalcGrossFormula[Action: Gross Pay = (Days Worked * Daily Rate) + Overtime Pay + Trip Allowances]
+
+    %% Statutory Deductions Breakdown
+    CalcGrossFormula --> Sub_Deduct[[Predefined Process: Philippine Statutory Deductions Engine]]
+    
+    Sub_Deduct --> CalcSSS[Action: Evaluate SSS Contribution Bracket Table\nCompute Employee & Employer Share]
+    Sub_Deduct --> CalcPhil[Action: Compute PhilHealth 5% Premium Rate Split]
+    Sub_Deduct --> CalcPagIBIG[Action: Compute Pag-IBIG HDMF Mandatory Statutory Contribution]
+
+    CalcSSS & CalcPhil & CalcPagIBIG --> SumStatutory[Action: Total Statutory Deductions = SSS + PhilHealth + Pag-IBIG]
+
+    %% Taxable Income & TRAIN Law Engine
+    SumStatutory --> Sub_TaxEngine[[Predefined Process: TRAIN Law Taxable Income Calculator]]
+    Sub_TaxEngine --> CalcTaxableBase[Action: Taxable Income = Gross Earnings - Total Statutory Deductions]
+    
+    CalcTaxableBase --> EvaluateBIRBracket{Decision: Which Philippine BIR Withholding Tax Bracket?}
+    EvaluateBIRBracket -- Bracket 1 (<= 20,833/mo) --> TaxZero[Withholding Tax = PHP 0.00]
+    EvaluateBIRBracket -- Bracket 2 (20,834 - 33,332) --> TaxB2[Withholding Tax = 15% of Excess over 20,833]
+    EvaluateBIRBracket -- Bracket 3 (33,333 - 66,666) --> TaxB3[Withholding Tax = PHP 1,875 + 20% of Excess]
+    EvaluateBIRBracket -- Bracket 4 (> 66,667) --> TaxB4[Withholding Tax = Graduated Upper Brackets]
+
+    TaxZero & TaxB2 & TaxB3 & TaxB4 --> Sub_NetPay[[Predefined Process: Net Take-Home Calculation]]
+    Sub_NetPay --> CalcNetFormula[Action: Net Pay = Gross Earnings - (Statutory Deductions + Withholding Tax + Cash Advances)]
+
+    CalcNetFormula --> SavePayroll[(Database: INSERT INTO payroll Table\ngross_pay, sss_deduction, philhealth_deduction,\npagibig_deduction, tax_withheld, net_pay, status = 'processed')]
+
+    SavePayroll --> Conn_Out((O1))
+    Conn_Out --> Out_DocPayslip[/"Document: Generate Official Printable Employee Payslip"/]
+    Conn_Out --> Out_Toast[/Display Toast: 'Payroll Processed & Disbursed'/]
+
+    Conn_Out --> Off_ReportInflow>["OFF-PAGE: To Module 18\nDisbursement Included in Monthly Financial Ledger"]
+    Conn_Out -. Compare with Tax Projections .-> Off_TaxSim>["OFF-PAGE: To Module 19\nCross-reference Tax Simulator"]
+
+    Off_ReportInflow --> EndPayroll([Payroll Closed for Period])
+
+    %% Hyperlinks
+    click Off_AttendInflow "./11_attendance_and_leave.mmd" "Open Module 11: Attendance"
+    click Off_ReportInflow "./18_digital_reporting.mmd" "Open Module 18: Digital Reporting"
+    click Off_TaxSim "./19_tax_simulator.mmd" "Open Module 19: Tax Simulator"

@@ -1,0 +1,45 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 07: EN-ROUTE INCIDENTS & SOS EMERGENCY ALARM
+    %% =========================================================================
+
+    Start([Start: Driver encounters road hazard, accident, or threat]) --> Off_FromTransit>["OFF-PAGE: From Module 05 (In-Transit)"]
+
+    Off_FromTransit --> Dec_ThreatType{Decision: Is there an Immediate Threat to Life / Safety?}
+
+    %% High-Priority SOS Panic Path
+    Dec_ThreatType -- Immediate SOS --> ClickSOS[Action: Driver presses Large Red 'SOS Panic' Button]
+    ClickSOS --> Sub_ReadGPS[[Predefined Process: Capture Current Device Lat & Lng]]
+    Sub_ReadGPS --> GenSOSPayload[Action: Build Urgent SOS Payload\nseverity: 'sos', incidentType: 'sos_panic']
+    GenSOSPayload --> PostIncident[[Predefined Process: POST /api/incidents/report]]
+
+    %% Standard Incident Reporting Path
+    Dec_ThreatType -- Non-Emergency / Breakdown --> OpenForm[Action: Driver clicks 'Report Incident' in tracking.html]
+    OpenForm --> In_IncData[/Input: Select Type (Breakdown, Flat Tire, Weather, Delay), Severity, Description, Photos/]
+    In_IncData --> ClickSend[Action: Click 'Submit Incident Report']
+    ClickSend --> Sub_ReadGPS2[[Predefined Process: Capture Current Device Lat & Lng]]
+    Sub_ReadGPS2 --> PostIncident
+
+    %% Backend Ingestion & Routing
+    PostIncident --> WriteInc[(Database: INSERT INTO incident_reports Table\nstatus = 'reported')]
+    WriteInc --> Dec_SeverityCheck{Decision: Is Severity == 'sos' or 'critical'?}
+
+    %% Alarm Siren Notification to Operations
+    Dec_SeverityCheck -- Yes --> WriteAlarmNotif[(Database: INSERT INTO notifications\nurgency = 'alarm', target_role = 'admin',\ntitle = '🚨 SOS EMERGENCY ALERT')]
+    WriteAlarmNotif --> Conn_A1((A1))
+    Conn_A1 --> Off_AdminAlarm>["OFF-PAGE: To Module 16 / 17\nAdmin Console Sounds Audio Siren & Flashes Red Alert"]
+    Conn_A1 --> Off_MapPin>["OFF-PAGE: To Module 13\nDashboard Plots Pulsing Emergency Pin on Map"]
+
+    %% Standard Incident Notification
+    Dec_SeverityCheck -- No --> WriteStdNotif[(Database: INSERT INTO notifications\nurgency = 'normal' / 'urgent', target_role = 'admin')]
+    WriteStdNotif --> Off_AdminFeed>["OFF-PAGE: To Module 16\nLogged in Admin Activity Notification Feed"]
+
+    Off_AdminAlarm --> Out_Confirm[/Driver Mobile Screen Confirms: 'Emergency Signal Received by Operations'/]
+    Off_AdminFeed --> Out_Confirm
+    Out_Confirm --> EndIncident([Incident Registered & Dispatch Responding])
+
+    %% Hyperlinks
+    click Off_FromTransit "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Live Tracking"
+    click Off_AdminAlarm "./16_notification_center.mmd" "Open Module 16: Notification Center"
+    click Off_MapPin "./13_executive_dashboard.mmd" "Open Module 13: Executive Dashboard"
+    click Off_AdminFeed "./16_notification_center.mmd" "Open Module 16: Notification Center"

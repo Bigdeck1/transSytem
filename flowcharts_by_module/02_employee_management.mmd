@@ -1,0 +1,49 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 02: EMPLOYEE ONBOARDING & MANAGEMENT
+    %% =========================================================================
+
+    Start([Start: HR / Admin opens employee_management.html]) --> CallNextID[[Predefined Process: GET /api/employees/next-id]]
+    CallNextID --> ReadMax[(Database: Scan existing employee_id\nCompute next code e.g. EMP0009)]
+    ReadMax --> FormOpen[/Display Form: Auto-suggested ID & empty profile/]
+
+    FormOpen --> In_Data[/Input: Name, Email, Phone, Rate, Salary, Position, Initial Password/]
+    In_Data --> ClickSubmit[Action: Click 'Create Employee']
+    ClickSubmit --> Sub_Validate[[Predefined Process: Form Validation Engine]]
+
+    Sub_Validate --> Dec_Valid{Decision: All Inputs Valid?\n(Valid Email, Rates >= 0)}
+    Dec_Valid -- No --> Conn_A1((A))
+    Conn_A1 --> Out_ErrVal[/Display Error Alert: Fix invalid input fields/]
+    Out_ErrVal --> In_Data
+
+    Dec_Valid -- Yes --> Sub_CreateAuth[[Predefined Process: Supabase Admin createUser]]
+    Sub_CreateAuth --> Dec_AuthOk{Decision: Supabase Auth Created?}
+    
+    Dec_AuthOk -- No (Duplicate Email) --> Out_ErrDup[/Display Error: 'Email already registered'/]
+    Out_ErrDup --> In_Data
+
+    Dec_AuthOk -- Yes --> WriteEmp[(Database: INSERT INTO employees\nstatus = 'available', hire_date = NOW)]
+    WriteEmp --> Out_Success[/Display Toast: 'Employee created successfully'/]
+    Out_Success --> Off_Ready>["OFF-PAGE: To Module 04\nEmployee Available in Trip Dispatch Roster"]
+
+    %% Delete Cascade Protection Sub-Flow
+    DelTrigger([Admin Clicks Delete Employee: DELETE /api/employees/:id]) --> Sub_CheckTrips[[Predefined Process: Cascade Trip Guard]]
+    Sub_CheckTrips --> ReadTrips[(Database: SELECT id FROM trips\nWHERE driver_id = id AND status IN active)]
+    ReadTrips --> Dec_ActiveTrips{Decision: Driver Has Active In-Transit Trips?}
+
+    Dec_ActiveTrips -- Yes --> Out_BlockDel[/Display Error: 'Cannot delete employee with active trips'/]
+    Out_BlockDel --> EndBlock([Deletion Blocked])
+
+    Dec_ActiveTrips -- No --> Sub_DelAuth[[Predefined Process: Supabase Admin deleteUser]]
+    Sub_DelAuth --> DeleteRow[(Database: DELETE FROM employees WHERE id = id)]
+    DeleteRow --> Out_DelOk[/Display Notice: 'Employee safely removed'/]
+    Out_DelOk --> EndDel([Employee Deleted])
+
+    %% Cross-Module Links
+    Off_Ready -. Attendance & Leaves .-> Off_Leave>["OFF-PAGE: To Module 11\nAttendance & Leave Management"]
+    Off_Ready -. Payroll Processing .-> Off_Pay>["OFF-PAGE: To Module 12\nBi-Monthly Payroll Engine"]
+
+    %% Hyperlinks
+    click Off_Ready "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_Leave "./11_attendance_and_leave.mmd" "Open Module 11: Attendance & Leaves"
+    click Off_Pay "./12_payroll_and_tax.mmd" "Open Module 12: Payroll & Tax"

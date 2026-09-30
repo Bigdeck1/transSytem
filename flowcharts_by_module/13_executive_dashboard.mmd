@@ -1,0 +1,39 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 13: EXECUTIVE DASHBOARD & FLEET TELEMETRY
+    %% =========================================================================
+
+    Start([Start: Operations Executive loads dashboard.html]) --> Sub_ParallelFetch[[Predefined Process: GET /api/dashboard Concurrent Aggregation]]
+
+    Sub_ParallelFetch --> Q_Trips[(Database: SELECT count FROM trips WHERE status IN active)]
+    Sub_ParallelFetch --> Q_Vehicles[(Database: SELECT status, count FROM vehicles GROUP BY status)]
+    Sub_ParallelFetch --> Q_Drivers[(Database: SELECT status, count FROM employees GROUP BY status)]
+    Sub_ParallelFetch --> Q_Financials[(Database: Sum revenue from invoices minus sum from trip_expenses)]
+    Sub_ParallelFetch --> Q_Recent[(Database: SELECT * FROM trips ORDER BY id DESC LIMIT 5)]
+
+    Q_Trips & Q_Vehicles & Q_Drivers & Q_Financials & Q_Recent --> RenderKPIs[Action: Render Executive KPI Summary Cards]
+
+    RenderKPIs --> Out_KPICards[/Display: Active Shipments, Available Vehicles, In-Transit Drivers, Net Fleet Revenue/]
+
+    %% Interactive Live Fleet Map Sub-Process
+    Out_KPICards --> Sub_MapEngine[[Predefined Process: GET /api/tracking/fleet-locations]]
+    Sub_MapEngine --> ReadLiveGPS[(Database: Query driver_locations JOIN employees JOIN vehicles JOIN trips)]
+    
+    ReadLiveGPS --> PlotMarkers[Action: Render Leaflet Real-Time Fleet Map with Color-Coded Truck Icons]
+    PlotMarkers --> Out_MapUI[/Display: Moving Vehicle Pins, Trip Labels, Speed & Heading/]
+
+    %% User Interactive Navigation Outflows
+    Out_MapUI --> UserSelectAction{Decision: Executive Navigates to Detailed Sub-Module?}
+
+    UserSelectAction -- Schedule New Dispatch --> Off_ToSched>["OFF-PAGE: To Module 04\nDispatch Console (scheduling_page.html)"]
+    UserSelectAction -- View Fleet Availability --> Off_ToFleet>["OFF-PAGE: To Module 03\nFleet Management (vehicles_page.html)"]
+    UserSelectAction -- Inspect Live Incident SOS --> Off_ToIncidents>["OFF-PAGE: To Module 07\nEmergency Incident Console"]
+    UserSelectAction -- Open Invoicing & Revenue --> Off_ToBilling>["OFF-PAGE: To Module 09\nInvoicing & Billing (billing.html)"]
+    UserSelectAction -- View Analytics & Reports --> Off_ToReports>["OFF-PAGE: To Module 18\nDigital Reporting & Graphs (report_page.html)"]
+
+    %% Hyperlinks
+    click Off_ToSched "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_ToFleet "./03_vehicle_fleet_and_inspection.mmd" "Open Module 03: Vehicles"
+    click Off_ToIncidents "./07_incidents_and_sos.mmd" "Open Module 07: Incidents"
+    click Off_ToBilling "./09_billing_and_invoicing.mmd" "Open Module 09: Billing"
+    click Off_ToReports "./18_digital_reporting.mmd" "Open Module 18: Reporting"

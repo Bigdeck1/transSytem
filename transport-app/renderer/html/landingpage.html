@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transport System | JRR Management Portal</title>
+
+  <!-- ✅ Secure Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/sidebar.css">
+  <!-- Dynamic page-specific CSS -->
+  <link id="page-style" rel="stylesheet" href="../css/dashboard.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+</head>
+<body>
+  <!-- Sidebar container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main content area -->
+  <div id="main-content"></div>
+
+  <!-- ✅ JS (always load after content for best performance) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/theme.js"></script>
+  <script src="../js/sidebarPaths.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>

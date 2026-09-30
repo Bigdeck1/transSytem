@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <title> Vishnu | DASHBOARD </title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       PREMIUM LOADING OVERLAY
+  ============================================================ -->
+  <div id="loading-overlay" class="visible">
+    <div class="loader"></div>
+    <p>Synchronizing Fleet Data...</p>
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SIDEBAR
+  ============================================================ -->
+  <div class="sidebar">
+    <div class="brand-small">
+      <div>
+        <img src="../../assets/VishnuuLogo.png" alt="JRR Logo" style="width:100%;height:100%;object-fit:contain;">
+      </div>
+      <h2><span id="welcomeTitle">VISHNUU</span></h2>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul id="menu-list">
+        <li><a href="dashboard.html" class="active"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+        </li>
+        <li><a href="employee_management.html"><i data-lucide="users"></i><span>Employees</span></a></li>
+        <li><a href="attendance_monitoring_page.html"><i data-lucide="calendar-check"></i><span>Attendance</span></a>
+        </li>
+        <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
+        <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
+        <li><a href="scheduling_page.html"><i data-lucide="map"></i><span>Dispatch</span></a></li>
+        <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
+        <li><a href="billing.html"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
+        <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
+        <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
+        <li><a href="tax_calculator_page.html"><i data-lucide="calculator"></i><span>Tax Calculator</span></a></li>
+        <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
+        <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle" id="theme-toggle">
+        <span>Mode</span>
+        <i data-lucide="sun" id="theme-icon" size="16"></i>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar">AD</div>
+        <div class="admin-text">
+          <p class="name">Administrator</p>
+          <p class="email">admin@jrrtransport.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MAIN CONTENT
+  ============================================================ -->
+  <div class="main-content">
+
+    <!-- Page Header -->
+    <header class="header">
+      <div>
+        <h1>Operational Overview</h1>
+        <p>Telemetry and fleet management control.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="status-pill"
+          style="background:#DCFCE7;color:#15803D;padding:8px 16px;border-radius:99px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;">
+          <div style="width:8px;height:8px;background:#15803D;border-radius:50%;animation:pulse-ring 2s infinite;">
+          </div>
+          System Live
+        </div>
+        <div id="date-pill"
+          style="background:var(--card-bg);border:1px solid var(--border);padding:8px 16px;border-radius:99px;font-size:12px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+          <i data-lucide="calendar" size="13"></i>
+          <span id="current-date-label">Loading...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- KPI Stats -->
+    <section class="stats-grid" id="stats-section">
+      <!-- Injected by dashboard.js -->
+    </section>
+
+    <!-- Charts & Recent Dispatches -->
+    <div class="two-column">
+
+      <!-- Fleet Activity Chart -->
+      <div class="card" style="animation-delay:0.1s;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <div>
+            <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--primary-navy);">Fleet Activity</h2>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text-muted);">Dispatches & deliveries over time</p>
+          </div>
+          <select id="fleetActivityRange"
+            style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;background:var(--card-bg);color:var(--text-main);cursor:pointer;outline:none;">
+            <option value="7">Last 7 Days</option>
+            <option value="30">Last 30 Days</option>
+          </select>
+        </div>
+        <canvas id="fleetChart" height="220"></canvas>
+      </div>
+
+      <!-- Recent Dispatches -->
+      <div class="card" id="recent-trips" style="animation-delay:0.15s;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <div>
+            <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--primary-navy);">Recent Dispatches</h2>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text-muted);">Latest trip records</p>
+          </div>
+          <button id="viewAllTrips"
+            style="background:var(--info-bg);border:none;color:var(--primary-blue);font-weight:700;font-size:12px;cursor:pointer;padding:6px 14px;border-radius:8px;transition:var(--transition);"
+            onmouseover="this.style.background='var(--primary-blue)';this.style.color='white';"
+            onmouseout="this.style.background='var(--info-bg)';this.style.color='var(--primary-blue)';">
+            View All
+          </button>
+        </div>
+        <div id="trip-list">
+          <p style="color:var(--text-light);font-size:14px;text-align:center;padding:24px 0;">No recent dispatches.</p>
+        </div>
+      </div>
+
+    </div><!-- .two-column -->
+
+  </div><!-- .main-content -->
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/theme.js"></script>
+  <script src="../js/sidebarPaths.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/dashboard.js"></script>
+  <script>
+    lucide.createIcons();
+
+    // Set date pill
+    const d = new Date();
+    const opts = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+    document.getElementById('current-date-label').textContent = d.toLocaleDateString('en-US', opts);
+
+    async function initDashboardPage() {
+      const loader = document.getElementById('loading-overlay');
+      try {
+        if (typeof window.initDashboard === 'function') {
+          await window.initDashboard();
+        }
+      } catch (err) {
+        console.error('Dashboard error:', err);
+      } finally {
+        // Graceful dismiss with animation
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => {
+            loader.classList.remove('visible');
+            loader.style.opacity = '';
+          }, 450);
+        }
+      }
+    }
+
+    // Fail-safe auto-dismiss after 4 seconds
+    setTimeout(() => {
+      const loader = document.getElementById('loading-overlay');
+      if (loader && loader.classList.contains('visible')) {
+        loader.style.opacity = '0';
+        setTimeout(() => { loader.classList.remove('visible'); loader.style.opacity = ''; }, 450);
+      }
+    }, 4000);
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      initDashboardPage();
+    } else {
+      window.addEventListener('DOMContentLoaded', initDashboardPage);
+    }
+  </script>
+
+</body>
+
+</html>

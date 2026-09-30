@@ -1,0 +1,43 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 08: EN-ROUTE EXPENSES & FUEL MONITORING
+    %% =========================================================================
+
+    Start([Start: Driver incurs operational road expense]) --> Off_FromTransit>["OFF-PAGE: From Module 05 (In-Transit)"]
+
+    Off_FromTransit --> OpenExpForm[Action: Driver clicks 'Log Road Expense' on Mobile]
+    OpenExpForm --> RenderExpModal[/Display Expense Form Dialog/]
+
+    RenderExpModal --> In_ExpType[/Input: Select Expense Type: fuel, toll, maintenance, food, other/]
+    In_ExpType --> In_Amount[/Input: Enter Amount in PHP (e.g. 2,500.00)/]
+    In_Amount --> In_FuelLiters[/Input: If Fuel: Enter Liters & Current Odometer/]
+    In_FuelLiters --> In_ReceiptPhoto[/Input: Snap Photo of Paper Cash Receipt/]
+    In_ReceiptPhoto --> In_Notes[/Input: Fuel Station Name / Tollway Plaza Notes/]
+
+    In_Notes --> ClickSave[Action: Click 'Submit Expense' / POST /api/expenses/log]
+    ClickSave --> Sub_Validate[[Predefined Process: Expense Integrity Validator]]
+
+    Sub_Validate --> Dec_ValidAmount{Decision: Expense Type Selected & Amount >= 0?}
+    Dec_ValidAmount -- No --> Conn_Err1((E1))
+    Conn_Err1 --> Out_Err[/Display Alert: 'Expense type and non-negative amount required'/]
+    Out_Err --> RenderExpModal
+
+    Dec_ValidAmount -- Yes --> WriteExpense[(Database: INSERT INTO trip_expenses Table\ntrip_id, driver_id, vehicle_id, expense_type,\namount, liters, odometer, receipt_photo_url, notes)]
+
+    WriteExpense --> Conn_Summary((S1))
+    Conn_Summary --> Sub_FleetCalc[[Predefined Process: GET /api/expenses/fleet-summary]]
+
+    Sub_FleetCalc --> CalcTotals[Action: Compute Total Cost, Total Fuel Liters, Toll Amounts,\nAverage Fuel Price per Liter = Fuel Spent / Liters]
+
+    CalcTotals --> WriteLedger[(Database: Update Fleet Operating Ledger)]
+    WriteLedger --> Out_LoggedToast[/Display Toast: 'Expense Logged & Receipt Archived'/]
+
+    Out_LoggedToast --> Off_BillingInflow>["OFF-PAGE: To Module 09\nFeeds into Trip Operating Margins & Invoicing"]
+    Out_LoggedToast --> Off_ReportInflow>["OFF-PAGE: To Module 18\nIncluded in Monthly Fuel & Fleet Expense PDF/CSV Reports"]
+
+    Off_ReportInflow --> EndExp([Expense Registered & Audit Trail Updated])
+
+    %% Hyperlinks
+    click Off_FromTransit "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Live Tracking"
+    click Off_BillingInflow "./09_billing_and_invoicing.mmd" "Open Module 09: Billing & Invoicing"
+    click Off_ReportInflow "./18_digital_reporting.mmd" "Open Module 18: Digital Reporting"

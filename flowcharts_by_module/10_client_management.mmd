@@ -1,0 +1,40 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 10: CLIENT MANAGEMENT & CASCADE SAFETY
+    %% =========================================================================
+
+    Start([Start: Operations / Billing Officer registers client]) --> In_ClientData[/Input: Company Name, Contact Person, Email, Phone, Office Address/]
+    In_ClientData --> ClickSave[Action: Click 'Save Client' / POST /api/clients]
+    ClickSave --> Sub_Validate[[Predefined Process: Client Data Validator]]
+
+    Sub_Validate --> Dec_EmailValid{Decision: Name Provided & Email Regex Valid?}
+    Dec_EmailValid -- No --> Out_ErrFormat[/Display Error: 'Invalid email address or missing name'/] --> In_ClientData
+
+    Dec_EmailValid -- Yes --> CheckDupMail[(Database: SELECT id FROM clients WHERE email = input)]
+    CheckDupMail --> Dec_MailExists{Decision: Client Email Already Registered?}
+    Dec_MailExists -- Yes --> Out_ErrDup[/Display Error: 'A client with this email already exists'/] --> In_ClientData
+
+    Dec_MailExists -- No --> WriteClient[(Database: INSERT INTO clients Table)]
+    WriteClient --> Out_ClientCreated[/Display Toast: 'Client Profile Created Successfully'/]
+
+    Out_ClientCreated --> Conn_Handoff((H1))
+    Conn_Handoff --> Off_ToScheduling>["OFF-PAGE: To Module 04\nClient Available in Trip Dispatch Dropdown"]
+    Conn_Handoff --> Off_ToInvoicing>["OFF-PAGE: To Module 09\nClient Account Ready for Invoicing"]
+
+    %% Client Safe Deletion Cascade Workflow
+    DelTrigger([Delete Request: DELETE /api/clients/:id]) --> Sub_CascadeCheck[[Predefined Process: Financial & Trip Guard]]
+
+    Sub_CascadeCheck --> CheckInvoices[(Database: SELECT id FROM invoices WHERE client_id = id AND status IN Unpaid/Pending)]
+    CheckInvoices --> Dec_UnpaidInv{Decision: Client Has Unpaid Invoices?}
+    Dec_UnpaidInv -- Yes --> Out_BlockInv[/Display Error: 'Cannot delete: Client has unpaid invoices. Resolve them first.'/] --> EndBlocked([Deletion Blocked])
+
+    Dec_UnpaidInv -- No --> CheckTrips[(Database: SELECT id FROM trips WHERE client_id = id AND status IN active)]
+    CheckTrips --> Dec_ActiveTrips{Decision: Client Has Ongoing Deliveries In-Transit?}
+    Dec_ActiveTrips -- Yes --> Out_BlockTrip[/Display Error: 'Cannot delete: Client has active deliveries in transit.'/] --> EndBlocked
+
+    Dec_ActiveTrips -- No --> DeleteRow[(Database: DELETE FROM clients WHERE id = id)]
+    DeleteRow --> Out_DelOk[/Display Toast: 'Client Profile Safely Deleted'/] --> EndDeleted([Client Record Removed])
+
+    %% Hyperlinks
+    click Off_ToScheduling "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_ToInvoicing "./09_billing_and_invoicing.mmd" "Open Module 09: Billing & Invoicing"

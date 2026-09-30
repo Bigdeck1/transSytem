@@ -1,0 +1,41 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 19: TAX PROJECTION & COMPENSATION SIMULATOR
+    %% =========================================================================
+
+    Start([Start: HR / Accountant opens tax_calculator_page.html]) --> In_Salary[/Input: Enter Prospective Monthly Basic Salary & Allowances/]
+    In_Salary --> ClickSimulate[Action: Click 'Simulate Compensation & Deductions']
+
+    ClickSimulate --> Sub_GrossSim[[Predefined Process: Compute Projected Gross Pay]]
+    Sub_GrossSim --> CalcGross[Action: Gross = Basic Salary + Allowances]
+
+    %% Real-time Statutory Computation
+    CalcGross --> Sub_StatutorySim[[Predefined Process: Real-time Statutory Engine]]
+    
+    Sub_StatutorySim --> SimSSS[Action: Match Philippine SSS Monthly Salary Credit Bracket\nCompute Employee & Employer Contribution]
+    Sub_StatutorySim --> SimPhil[Action: Compute PhilHealth 5% Premium Split (2.5% Employee Share)]
+    Sub_StatutorySim --> SimPagIBIG[Action: Apply Pag-IBIG HDMF Statutory Contribution (PHP 200.00)]
+
+    SimSSS & SimPhil & SimPagIBIG --> SumDeductions[Action: Total Statutory Deductions = SSS + PhilHealth + Pag-IBIG]
+
+    %% Withholding Tax Calculation
+    SumDeductions --> CalcTaxableBase[Action: Taxable Income = Gross - Total Statutory Deductions]
+    CalcTaxableBase --> EvaluateTRAINBracket{Decision: Evaluate BIR TRAIN Law Graduated Brackets}
+
+    EvaluateTRAINBracket -- Salary <= 20,833.33/mo --> TaxExempt[Withholding Tax = PHP 0.00 (Exempt)]
+    EvaluateTRAINBracket -- 20,833.34 to 33,333.33 --> Tax15[Withholding Tax = 15% of excess over 20,833.33]
+    EvaluateTRAINBracket -- 33,333.34 to 66,666.67 --> Tax20[Withholding Tax = PHP 1,875.00 + 20% of excess]
+    EvaluateTRAINBracket -- 66,666.68 to 166,666.67 --> Tax25[Withholding Tax = PHP 8,541.80 + 25% of excess]
+    EvaluateTRAINBracket -- > 166,666.67 --> TaxUpper[Higher Graduated BIR Brackets 30% / 35%]
+
+    TaxExempt & Tax15 & Tax20 & Tax25 & TaxUpper --> ComputeNet[Action: Net Take-Home Pay = Gross - (Statutory Deductions + Withholding Tax)]
+
+    ComputeNet --> RenderCharts[Action: Render Real-Time Fiscal Breakdown & Deductions Pie Chart]
+    RenderCharts --> Out_FiscalCards[/Display: Gross Salary, SSS Share, PhilHealth, Pag-IBIG, Tax Withheld, Net Take-Home Pay/]
+
+    Out_FiscalCards -. Ready to Apply to Official Payroll .-> Off_ToPayroll>["OFF-PAGE: To Module 12\nApply Configured Brackets to Active Payroll Engine"]
+
+    Off_ToPayroll --> EndSim([Tax Projection Simulation Complete])
+
+    %% Hyperlinks
+    click Off_ToPayroll "./12_payroll_and_tax.mmd" "Open Module 12: Payroll Engine"

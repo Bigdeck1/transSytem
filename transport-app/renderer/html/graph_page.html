@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <title>Vishnuu | Insights & Analytics</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap&family=Inter:wght@400;500;600"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/shared.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    .analytics-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .chart-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-md);
+      transition: var(--transition);
+    }
+
+    .chart-card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    .chart-card h2 {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0 0 4px;
+      color: var(--text-main);
+    }
+
+    .chart-card .chart-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .charts-row-equal {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .chart-canvas-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .dept-card {
+      background: var(--card-bg-solid);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      transition: var(--transition);
+    }
+
+    .dept-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(99, 102, 241, 0.2);
+    }
+
+    .dept-card h3 {
+      font-weight: 800;
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    @media (max-width: 1100px) {
+
+      .charts-row,
+      .charts-row-equal {
+        grid-template-columns: 1fr;
+      }
+
+      .analytics-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="visible">
+    <div class="loader"></div>
+    <p>Generating Intelligence Reports...</p>
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand-small" style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+      <div
+        style="background: white; padding: 4px; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+        <img src="../../assets/VishnuuLogo.png" alt="JRR Logo" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <h2 <span id="welcomeTitle">VISHNUU</span></h2>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul id="menu-list">
+        <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+        <li><a href="employee_management.html"><i data-lucide="users"></i><span>Employees</span></a></li>
+        <li><a href="attendance_monitoring_page.html"><i data-lucide="calendar-check"></i><span>Attendance</span></a>
+        </li>
+        <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
+        <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
+        <li><a href="scheduling_page.html"><i data-lucide="map"></i><span>Dispatch</span></a></li>
+        <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
+        <li><a href="billing.html"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
+        <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
+        <li><a href="graph_page.html" class="active"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
+        <li><a href="tax_calculator_page.html"><i data-lucide="calculator"></i><span>Tax Calculator</span></a></li>
+        <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
+        <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle" id="theme-toggle">
+        <span>Mode</span>
+        <i data-lucide="sun" id="theme-icon" size="16"></i>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar">AD</div>
+        <div class="admin-text">
+          <p class="name">Administrator</p>
+          <p class="email">admin@jrrtransport.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Operational Intelligence</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">Real-time analytics powered by billing, attendance, and
+          operational data.</p>
+      </div>
+    </header>
+
+    <!-- KPI SUMMARY CARDS -->
+    <div class="analytics-kpi-grid" id="kpiGrid">
+      <div class="stat-card stagger-1">
+        <div class="stat-label" style="color: var(--success);">TOTAL REVENUE</div>
+        <div class="stat-value" id="kpiRevenue" style="color: var(--success);">₱0</div>
+        <div class="stat-subtitle">From billing invoices</div>
+      </div>
+      <div class="stat-card stagger-2">
+        <div class="stat-label" style="color: var(--error);">TOTAL PAYROLL</div>
+        <div class="stat-value" id="kpiPayroll" style="color: var(--error);">₱0</div>
+        <div class="stat-subtitle">Employee costs</div>
+      </div>
+      <div class="stat-card stagger-3">
+        <div class="stat-label" style="color: var(--primary);">PROFIT MARGIN</div>
+        <div class="stat-value" id="kpiProfit" style="color: var(--primary);">₱0</div>
+        <div class="stat-subtitle" id="kpiProfitPct">0% margin</div>
+      </div>
+      <div class="stat-card stagger-4">
+        <div class="stat-label" style="color: var(--accent);">ACTIVE EMPLOYEES</div>
+        <div class="stat-value" id="kpiEmployees" style="color: var(--accent);">0</div>
+        <div class="stat-subtitle">Total headcount</div>
+      </div>
+    </div>
+
+    <!-- ROW 1: Revenue Trend + Expense Breakdown -->
+    <div class="charts-row">
+      <div class="chart-card animate-slideUp stagger-1">
+        <h2>Revenue Trend</h2>
+        <p class="chart-subtitle">Monthly billing income over the last 6 months.</p>
+        <div class="chart-canvas-wrapper" style="height: 300px;">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card animate-slideUp stagger-2">
+        <h2>Expense Distribution</h2>
+        <p class="chart-subtitle">Cost breakdown by category.</p>
+        <div class="chart-canvas-wrapper" style="height: 300px;">
+          <canvas id="expenseChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: Employee Working Hours + Trip Status -->
+    <div class="charts-row-equal">
+      <div class="chart-card animate-slideUp stagger-3">
+        <h2>Employee Working Hours</h2>
+        <p class="chart-subtitle">Individual working time trends from attendance records.</p>
+        <div class="chart-canvas-wrapper" style="height: 320px;">
+          <canvas id="employeeHoursChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card animate-slideUp stagger-4">
+        <h2>Invoice Status Overview</h2>
+        <p class="chart-subtitle">Current billing pipeline status.</p>
+        <div class="chart-canvas-wrapper" style="height: 320px;">
+          <canvas id="invoiceStatusChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEPT OVERVIEW -->
+    <div class="card" style="margin-top: 0;">
+      <h2 style="margin-bottom: 8px; font-size: 16px; font-weight: 800;">Departmental Cost Analysis</h2>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Resource allocation and cost metrics
+        per division.</p>
+      <div id="departmentGrid"
+        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+        <!-- Dynamic Grid Items -->
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/theme.js"></script>
+  <script src="../js/sidebarPaths.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/graph_page.js"></script>
+  <script>
+    lucide.createIcons();
+    window.addEventListener("load", () => {
+      const loader = document.getElementById("loading-overlay");
+      setTimeout(() => loader.classList.remove("visible"), 800);
+    });
+  </script>
+</body>
+
+</html>

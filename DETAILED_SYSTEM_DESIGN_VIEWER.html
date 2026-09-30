@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JRR Transport — System Design & Architecture Illustrations</title>
+  <!-- Google Fonts & Mermaid -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: #1f2937;
+      --border-color: #374151;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 320px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border-color);
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+
+    .sidebar-header h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-header .badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background-color: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      font-weight: 600;
+    }
+
+    .nav-list {
+      list-style: none;
+      padding: 16px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item a:hover {
+      background-color: var(--bg-card);
+      color: #fff;
+      transform: translateX(3px);
+    }
+
+    .nav-item a.active {
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%);
+      color: #60a5fa;
+      border-left: 3px solid var(--accent-blue);
+      font-weight: 600;
+    }
+
+    /* Main Content Area */
+    .content {
+      flex: 1;
+      padding: 40px 48px;
+      max-width: 1440px;
+      margin: 0 auto;
+      overflow-y: auto;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 40px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .header-banner h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .header-banner p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 900px;
+    }
+
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .stat-card {
+      background-color: rgba(31, 41, 55, 0.6);
+      border: 1px solid rgba(55, 65, 81, 0.8);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .stat-val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #60a5fa;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 48px;
+      scroll-margin-top: 30px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-tag {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-blue { background-color: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .tag-emerald { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-purple { background-color: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .tag-amber { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Diagram Container */
+    .diagram-viewport {
+      background-color: #0d131f;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: auto;
+      position: relative;
+      min-height: 380px;
+    }
+
+    .diagram-viewport .mermaid {
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Custom Table Styling */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.88rem;
+    }
+
+    .data-table th, .data-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table th {
+      background-color: rgba(31, 41, 55, 0.8);
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+
+    .data-table tr:hover {
+      background-color: rgba(31, 41, 55, 0.4);
+    }
+
+    .code-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background-color: rgba(15, 23, 42, 0.8);
+      border: 1px solid #334155;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #38bdf8;
+    }
+
+    /* Floating Tooltip / Controls */
+    .viewport-controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .btn-ctrl {
+      background-color: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-ctrl:hover {
+      background-color: var(--accent-blue);
+      color: #fff;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: static; }
+      .content { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h4m4 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0m6 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0m0 0h2v-6a3 3 0 0 0-3-3h-3V5a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h2"/></svg>
+        JRR Transport
+      </h1>
+      <span class="badge">Architecture & Illustrations</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#master-topology" class="active">1. 5-Tier Master Topology</a></li>
+      <li class="nav-item"><a href="#network-ingress">2. Network & Zero-Trust Ingress</a></li>
+      <li class="nav-item"><a href="#operational-lifecycle">3. End-to-End Operational Lifecycle</a></li>
+      <li class="nav-item"><a href="#auth-subsystem">4. Identity & Dual-Store Auth</a></li>
+      <li class="nav-item"><a href="#tms-dispatch">5. Omnichannel TMS Dispatch</a></li>
+      <li class="nav-item"><a href="#fleet-safety">6. Fleet Safety & PMS Schedule</a></li>
+      <li class="nav-item"><a href="#milestone-webhooks">7. 5-Stage Milestone Webhooks</a></li>
+      <li class="nav-item"><a href="#mobile-epod">8. Mobile Driver Suite & e-POD</a></li>
+      <li class="nav-item"><a href="#payroll-engine">9. Philippine TRAIN Payroll</a></li>
+      <li class="nav-item"><a href="#database-erd">10. Master Database ERD</a></li>
+      <li class="nav-item"><a href="#deployment-topology">11. Deployment Blueprint</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="content">
+
+    <!-- Header Banner -->
+    <header class="header-banner">
+      <h1>System Architecture & Live Visual Illustrations</h1>
+      <p>
+        Interactive visual design specification for the <strong>JRR Transport Logistics Management System</strong>.
+        All diagrams below are rendered dynamically using high-definition vector graphics.
+      </p>
+      <div class="quick-stats">
+        <div class="stat-card">
+          <div class="stat-val">5 Tiers</div>
+          <div class="stat-label">System Architecture</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">18 Tables</div>
+          <div class="stat-label">PostgreSQL Cloud DB</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">45+ Routes</div>
+          <div class="stat-label">Express REST API</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">100%</div>
+          <div class="stat-label">Deterministic Conflict Lock</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: Master Topology -->
+    <section id="master-topology" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">1. Master System Architecture (5-Tier Topology)</h2>
+          <p class="section-desc">Interconnection of Desktop Admin (Electron), Field Mobile App (React Native), Public Web, Edge Ingress, Express Backend, and Cloud Persistence.</p>
+        </div>
+        <span class="section-tag tag-blue">Core Architecture</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+graph TB
+    subgraph Tier1 ["Tier 1: Multi-Platform Presentation & Client Hubs"]
+        AdminApp["Desktop Admin Command Hub<br/>(Electron v28 / Native Web)<br/>• Executive Command (dashboard.html)<br/>• Staff Duty Board (status_page.html)<br/>• Business Intelligence (graph_page.html)<br/>• Fleet Dispatcher (scheduling_page.html)"]
+        MobileApp["Native Mobile Driver Suite<br/>(React Native / Expo Router v3)<br/>• Geofenced GPS Timecard (attendance.tsx)<br/>• Active Waypoint Manifest (trips.tsx)<br/>• Canvas e-POD & Camera Proof<br/>• SOS Panic Alarm & Road Defect Logger"]
+        CustomerWeb["Customer Web & Consignee Portal<br/>(transport_web_site & public_track.html)<br/>• Self-Service Vehicle Booking & Pricing<br/>• Public Tracking with Live GPS Marker"]
+    end
+
+    subgraph Tier2 ["Tier 2: Edge Ingress & Network Proxy Tier"]
+        CFTunnel["Cloudflare Zero-Trust Edge Tunnel<br/>(cloudflared.exe QUIC / TLS 1.3)<br/>• Dynamic Public Ingress (*.trycloudflare.com)<br/>• Reverse Proxy to Localhost:3000<br/>• Zero Public Port Forwarding"]
+    end
+
+    subgraph Tier3 ["Tier 3: Application & Telematics API Engine (Express.js / Node 18+)"]
+        API_Auth["Auth & Security Router (/api/auth)<br/>• Dual-Store Validation<br/>• 5-Attempt Rate Limiting<br/>• 3-Stage 6-Digit OTP Recovery"]
+        API_TMS["TMS & Dispatch Router (/api/trips, /api/tracking)<br/>• Dual-Leg OSRM Route Calculator<br/>• Multi-Stop TMS Manifest (trip_stops)<br/>• Contract Rate Cards & Conflict Lock"]
+        API_Fleet["Fleet Safety & Assets (/api/vehicles)<br/>• 12-Point Inspection Lock<br/>• Preventive Maintenance Schedule (PMS)"]
+        API_Field["Field Telematics & Safety (/api/epod, /api/incidents, /api/expenses)<br/>• Touch Canvas Signatures & Cargo Photos<br/>• SOS Siren Broadcast & Audio Alarm (/alarm)"]
+        API_Finance["Finance & Workforce (/api/billing, /api/payroll, /api/requests)<br/>• Sequential Invoice Engine (INV-YYYY-XXXX)<br/>• PH BIR TRAIN Law, SSS, PhilHealth, Pag-IBIG"]
+        Svc_Webhook["Notification Dispatcher (notificationWebhook.ts)<br/>• 5-Stage Milestone Customer Emails<br/>• Direct Google Maps Navigation Links"]
+    end
+
+    subgraph Tier4 ["Tier 4: Cloud Data & Realtime Tier (Supabase Cloud)"]
+        Supa_Auth["Supabase GoTrue Auth<br/>(JWT Token Validation)"]
+        Supa_DB[("PostgreSQL 15 Cloud Database<br/>• 18 Normalized Domain Tables<br/>• Row Level Security (RLS)<br/>• Stored Procedures & Triggers")]
+        Supa_Realtime["Supabase Realtime Engine<br/>(WAL WebSocket Broadcast)"]
+        Supa_Storage["Supabase Storage Buckets<br/>(e-POD Signatures, Photos, Receipts)"]
+    end
+
+    subgraph Tier5 ["Tier 5: External Microservices & Gateways"]
+        Ext_OSRM["OSRM OpenStreetMap Engine<br/>(Road Geometry & Dual-Leg Km)"]
+        Ext_SMTP["SMTP / NodeMailer Mail Server<br/>(HTML Milestone Emails & Payslips)"]
+        Ext_Expo["Expo Push Gateway<br/>(APNS / FCM Mobile Alerts)"]
+    end
+
+    AdminApp --> Tier3
+    MobileApp --> CFTunnel
+    CustomerWeb --> CFTunnel
+    CFTunnel --> Tier3
+
+    API_Auth --> Supa_Auth
+    API_Auth --> Supa_DB
+    API_Auth --> Ext_SMTP
+
+    API_TMS --> Ext_OSRM
+    API_TMS --> Supa_DB
+
+    API_Fleet --> Supa_DB
+    API_Field --> Supa_DB
+    API_Field --> Supa_Storage
+
+    API_Finance --> Supa_DB
+    API_Finance --> Ext_SMTP
+
+    Svc_Webhook --> Ext_SMTP
+    Svc_Webhook --> Ext_Expo
+
+    Supa_DB --> Supa_Realtime
+    Supa_Realtime --> AdminApp
+    Supa_Realtime --> MobileApp
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: Network Ingress -->
+    <section id="network-ingress" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">2. Network Topology & Zero-Trust Ingress</h2>
+          <p class="section-desc">Encrypted boundary isolation, Cloudflare QUIC tunneling, and Electron IPC context isolation.</p>
+        </div>
+        <span class="section-tag tag-purple">Security & Network</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+flowchart LR
+    subgraph PublicInternet ["Public Internet"]
+        MobileDriver["Driver Mobile App<br/>(Cellular 4G/5G)"]
+        WebCustomer["Customer Browser<br/>(Booking & Tracking)"]
+    end
+
+    subgraph CloudflareEdge ["Cloudflare Global Anycast Edge"]
+        CF_Edge["Cloudflare Edge Tunnel<br/>(*.trycloudflare.com)<br/>• TLS 1.3 Termination<br/>• DDoS Shield<br/>• QUIC Transport"]
+    end
+
+    subgraph InternalPerimeter ["Host Machine / On-Premise"]
+        CF_Daemon["cloudflared.exe Agent"]
+        LocalHost["Express.js Server<br/>0.0.0.0:3000<br/>• Dynamic CORS Whitelist<br/>• In-Memory Rate Limiter"]
+        AdminGUI["Electron Desktop App<br/>(Context-Isolated Preload)"]
+    end
+
+    subgraph CloudVPC ["Supabase Cloud VPC (AWS ap-southeast-1)"]
+        Postgres[("PostgreSQL 15 DB")]
+        GoTrue["GoTrue Auth Service"]
+        Storage["S3-Compatible Storage"]
+    end
+
+    MobileDriver -->|HTTPS / 443| CF_Edge
+    WebCustomer -->|HTTPS / 443| CF_Edge
+    CF_Edge <-->|Outbound QUIC Tunnel| CF_Daemon
+    CF_Daemon -->|HTTP :3000| LocalHost
+    AdminGUI -->|IPC Bridge & Loopback| LocalHost
+
+    LocalHost -->|TLS / 5432| Postgres
+    LocalHost -->|HTTPS / REST| GoTrue
+    LocalHost -->|HTTPS / S3| Storage
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: End-to-End Operational Lifecycle -->
+    <section id="operational-lifecycle" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">3. End-to-End Operational Lifecycle & Master State Machine</h2>
+          <p class="section-desc">The complete shipment lifecycle from booking ingestion to telematics, e-POD, and Philippine payroll settlement.</p>
+        </div>
+        <span class="section-tag tag-emerald">Lifecycle State Machine</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --> OrderIngestion: Customer Web Booking OR Dispatcher Scheduling
+    
+    state OrderIngestion {
+        [*] --> DraftOrder
+        DraftOrder --> VolumetricEstimation: Compute Dimensions & Weight
+        VolumetricEstimation --> OSRMRouting: Compute Dual-Leg Geometry
+        OSRMRouting --> RateCardCalculation: Apply Base Fare + Per-Km + Stop Surcharges
+        RateCardCalculation --> ResourceAssignment: Select Driver & Vehicle
+    }
+
+    OrderIngestion --> AssetConflictCheck: Validate Driver & Vehicle Availability
+    
+    state AssetConflictCheck {
+        [*] --> CheckStatus
+        CheckStatus --> ConflictDetected: Driver or Vehicle != 'available'
+        ConflictDetected --> ResourceAssignment: Re-select Resources
+        CheckStatus --> PreTripInspection: Resources Available
+    }
+
+    state PreTripInspection {
+        [*] --> VehicleChecklist
+        VehicleChecklist --> SafetyLock: Critical Failure in 12-point Assessment
+        SafetyLock --> [*]: Vehicle Marked 'maintenance'
+        VehicleChecklist --> Scheduled: Assessment Passed
+    }
+
+    Scheduled --> InTransit: Driver taps 'Start Trip' in Mobile App
+
+    state InTransit {
+        [*] --> TelematicsStreaming: 10s Live GPS Pings
+        TelematicsStreaming --> Approaching: Driver within 15 min radius
+        TelematicsStreaming --> WaypointArrival: Arrive at Stop (trip_stops)
+        WaypointArrival --> WaypointDelivery: Complete Stop e-POD
+        WaypointDelivery --> TelematicsStreaming: Next Waypoint
+        TelematicsStreaming --> IncidentOccurred: SOS Panic or Road Breakdown
+        IncidentOccurred --> EmergencyProtocol: Admin Siren Alert Triggered
+        EmergencyProtocol --> TelematicsStreaming: Resume Transit
+    }
+
+    InTransit --> Delivered: Recipient Signs Touch Canvas e-POD + Gate Photo
+    InTransit --> FailedDelivery: Consignee Absent / Delivery Refused
+
+    Delivered --> Settlement: Auto-Release Driver & Vehicle to 'available'
+    FailedDelivery --> Settlement: Auto-Release Driver & Vehicle to 'available'
+
+    state Settlement {
+        [*] --> Invoicing: Generate Sequential INV-YYYY-XXXX
+        Invoicing --> PaymentReceived: Client Remits Payment
+        [*] --> PayrollSettlement: Compute Hours Worked (calcHours)
+        PayrollSettlement --> TRAINStatutory: Deduct SSS, PhilHealth, Pag-IBIG & Tax
+        TRAINStatutory --> FinalizePaychecks: Deliver HTML Payslips via SMTP
+    }
+
+    Settlement --> [*]
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: Identity & Auth -->
+    <section id="auth-subsystem" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">4. Identity, Dual-Store Authentication & 3-Stage OTP Recovery</h2>
+          <p class="section-desc">Dual-store validation, brute-force rate-limiting, 30-min inactivity guards, and 3-stage password recovery.</p>
+        </div>
+        <span class="section-tag tag-blue">Identity & Security</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Employee / Admin
+    participant UI as Login Screen (index.html)
+    participant Guard as Session Guard (auth_guard.js)
+    participant Router as Auth Router (/api/auth)
+    participant SupaAuth as Supabase GoTrue Auth
+    participant DB as Postgres (users / employees)
+    participant SMTP as SMTP Mail Server
+
+    User->>UI: Enter email/username & password
+    UI->>Router: POST /api/auth/login
+    
+    alt Super Admin Master Bypass
+        Note over Router: Check: admin / admin@jrr.com + admin
+        Router-->>UI: Return HTTP 200: role = 'super_admin'
+    end
+
+    alt Rate Limit Exceeded
+        Note over Router: 5 failed attempts in 15 mins
+        Router-->>UI: Return HTTP 429: Account locked
+    end
+
+    Router->>SupaAuth: signInWithPassword({ email, password })
+    
+    alt Supabase Auth Succeeds
+        Router->>DB: Query users table
+        alt Account Approved & Active
+            Router->>DB: Query employees table
+            Router-->>UI: Return HTTP 200: Session Token + Profile
+        else Pending Approval / Unverified
+            Router-->>UI: Return HTTP 403: Forbidden
+        end
+    else Supabase Auth Fails (Offline / Legacy)
+        Router->>DB: Fallback Query users table
+        alt User Record Matches
+            Router-->>UI: Return HTTP 200: User Record Session
+        else Invalid Credentials
+            Router-->>UI: Return HTTP 401: Invalid Credentials
+        end
+    end
+
+    UI->>Guard: Store session in localStorage
+    Guard->>Guard: Listen to user interactions (30-min idle timer)
+
+    Note over User, SMTP: 3-Stage OTP Password Recovery
+    User->>UI: Request password reset
+    UI->>Router: POST /api/auth/send-recovery-code
+    Router->>SMTP: Dispatches 6-digit OTP email (15-min expiry)
+    User->>UI: Submit 6-digit OTP
+    UI->>Router: POST /api/auth/verify-recovery-code
+    Router-->>UI: Code Verified
+    User->>UI: Input New Password
+    UI->>Router: POST /api/auth/update-password-with-code
+    Router->>DB: UPDATE users SET password = ?
+    Router->>SupaAuth: Sync Supabase GoTrue Auth
+    Router-->>UI: Reset Success
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: TMS Dispatch -->
+    <section id="tms-dispatch" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">5. Omnichannel Order Inflow, TMS Dispatch & Dynamic Pricing</h2>
+          <p class="section-desc">Customer web self-service, commercial dispatching, OSRM dual-leg routing, volumetric calculations, and contract rate cards.</p>
+        </div>
+        <span class="section-tag tag-amber">TMS & Logistics</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+flowchart TD
+    subgraph Channels ["Order Channels"]
+        WebOrder["Customer Web Booking<br/>(booking.html)"]
+        DispOrder["Commercial Dispatcher<br/>(scheduling_page.html)"]
+    end
+
+    WebOrder --> WebAPI["api.php Proxy"]
+    WebAPI --> CheckClient{Client Phone Exists?}
+    CheckClient -- No --> CreateClient[("Insert clients Table")]
+    CheckClient -- Yes --> UpdateClient[("Update clients Record")]
+    CreateClient & UpdateClient --> CreateWebTrip[("Insert trips (TRP-WEB-...)")]
+
+    DispOrder --> InputCoords[/Select Origin, Pickup & Delivery Locations/]
+    InputCoords --> OSRM["POST /api/tracking/estimate-route<br/>(OSRM Engine)"]
+    OSRM --> DualLeg["Dual-Leg Calculation:<br/>• Leg 1: HQ -> Pickup<br/>• Leg 2: Pickup -> Delivery"]
+    
+    DualLeg --> PkgCalc["POST /api/tracking/estimate-package<br/>Volumetric: (L*W*H)/5000"]
+    PkgCalc --> RateCards["Query client_rate_cards"]
+    RateCards --> DynamicPrice["Calculate Dynamic Fare:<br/>Base + (Distance * Rate) + (Stops * Surcharge)"]
+
+    DynamicPrice --> ConflictCheck{Resource Conflict Check}
+    ConflictCheck -- Driver / Vehicle Busy --> Reject[Reject HTTP 400: Resource Unavailable]
+    ConflictCheck -- Resources Clear --> InsertTrip[("Insert trips Table<br/>status: 'scheduled'")]
+
+    InsertTrip --> CheckWaypoints{Multi-Stop Delivery?}
+    CheckWaypoints -- Yes --> InsertStops[("Insert trip_stops Table<br/>(stop_sequence 1..N)")]
+    CheckWaypoints -- No --> LockAssets
+
+    InsertStops --> LockAssets
+    CreateWebTrip --> LockAssets
+
+    LockAssets[("UPDATE employees & vehicles<br/>status = 'in-use'")]
+    LockAssets --> Milestone1["Dispatch Milestone 1 Email<br/>(ORDER BOOKED)"]
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: Fleet Safety & PMS -->
+    <section id="fleet-safety" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">6. Fleet Safety Quarantine, 12-Point Inspection & PMS Engine</h2>
+          <p class="section-desc">Reactive physical inspection locks, preventive maintenance schedules, and live telemetry streaming.</p>
+        </div>
+        <span class="section-tag tag-emerald">Fleet & Assets</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+flowchart TD
+    subgraph Reactive_Safety ["Reactive Safety: 12-Point Pre-Trip Inspection"]
+        DepotVehicle([Vehicle in Depot]) --> DriverInspect[Driver Performs 12-Point Audit]
+        DriverInspect --> FillForm[/Check Odometer, Fuel %, Brakes, Tires, Lights, Fluids/]
+        FillForm --> PostAssessment[POST /api/vehicles/assessments]
+        PostAssessment --> InsertAssess[("Insert vehicle_assessments Table")]
+        
+        InsertAssess --> CheckFail{Critical Defect OR status == 'failed'?}
+        CheckFail -- Yes --> AutoLock[("UPDATE vehicles SET status = 'maintenance'")]
+        AutoLock --> DispatchLockout([Vehicle Locked from Dispatch])
+        
+        DispatchLockout --> WorkshopRepair[Workshop Completes Repairs]
+        WorkshopRepair --> PostClear[POST /api/vehicles/:id/clear-maintenance]
+        PostClear --> AutoRelease[("UPDATE vehicles SET status = 'available'")]
+        
+        CheckFail -- No --> AutoRelease
+    end
+
+    subgraph Proactive_PMS ["Proactive Safety: Preventive Maintenance Schedules (PMS)"]
+        PMS_Table[("maintenance_schedules Table")] --> TrackService[/Track: engine_oil, tire_rotation, brake_pads, battery/]
+        TrackService --> CompareOdo{Current Odometer vs next_due_odo}
+        
+        CompareOdo -- Odometer >= next_due_odo --> MarkOverdue[Set status = 'overdue'<br/>Trigger Maintenance Alert]
+        CompareOdo -- Within 500 km --> MarkDueSoon[Set status = 'due_soon']
+        CompareOdo -- Distance Safe --> MarkHealthy[Set status = 'healthy']
+        
+        MarkOverdue --> AutoLock
+    end
+
+    subgraph Telematics_Stream ["Continuous Telematics Ingest"]
+        MobileGPS([Driver Mobile App]) --> PostGPS[POST /api/tracking/driver-location]
+        PostGPS --> UpsertLoc[("UPSERT driver_locations Table")]
+        UpsertLoc --> RadarMap[Render Live Markers on Fleet Radar]
+    end
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7: 5-Stage Milestone Webhooks -->
+    <section id="milestone-webhooks" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">7. 5-Stage Customer Milestone Webhooks & Consignee Self-Service</h2>
+          <p class="section-desc">Automated HTML status notifications with driver credentials, live coordinates, and direct Google Maps tracking links.</p>
+        </div>
+        <span class="section-tag tag-blue">Customer Experience</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --> Booked: Dispatcher or Web creates trip
+    
+    Booked --> InTransit: Driver taps 'Start Trip'
+    note right of Booked
+        Milestone Email 1: ORDER BOOKED
+        Tracking Code & Pickup/Delivery ETA
+    end note
+
+    InTransit --> Approaching: Driver within 15 mins radius
+    note right of InTransit
+        Milestone Email 2: OUT FOR DELIVERY
+        Driver details, live GPS, speed,
+        and direct Google Maps link
+    end note
+
+    Approaching --> Delivered: Recipient signs e-POD
+    note right of Approaching
+        Milestone Email 3: ARRIVING SOON
+        Please prepare authorized signatory
+    end note
+
+    Approaching --> Failed: Recipient absent / refused
+    InTransit --> Failed: Road blocked / breakdown
+
+    note right of Failed
+        Milestone Email 5: DELIVERY ATTEMPTED
+        Logs failure reason and return tracking
+    end note
+
+    Delivered --> [*]: Driver & Vehicle released to 'available'
+    note right of Delivered
+        Milestone Email 4: DELIVERED ✓
+        Attaches signatory name and e-POD photo
+    end note
+
+    Failed --> [*]: Returned to Depot
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 8: Mobile Driver Suite & e-POD -->
+    <section id="mobile-epod" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">8. Native Mobile Driver App Lifecycle, e-POD & SOS Panic Engine</h2>
+          <p class="section-desc">Shift clock-in, live GPS streaming, road expense logging, SOS emergency alarm broadcast, and touch canvas e-POD.</p>
+        </div>
+        <span class="section-tag tag-purple">Mobile Field Operations</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Driver as Driver Field Staff
+    participant App as Mobile App (React Native / Expo)
+    participant API as Express API (:3000)
+    participant DB as Postgres Database
+    participant AdminUI as Admin Radar & Audio Siren
+
+    Note over App: App Initialization & Push Token Registration
+    App->>API: POST /api/notifications/device-token
+    API->>DB: UPSERT device_tokens
+
+    Note over Driver, App: Shift Start & Timecard Clock-In
+    Driver->>App: Tap 'Clock In'
+    App->>API: POST /api/requests/attendance
+    API->>DB: Insert attendance record
+
+    Note over Driver, App: Active Transit & Real-Time Tracking
+    Driver->>App: Open Active Trip Manifest
+    Driver->>App: Tap 'Start Trip'
+    App->>API: PATCH /api/trips/:id/status ('in transit')
+    
+    loop Every 10 Seconds
+        App->>API: POST /api/tracking/driver-location (lat, lng, speed, heading)
+        API->>DB: UPSERT driver_locations
+    end
+
+    opt Road Toll or Fuel Refill Incurred
+        Driver->>App: Submit Expense (type, amount, liters, odometer, photo)
+        App->>API: POST /api/expenses/log
+        API->>DB: Insert trip_expenses
+    end
+
+    opt Road Emergency / SOS Panic Event
+        Driver->>App: Tap Red SOS Panic Button
+        App->>API: POST /api/incidents/report (severity: 'sos')
+        API->>DB: Insert incident_reports & notifications
+        API->>AdminUI: Broadcast /alarm -> Play Siren & Flash Red Marker
+    end
+
+    Note over Driver, App: Destination e-POD Handover
+    Driver->>App: Tap 'Complete Delivery'
+    Driver->>App: Collect Signatory Name, Digital Canvas Signature & Gate Photo
+    App->>API: POST /api/epod/submit
+    API->>DB: UPDATE trips (status = 'delivered', pod_recipient_name, pod_signature_data)
+    API->>DB: UPDATE employees & vehicles (status = 'available')
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 9: Philippine TRAIN Payroll -->
+    <section id="payroll-engine" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">9. Invoicing, Workforce Attendance & Philippine Enterprise Payroll Engine</h2>
+          <p class="section-desc">Shift hour computation via calcHours, statutory SSS, PhilHealth, Pag-IBIG HDMF, and BIR TRAIN Law withholding tax.</p>
+        </div>
+        <span class="section-tag tag-emerald">Finance & Compliance</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+flowchart TD
+    subgraph Attendance_And_Leave ["Attendance & Leave Management"]
+        ClockInOut([Daily Clock-In / Out]) --> AttRecord[("attendance Table")]
+        LeaveReq([Submit Leave Request]) --> LeaveTable[("time_off_requests Table")]
+        LeaveTable --> MgrApproval{Manager Review}
+        MgrApproval -- Approve --> SetApproved[status = 'Approved']
+        MgrApproval -- Deny --> SetDenied[status = 'Denied']
+        
+        RecalcCron[POST /api/requests/recalculate-statuses] --> EvalDates{Current Date vs Leave Range}
+        EvalDates -- Within range --> SetOngoing[status = 'Ongoing']
+        EvalDates -- Past end date --> SetCompleted[status = 'Completed']
+    end
+
+    subgraph Payroll_Engine ["Enterprise Payroll & TRAIN Law Engine"]
+        Officer([Payroll Officer Opens Management Page]) --> SelectPeriod[/Select Month: YYYY-MM/]
+        SelectPeriod --> FetchAttData[GET /api/payroll/monthly-all]
+        FetchAttData --> ComputeHours["Compute Effective Hours:<br/>calcHours(check_in, check_out)<br/>Daily Earned = daily_rate * min(hours / 8.0, 1.0)"]
+        
+        ComputeHours --> ApplyStatutory["Compute Statutory Deductions:<br/>• SSS Contribution Table<br/>• PhilHealth (5% Monthly Split)<br/>• Pag-IBIG HDMF (Php 100/200)"]
+        
+        ApplyStatutory --> ApplyTRAIN["Apply BIR TRAIN Law Graduated Tax:<br/>Taxable Base = Gross - Statutory Deductions<br/>Compute Withholding Tax"]
+        
+        ApplyTRAIN --> ComputeNetPay["Compute Final Net Take-Home Pay"]
+        ComputeNetPay --> MailPayslip[POST /api/payroll/send-payslip<br/>Dispatches HTML Payslip via SMTP]
+        ComputeNetPay --> FinalizePeriod[POST /api/payroll/finalize<br/>Inserts into paychecks Table]
+    end
+
+    subgraph Accounts_Receivable ["Billing & Invoicing"]
+        TripCompleted([Trip Status = 'delivered']) --> FetchNextNum[GET /api/billing/last-number]
+        FetchNextNum --> FormatInvoiceNum[Format Code: INV-YYYY-XXXX]
+        FormatInvoiceNum --> InsertInvoice[POST /api/billing]
+        InsertInvoice --> InvoicesTable[("Insert invoices Table")]
+        InvoicesTable --> ClientPays[Client Remits Payment -> Mark 'Paid']
+    end
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 10: Database ERD -->
+    <section id="database-erd" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">10. Master Database Entity-Relationship Diagram (ERD)</h2>
+          <p class="section-desc">Complete 18-table normalized schema with primary/foreign keys, audit fields, and relational mapping.</p>
+        </div>
+        <span class="section-tag tag-blue">Database Schema</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+erDiagram
+    users ||--o| employees : "links via supabase_user_id"
+    employees ||--o{ trips : "assigned driver"
+    vehicles ||--o{ trips : "assigned vehicle"
+    clients ||--o{ trips : "contracts"
+    trips ||--o{ trip_stops : "contains waypoints"
+    trips ||--o{ trip_expenses : "incurs expenses"
+    trips ||--o{ incident_reports : "logs road incidents"
+    trips ||--o| invoices : "billed under"
+    
+    employees ||--o{ attendance : "logs daily timecards"
+    employees ||--o{ time_off_requests : "submits leaves"
+    employees ||--o{ paychecks : "receives compensation"
+    employees ||--o{ notifications : "receives push alerts"
+    employees ||--o{ device_tokens : "registers mobile tokens"
+    employees ||--o| driver_locations : "reports real-time GPS"
+    
+    vehicles ||--o{ vehicle_assessments : "evaluated under"
+    vehicles ||--o{ maintenance_schedules : "serviced under"
+    clients ||--o{ client_rate_cards : "custom contract pricing"
+    clients ||--o{ invoices : "invoiced to"
+
+    users {
+        uuid id PK
+        varchar email UK
+        varchar role
+        varchar account_status
+    }
+
+    employees {
+        uuid id PK
+        varchar full_name
+        varchar status
+        numeric daily_rate
+        numeric salary
+    }
+
+    vehicles {
+        bigserial id PK
+        varchar plate UK
+        varchar status
+        numeric max_capacity_kg
+    }
+
+    trips {
+        bigserial id PK
+        varchar trip_number UK
+        varchar tracking_code UK
+        varchar status
+        numeric estimated_fare
+        varchar pod_recipient_name
+    }
+
+    trip_stops {
+        bigserial id PK
+        bigint trip_id FK
+        integer stop_sequence
+        varchar status
+        varchar tracking_code UK
+    }
+
+    vehicle_assessments {
+        uuid id PK
+        bigint vehicle_id FK
+        varchar status
+        boolean has_critical_failure
+    }
+
+    maintenance_schedules {
+        bigserial id PK
+        bigint vehicle_id FK
+        varchar service_type
+        numeric next_due_odo
+        varchar status
+    }
+
+    invoices {
+        bigserial id PK
+        varchar invoice_number UK
+        numeric amount
+        varchar status
+    }
+
+    paychecks {
+        bigserial id PK
+        uuid employee_id FK
+        numeric gross_pay
+        numeric deductions
+        numeric net_pay
+        varchar status
+    }
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 11: Deployment Topology -->
+    <section id="deployment-topology" class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">11. Deployment Topology & Production Infrastructure</h2>
+          <p class="section-desc">Host server runbook, container boundaries, cloud VPC connectivity, and tunnel lifecycle.</p>
+        </div>
+        <span class="section-tag tag-purple">Infrastructure & DevOps</span>
+      </div>
+      <div class="diagram-viewport">
+        <div class="mermaid">
+graph TD
+    subgraph HostServer ["Host Server Environment (Windows / Linux)"]
+        Batch["start_tunnel.bat / start_system.bat"] --> NodeApp["Node.js 18+ (Express API Engine)<br/>Port 3000 (0.0.0.0)"]
+        Batch --> CF_Agent["cloudflared.exe Tunnel Agent<br/>(QUIC to Cloudflare Edge)"]
+        Batch --> ElectronGUI["Electron Desktop Client<br/>(Desktop Admin Portal)"]
+    end
+
+    subgraph MobileRun ["Driver Deployment"]
+        ExpoHost["Expo Go / Standalone Android APK<br/>(transport_mobile_app)"] --> CF_Agent
+    end
+
+    subgraph WebRun ["Public Web Portal"]
+        PHP_Host["Apache / Nginx + PHP 8+<br/>(transport_web_site)"] --> CloudVPC
+    end
+
+    subgraph CloudVPC ["Supabase Cloud Managed VPC"]
+        DB[("PostgreSQL 15")]
+        Auth["GoTrue Auth"]
+        Bucket["Storage Buckets"]
+    end
+
+    NodeApp --> DB
+    NodeApp --> Auth
+    NodeApp --> Bucket
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Initialize Mermaid with a modern dark theme
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0d131f',
+        primaryColor: '#1e3a8a',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#3b82f6',
+        lineColor: '#60a5fa',
+        secondaryColor: '#0f766e',
+        tertiaryColor: '#581c87',
+        fontFamily: 'Inter, sans-serif'
+      },
+      flowchart: {
+        curve: 'basis',
+        padding: 20
+      },
+      sequence: {
+        actorFontSize: 13,
+        messageFontSize: 12,
+        boxMargin: 10
+      }
+    });
+
+    // Active Navigation Highlight on Scroll
+    const sections = document.querySelectorAll('.section-card');
+    const navLinks = document.querySelectorAll('.nav-item a');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (pageYOffset >= (sectionTop - 120)) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

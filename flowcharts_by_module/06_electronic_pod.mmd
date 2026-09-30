@@ -1,0 +1,42 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 06: ELECTRONIC PROOF OF DELIVERY (e-POD)
+    %% =========================================================================
+
+    Start([Start: Driver arrives at customer destination]) --> Off_InTransit>["OFF-PAGE: From Module 05 (In-Transit)"]
+
+    Off_InTransit --> OpenEPOD[Action: Driver clicks 'Complete Delivery (e-POD)' in tracking.html]
+    OpenEPOD --> RenderModal[/Display e-POD Sign-Off Dialog on Mobile/]
+
+    RenderModal --> In_Recipient[/Input: Recipient Full Name/]
+    In_Recipient --> In_Sign[/Input: Recipient Signs on Digital HTML5 Canvas/]
+    In_Sign --> In_Photo[/Input: Driver Snaps Photo of Unloaded Cargo / Gate Pass/]
+    In_Photo --> In_Remarks[/Input: Delivery Condition Remarks / Notes/]
+
+    In_Remarks --> ClickSubmit[Action: Click 'Confirm & Certify Delivery' / POST /api/epod/submit]
+    ClickSubmit --> Sub_Validate[[Predefined Process: e-POD Integrity Validator]]
+
+    Sub_Validate --> Dec_Complete{Decision: Recipient Name & Signature Present?}
+    Dec_Complete -- No --> Conn_E1((E1))
+    Conn_E1 --> Out_Err[/Display Alert: 'Recipient name and signature are mandatory'/]
+    Out_Err --> RenderModal
+
+    Dec_Complete -- Yes --> WriteTripPOD[(Database: UPDATE trips SET\nstatus = 'delivered',\npod_recipient_name = recipientName,\npod_signature_data = signatureData,\npod_photo_url = photoUrl,\npod_delivered_at = NOW(),\ndelivery_time = NOW())]
+
+    WriteTripPOD --> Conn_Post((P1))
+    Conn_Post --> Sub_EmailNotif[[Predefined Process: Call notificationWebhook.ts with Delivered Status]]
+    Sub_EmailNotif --> SendDeliveredMail[Action: Email Consignee Official Delivery Receipt with Signature Proof]
+
+    Conn_Post --> Off_FreeAssets>["OFF-PAGE: To Module 05\nRelease Driver & Vehicle Status to 'available'"]
+    
+    Conn_Post --> Off_Billing>["OFF-PAGE: To Module 09\nNotify Accounting to Issue Customer Invoice"]
+    Conn_Post --> Off_Dashboard>["OFF-PAGE: To Module 13\nUpdate Executive Completed Trips KPI"]
+
+    Off_Billing --> Out_SuccessToast[/Display Toast: 'e-POD Successfully Certified & Uploaded'/]
+    Out_SuccessToast --> EndSuccess([Delivery Officially Closed])
+
+    %% Hyperlinks
+    click Off_InTransit "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Live Tracking"
+    click Off_FreeAssets "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Asset Release"
+    click Off_Billing "./09_billing_and_invoicing.mmd" "Open Module 09: Billing & Invoicing"
+    click Off_Dashboard "./13_executive_dashboard.mmd" "Open Module 13: Executive Dashboard"

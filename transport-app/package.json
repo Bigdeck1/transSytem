@@ -1,0 +1,84 @@
+{
+  "name": "transport-app",
+  "version": "1.0.0",
+  "description": "A desktop transport management system built with Electron + TypeScript",
+  "main": "dist/main.js",
+  "type": "commonjs",
+  "author": "Daemoon Loards",
+  "scripts": {
+    "build": "tsc",
+    "build:server": "tsc -p tsconfig.json",
+    "start": "npm run build && electron-forge start",
+    "start:web": "ts-node server/server.ts",
+    "start:prod": "node dist/server/server.js",
+    "dev:web": "ts-node server/server.ts",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsc && electron-forge start",
+    "build:docker": "docker build -t jrr-transport-hub .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.10.2",
+    "@electron-forge/maker-deb": "^7.10.2",
+    "@electron-forge/maker-rpm": "^7.10.2",
+    "@electron-forge/maker-squirrel": "^7.10.2",
+    "@electron-forge/maker-zip": "^7.10.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.10.2",
+    "@electron-forge/plugin-fuses": "^7.10.2",
+    "@electron/fuses": "^1.8.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/dotenv": "^6.1.1",
+    "@types/electron": "^1.4.38",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.9.2",
+    "@types/nodemailer": "^8.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^34.0.0",
+    "electron-rebuild": "^3.2.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.81.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "express": "^5.1.0",
+    "lucide": "^0.552.0",
+    "nodemailer": "^7.0.13"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {
+        "icon": "assets/favicon",
+        "asar": true,
+        "extraResource": [
+          ".env"
+        ]
+      },
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "transport_app",
+            "setupIcon": "assets/favicon.ico"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "win32"
+          ]
+        }
+      ]
+    }
+  },
+  "types": "./dist/main.d.ts"
+}

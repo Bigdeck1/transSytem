@@ -1,0 +1,528 @@
+@import "./variables.css";
+
+:root {
+  --sidebar-w: 260px;
+}
+
+#welcomeTitle {
+  color: #3b82f6;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* sidebar.css */
+.sidebar {
+  width: var(--sidebar-w);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: var(--bg-side);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-white);
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  border-radius: 0 40px 40px 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 15px 0 40px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible !important;
+}
+
+.sidebar.collapsed {
+  --sidebar-w: 90px;
+  padding: 32px 12px;
+}
+
+.sidebar.collapsed .brand-small h2,
+.sidebar.collapsed .sidebar-nav span,
+.sidebar.collapsed .admin-text,
+.sidebar.collapsed .theme-toggle span {
+  display: none;
+}
+
+.sidebar.collapsed .brand-small {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar.collapsed #menu-list li a {
+  justify-content: center;
+  padding: 14px;
+}
+
+.sidebar.collapsed #menu-list li a i {
+  margin: 0;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  align-items: center;
+}
+
+.sidebar.collapsed .theme-toggle {
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.sidebar.collapsed .admin-info {
+  justify-content: center;
+}
+
+.brand-small {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 50px;
+  padding: 8px 12px;
+}
+
+.brand-small div {
+  background: white;
+  padding: 6px;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1), var(--shadow-sm);
+  transition: var(--transition-bounce);
+}
+
+.brand-small:hover div {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.brand-small h2 {
+  font-size: 20px;
+  font-weight: 900;
+  margin: 0;
+  color: white;
+  letter-spacing: -0.5px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-right: -8px;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Custom Scrollbar for Sidebar */
+.sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#menu-list li a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+#menu-list li a i {
+  width: 20px;
+  transition: transform 0.3s ease;
+}
+
+#menu-list li a:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.95);
+  padding-left: 22px;
+}
+
+#menu-list li a:hover i {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+#menu-list li a.active {
+  background: #1976D2;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(25, 118, 210, 0.45);
+  padding-left: 18px;
+}
+
+#menu-list li a.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background: white;
+  border-radius: 0 4px 4px 0;
+  animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-avatar {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+  transition: transform 0.3s ease;
+}
+
+.admin-info:hover .admin-avatar {
+  transform: rotate(10deg) scale(1.05);
+}
+
+/* Toggle Button Styling */
+.sidebar-toggle {
+  position: absolute;
+  right: -20px;
+  top: 35px;
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme='dark'] .sidebar-toggle {
+  border-color: #1e293b;
+}
+
+.sidebar-toggle:hover {
+  transform: scale(1.15);
+  background: var(--primary-light);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.sidebar-toggle i {
+  width: 20px;
+  height: 20px;
+}
+
+.admin-text .name {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-white);
+}
+
+.admin-text .email {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Main Content Layout Adjustments - Centralized here for all pages */
+.main-content {
+  margin-left: var(--sidebar-w);
+  width: calc(100% - var(--sidebar-w));
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* When sidebar is collapsed, main-content should use the smaller width */
+.sidebar.collapsed+.main-content,
+.main-content.expanded {
+  --sidebar-w: 90px !important;
+  padding: 32px 24px;
+  /* Reduced padding to max out space */
+}
+
+/* Responsive Sidebar Behavior */
+@media (max-width: 1200px) {
+  :root {
+    --sidebar-w: 90px;
+  }
+
+  .sidebar {
+    padding: 32px 12px;
+  }
+
+  .sidebar .brand-small h2,
+  .sidebar .sidebar-nav span,
+  .sidebar .admin-text,
+  .sidebar .theme-toggle span {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w: 0px;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    --sidebar-w: 280px !important;
+    z-index: 9999;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar .brand-small h2,
+  .sidebar .sidebar-nav span,
+  .sidebar .admin-text,
+  .sidebar .theme-toggle span {
+    display: block;
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .main-content {
+    padding: 20px;
+    padding-top: 80px;
+    /* Space for mobile toggle */
+  }
+
+  .mobile-nav-toggle {
+    display: flex !important;
+  }
+}
+
+/* Mobile Nav Toggle Button (Hidden by default) */
+.mobile-nav-toggle {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  width: 45px;
+  height: 45px;
+  background: var(--primary);
+  color: white;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+  border: none;
+}
+
+/* Logout Confirmation Modal */
+.logout-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.logout-modal.visible {
+  display: flex;
+}
+
+.logout-modal-content {
+  background: var(--card-bg);
+  padding: 32px;
+  border-radius: 24px;
+  width: 400px;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme='light'] .logout-modal-content {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.logout-modal.visible .logout-modal-content {
+  transform: scale(1);
+}
+
+.logout-icon-container {
+  width: 64px;
+  height: 64px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.logout-modal h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: var(--text-main);
+}
+
+.logout-modal p {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.logout-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.logout-btn-confirm,
+.logout-btn-cancel {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.logout-btn-confirm {
+  background: #ef4444;
+  color: white;
+}
+
+.logout-btn-confirm:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn-cancel {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+[data-theme='light'] .logout-btn-cancel {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.logout-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-white);
+}
+
+[data-theme='light'] .logout-btn-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <title> ARCANA SIGN UP </title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+  <style>
+    /* Specific adjustments for Signup Page */
+    .signup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Verification Panel */
+    .verification-panel {
+      display: none;
+      text-align: center;
+    }
+
+    .verification-panel.active {
+      display: block;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .verification-panel h1 {
+      margin-bottom: 8px;
+    }
+
+    .verification-panel .subtitle {
+      margin-bottom: 24px;
+    }
+
+    .verification-panel .email-sent-to {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .code-input-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 28px 0;
+    }
+
+    .code-input-group input {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      border: 2px solid var(--border-main, #e2e8f0);
+      border-radius: 12px;
+      background: var(--bg-main, #f8fafc);
+      color: var(--text-main, #1e293b);
+      outline: none;
+      transition: all 0.2s ease;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .code-input-group input:focus {
+      border-color: var(--primary, #2563eb);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      transform: scale(1.05);
+    }
+
+    .code-input-group input.filled {
+      border-color: var(--primary, #2563eb);
+      background: #eff6ff;
+    }
+
+    .resend-link {
+      color: var(--text-muted, #94a3b8);
+      font-size: 13px;
+      margin-top: 16px;
+    }
+
+    .resend-link a {
+      color: var(--primary, #2563eb);
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .resend-link a:hover {
+      text-decoration: underline;
+    }
+
+    .resend-link a.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .verify-success-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      animation: scaleIn 0.4s ease-out;
+    }
+
+    .pending-approval-panel {
+      display: none;
+      text-align: center;
+    }
+
+    .pending-approval-panel.active {
+      display: block;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .pending-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      animation: scaleIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container" style="height: 720px;">
+    <div class="info-panel">
+      <div class="brand">
+        <div class="brand-icon">
+          <img src="../../assets/ArcanaLogo.png" alt="JRR Logo" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+        <div>
+          <h2>
+            <span id="welcomeTitle">ARCANA</span>
+          </h2>
+          <p>Join the next generation of logistics.</p>
+        </div>
+      </div>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon"><i data-lucide="user-plus"></i></div>
+          <div>
+            <h3>Easy Onboarding</h3>
+            <p>Get started in minutes with our streamlined registration process.</p>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon"><i data-lucide="shield-check"></i></div>
+          <div>
+            <h3>Role-Based Access</h3>
+            <p>Secure credentials mapped directly to your fleet responsibilities.</p>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon"><i data-lucide="mail-check"></i></div>
+          <div>
+            <h3>Email Verified</h3>
+            <p>Your account is protected with email verification for security.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: auto; padding-top: 40px;">
+        <a href="index.html"
+          style="color: white; text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 600; opacity: 0.8;">
+          <i data-lucide="arrow-left" size="18"></i>
+          Back to Sign In
+        </a>
+      </div>
+    </div>
+
+    <div class="form-panel">
+      <div class="form-wrapper">
+
+        <!-- ═══ STEP 1: Registration Form ═══ -->
+        <div id="registrationStep">
+          <h1></h1>
+          <h1>SIGN UP TO<span id="welcomeTitle">ARCANA</span>
+          </h1>
+          <p class="subtitle">Complete the form below to register your credentials.</p>
+
+          <form id="signupForm">
+            <div class="input-group">
+              <label for="username">System Username</label>
+              <div class="input-icon">
+                <i data-lucide="at-sign" size="18"></i>
+                <input type="text" id="username" placeholder="jdoe_admin" required maxlength="30" />
+              </div>
+            </div>
+
+            <div class="signup-grid">
+              <div class="input-group">
+                <label for="firstname">First Name</label>
+                <div class="input-icon">
+                  <i data-lucide="user" size="18"></i>
+                  <input type="text" id="firstname" placeholder="John" required maxlength="50" />
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="lastname">Last Name</label>
+                <div class="input-icon">
+                  <i data-lucide="user" size="18"></i>
+                  <input type="text" id="lastname" placeholder="Doe" required maxlength="50" />
+                </div>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="email">Work Email</label>
+              <div class="input-icon">
+                <i data-lucide="mail" size="18"></i>
+                <input type="email" id="email" placeholder="john.doe@transport.com" required maxlength="150" />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="password">Security Password</label>
+              <div class="input-icon">
+                <i data-lucide="lock" size="18"></i>
+                <input type="password" id="password" placeholder="Min. 8 characters" required minlength="8"
+                  maxlength="100" />
+              </div>
+            </div>
+
+            <button type="submit" id="signupBtn" class="btn-primary"
+              style="width: 100%; border: none; padding: 18px; border-radius: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px; background: var(--primary); color: white; cursor: pointer;">
+              Complete Registration
+              <i data-lucide="check" size="18"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- ═══ STEP 2: Email Verification ═══ -->
+        <div id="verificationStep" class="verification-panel">
+          <div class="verify-success-icon">
+            <i data-lucide="mail" size="28" style="color: white;"></i>
+          </div>
+          <h1>Verify Your Email</h1>
+          <p class="subtitle">We've sent a 6-digit verification code to<br><span id="verifyEmailDisplay"
+              class="email-sent-to"></span></p>
+
+          <div class="code-input-group" id="codeInputGroup">
+            <input type="text" maxlength="1" class="code-digit" data-index="0" inputmode="numeric" autocomplete="off" />
+            <input type="text" maxlength="1" class="code-digit" data-index="1" inputmode="numeric" autocomplete="off" />
+            <input type="text" maxlength="1" class="code-digit" data-index="2" inputmode="numeric" autocomplete="off" />
+            <input type="text" maxlength="1" class="code-digit" data-index="3" inputmode="numeric" autocomplete="off" />
+            <input type="text" maxlength="1" class="code-digit" data-index="4" inputmode="numeric" autocomplete="off" />
+            <input type="text" maxlength="1" class="code-digit" data-index="5" inputmode="numeric" autocomplete="off" />
+          </div>
+
+          <button type="button" id="verifyBtn" class="btn-primary"
+            style="width: 100%; border: none; padding: 18px; border-radius: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px; background: var(--primary); color: white; cursor: pointer;">
+            Verify Email
+            <i data-lucide="check-circle" size="18"></i>
+          </button>
+
+          <div class="resend-link">
+            Didn't receive the code? <a id="resendLink" href="#">Resend Code</a>
+          </div>
+        </div>
+
+        <!-- ═══ STEP 3: Pending Approval ═══ -->
+        <div id="pendingApprovalStep" class="pending-approval-panel">
+          <div class="pending-icon">
+            <i data-lucide="clock" size="28" style="color: white;"></i>
+          </div>
+          <h1>Email Verified!</h1>
+          <p class="subtitle" style="line-height: 1.7;">Your email has been verified successfully.<br>Your account is
+            now <strong>pending admin approval</strong>.<br>You will be able to log in once an administrator approves
+            your account.</p>
+
+          <a href="index.html" class="btn-primary"
+            style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none; padding: 16px 32px; border-radius: 14px; font-weight: 700; background: var(--primary); color: white; margin-top: 20px;">
+            <i data-lucide="arrow-left" size="18"></i>
+            Back to Sign In
+          </a>
+        </div>
+
+        <div id="debugPanel" style="margin-top: 20px; font-size: 11px; color: var(--text-muted); text-align: center;">
+          Ready for registration.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/signup_page.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

@@ -1,0 +1,44 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 15: SELF-SIGNUP, EMAIL OTP & APPROVAL
+    %% =========================================================================
+
+    Start([Start: Prospective User visits signup_page.html]) --> In_RegData[/Input: Username, First Name, Last Name, Work Email, Security Password/]
+    In_RegData --> ClickRegister[Action: Click 'Complete Registration']
+    ClickRegister --> Sub_SupaSignUp[[Predefined Process: Supabase Auth signUp]]
+
+    Sub_SupaSignUp --> Dec_EmailUnique{Decision: Email Not Already in auth.users?}
+    Dec_EmailUnique -- No --> Out_ErrMail[/Display Error: 'An account with this email already exists'/] --> In_RegData
+
+    Dec_EmailUnique -- Yes --> SendOTP[Action: Supabase Dispatches 6-Digit Verification Code to Work Email]
+    SendOTP --> SwitchStep2[Action: UI Transitions to Step 2: Verification Panel]
+
+    SwitchStep2 --> RenderCodeInputs[/Display 6-Digit OTP Box Array on Screen/]
+    RenderCodeInputs --> In_Code[/Input: User Enters 6-Digit Code digits [0-5]/]
+    In_Code --> ClickVerify[Action: Click 'Verify Email' / Supabase verifyOtp]
+
+    ClickVerify --> Dec_CodeValid{Decision: 6-Digit Code Matches & Not Expired?}
+    Dec_CodeValid -- No --> Out_ErrCode[/Display Error: 'Invalid or expired verification code'/] --> RenderCodeInputs
+
+    Dec_CodeValid -- Yes --> WriteVerified[(Database: Mark Email Verified in Supabase Auth)]
+    WriteVerified --> SetPendingState[(Database: Set User Account status = 'pending_approval')]
+
+    SetPendingState --> SwitchStep3[Action: UI Transitions to Step 3: Pending Approval Panel]
+    SwitchStep3 --> Out_PendingNotice[/Display Notice: 'Email Verified! Account Pending Admin Approval'/]
+
+    Out_PendingNotice --> Off_ToAdminApproval>["OFF-PAGE: To Module 17\nAdmin Panel for Approval / Rejection"]
+
+    %% Admin Decision Flow
+    Off_ToAdminApproval --> AdminReview[Action: Super Admin inspects user details on admin_panel.html]
+    AdminReview --> Dec_AdminDecision{Decision: Admin Action?}
+
+    Dec_AdminDecision -- Reject / Ban --> Sub_Ban[[Predefined Process: Delete Auth User]]
+    Sub_Ban --> Out_RejectedNotice[/Account Deleted / Denied/]
+
+    Dec_AdminDecision -- Approve --> Sub_Approve[[Predefined Process: UPDATE users / employees SET status = 'active']]
+    Sub_Approve --> WriteActive[(Database: Account Activated & Assigned Role)]
+    WriteActive --> Off_ToLogin>["OFF-PAGE: To Module 01\nUser Now Authorized to Log In (index.html)"]
+
+    %% Hyperlinks
+    click Off_ToAdminApproval "./17_admin_audit_and_health.mmd" "Open Module 17: Admin Audit & Health"
+    click Off_ToLogin "./01_auth_and_session.mmd" "Open Module 01: Auth & Session"

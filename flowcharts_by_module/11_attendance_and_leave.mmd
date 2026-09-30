@@ -1,0 +1,51 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 11: ATTENDANCE & TIME-OFF (LEAVE) LIFECYCLE
+    %% =========================================================================
+
+    Start([Start: Employee Shifts & Daily Attendance]) --> ModeSelect{Decision: Clock-In or Leave Application?}
+
+    %% Path 1: Daily Clock-In / Clock-Out
+    ModeSelect -- Daily Attendance --> In_ClockData[/Input: employee_id, date, check_in timestamp, check_out timestamp/]
+    In_ClockData --> ClickClock[Action: Click 'Record Attendance' / POST /api/requests/attendance]
+    ClickClock --> CheckExisting[(Database: SELECT id FROM attendance WHERE employee_id = id AND date = date)]
+
+    CheckExisting --> Dec_DupDate{Decision: Attendance Already Exists for Today?}
+    Dec_DupDate -- Yes --> Out_ErrDup[/Display Error: 'Attendance record already exists for this date'/] --> EndClock([Clock-In Aborted])
+    Dec_DupDate -- No --> WriteAttend[(Database: INSERT INTO attendance Table)]
+    WriteAttend --> Out_AttendOk[/Display Toast: 'Shift Clock-In Recorded'/]
+    Out_AttendOk --> Off_ToPayroll>["OFF-PAGE: To Module 12\nDays Worked Exported to Payroll Engine"]
+
+    %% Path 2: Time-Off (Leave) Application
+    ModeSelect -- Time-Off Request --> In_LeaveData[/Input: employee_id, leave_type (Sick, Vacation, Emergency), start_date, end_date, reason/]
+    In_LeaveData --> SubmitLeave[Action: Click 'Submit Request' / POST /api/requests/timeoff]
+    SubmitLeave --> WriteLeave[(Database: INSERT INTO time_off_requests Table\nstatus = 'Pending')]
+
+    WriteLeave --> Out_LeavePending[/Request Placed in 'Pending' State/]
+    Out_LeavePending --> ManagerReview[Action: HR / Operations Manager Reviews on attendance_monitoring_page.html]
+    ManagerReview --> Dec_Approve{Decision: Approve or Deny Time-Off?}
+
+    Dec_Approve -- Denied --> PatchDenied[[Predefined Process: PATCH /api/requests/timeoff/:id/status (Denied)]]
+    PatchDenied --> WriteDenied[(Database: UPDATE time_off_requests SET status = 'Denied')]
+    WriteDenied --> Conn_N1((N1))
+
+    Dec_Approve -- Approved --> PatchApproved[[Predefined Process: PATCH /api/requests/timeoff/:id/status (Approved)]]
+    PatchApproved --> WriteApproved[(Database: UPDATE time_off_requests SET status = 'Approved')]
+    WriteApproved --> Conn_N1
+
+    %% Notification Trigger
+    Conn_N1 --> Sub_NotifyEmp[[Predefined Process: createNotificationForEmployee]]
+    Sub_NotifyEmp --> WriteNotif[(Database: INSERT INTO notifications FOR employee_id\nmessage: 'Your time-off request has been approved/denied')]
+    WriteNotif --> Off_NotifCenter>["OFF-PAGE: To Module 16\nEmployee Alerted in Mobile Notification Feed"]
+
+    %% Automated Date Recalculation Engine
+    subgraph Recalculate_Cron_Engine ["Automated Daily Status Recalculation"]
+        CronTrigger([Daily System Trigger: POST /api/requests/recalculate-statuses]) --> ReadLeaves[(Database: Query Approved / Ongoing requests)]
+        ReadLeaves --> Dec_Dates{Decision: Compare today vs start & end dates}
+        Dec_Dates -- today >= start & today <= end --> SetOngoing[(Database: UPDATE status = 'Ongoing')]
+        Dec_Dates -- today > end --> SetCompleted[(Database: UPDATE status = 'Completed')]
+    end
+
+    %% Hyperlinks
+    click Off_ToPayroll "./12_payroll_and_tax.mmd" "Open Module 12: Payroll & Tax"
+    click Off_NotifCenter "./16_notification_center.mmd" "Open Module 16: Notification Center"

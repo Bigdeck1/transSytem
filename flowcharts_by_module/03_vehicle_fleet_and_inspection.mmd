@@ -1,0 +1,47 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 03: VEHICLE FLEET & PRE-TRIP INSPECTION
+    %% =========================================================================
+
+    Start([Start: Vehicle Returned to Depot or Added to Fleet]) --> ChooseAction{Decision: Routine Inspection or New Vehicle?}
+
+    %% New Vehicle Branch
+    ChooseAction -- Add New Vehicle --> In_VehData[/Input: Plate Number, Model, Brand, Type, Capacity/]
+    In_VehData --> Sub_AddVeh[[Predefined Process: POST /api/vehicles]]
+    Sub_AddVeh --> CheckPlate[(Database: Check plate uniqueness in vehicles)]
+    CheckPlate --> Dec_PlateDup{Decision: Plate Already Exists?}
+    Dec_PlateDup -- Yes --> Out_PlateErr[/Display Error: 'Plate already registered'/] --> In_VehData
+    Dec_PlateDup -- No --> WriteVeh[(Database: INSERT INTO vehicles\nstatus = 'available')]
+    WriteVeh --> Conn_Inspect((I1))
+
+    %% Pre-Trip Inspection Workflow
+    ChooseAction -- Pre-Trip Inspection --> Conn_Inspect
+    Conn_Inspect --> OpenInspectForm[/Display Inspection Checklist on vehicles_page.html/]
+    OpenInspectForm --> In_Checklist[/Input: Odometer reading, Fuel level %, Brakes, Tires, Lights, Horn, Damage photos/]
+    In_Checklist --> SubmitAssess[Action: Click 'Submit Assessment' / POST /api/vehicles/assessments]
+    
+    SubmitAssess --> WriteAssess[(Database: INSERT INTO vehicle_assessments Table)]
+    WriteAssess --> Dec_Fail{Decision: Critical Failure or Checklist Status == 'failed'?}
+
+    %% Failed Inspection -> Quarantine
+    Dec_Fail -- Yes --> WriteMaint[(Database: UPDATE vehicles SET status = 'maintenance')]
+    WriteMaint --> Out_Quarantine[/Alert Displayed: 'Vehicle Failed Safety Check — Locked in Maintenance'/]
+    Out_Quarantine --> Off_MaintLock>["OFF-PAGE: Locked from Module 04 Scheduling"]
+
+    %% Maintenance Resolution Flow
+    Off_MaintLock --> MechanicWork[Action: Maintenance Mechanics Complete Physical Repairs]
+    MechanicWork --> AdminSignOff[Action: Fleet Manager Reviews Repairs on vehicles_page.html]
+    AdminSignOff --> Sub_Clear[[Predefined Process: POST /api/vehicles/:id/clear-maintenance]]
+    Sub_Clear --> WriteClear[(Database: UPDATE vehicles SET status = 'available')]
+    WriteClear --> Conn_Cleared((C1))
+
+    %% Passed Inspection -> Available
+    Dec_Fail -- No --> WriteAvail[(Database: Verify vehicles status = 'available')]
+    WriteAvail --> Conn_Cleared
+    
+    Conn_Cleared --> Out_PassNotice[/Display Toast: 'Vehicle Cleared for Dispatch'/]
+    Out_PassNotice --> Off_Dispatch>["OFF-PAGE: To Module 04\nVehicle Available for Trip Assignment"]
+
+    %% Hyperlinks
+    click Off_Dispatch "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_MaintLock "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"

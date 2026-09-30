@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live GPS Shipment Radar | JRR Transport</title>
+
+  <!-- Modern Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-surface: #0f172a;
+      --panel-bg: rgba(15, 23, 42, 0.85);
+      --card-bg: rgba(30, 41, 59, 0.65);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-focus: #3b82f6;
+      --primary: #2563eb;
+      --primary-glow: rgba(37, 99, 235, 0.35);
+      --accent-cyan: #06b6d4;
+      --accent-amber: #f59e0b;
+      --accent-green: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP HEADER BAR */
+    header {
+      height: 64px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(9, 13, 22, 0.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-subtitle {
+      font-size: 10px;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* TOP SEARCH BAR */
+    .search-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px 6px 4px 14px;
+      width: 380px;
+      transition: all 0.2s ease;
+    }
+
+    .search-wrapper:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+      background: rgba(30, 41, 59, 1);
+    }
+
+    .search-input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      flex: 1;
+      outline: none;
+      text-transform: uppercase;
+    }
+
+    .search-input::placeholder {
+      color: var(--text-dim);
+      font-family: 'Inter', sans-serif;
+      text-transform: none;
+      font-weight: 400;
+    }
+
+    .search-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .search-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .header-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-green);
+      letter-spacing: 0.5px;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(1.3);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* MAIN CONTENT LAYOUT */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    @media (max-width: 980px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 45vh 1fr;
+      }
+
+      #map {
+        order: 1;
+      }
+
+      .sidebar {
+        order: 2;
+        height: auto;
+      }
+
+      .search-wrapper {
+        width: 220px;
+      }
+    }
+
+    /* SIDEBAR INFO PANEL */
+    .sidebar {
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 500;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(12px);
+    }
+
+    /* TRACKING CODE & STATUS HEADER */
+    .tracking-hero {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(6, 182, 212, 0.15));
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .tracking-code-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #93c5fd;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .copy-code-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.2s;
+    }
+
+    .copy-code-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .status-badge-lg {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 10px;
+    }
+
+    .status-in-transit {
+      background: rgba(59, 130, 246, 0.25);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.5);
+    }
+
+    .status-delivered {
+      background: rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+    }
+
+    .status-scheduled {
+      background: rgba(245, 158, 11, 0.25);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.5);
+    }
+
+    .status-failed {
+      background: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+
+    /* TELEMETRY HUD ROW */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .telemetry-item {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .telemetry-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .telemetry-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    /* MILESTONE STEPPER */
+    .timeline {
+      position: relative;
+      padding-left: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 9px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .timeline-step {
+      position: relative;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -28px;
+      top: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 3px solid #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 10px;
+    }
+
+    .timeline-step.done .timeline-dot {
+      background: var(--accent-green);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    .timeline-step.active .timeline-dot {
+      background: var(--primary);
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.8);
+    }
+
+    .timeline-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .timeline-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    /* DRIVER & PROOF OF DELIVERY */
+    .driver-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .driver-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-contact {
+      background: #1e40af;
+      color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 12px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-contact:hover {
+      background: #2563eb;
+    }
+
+    /* MAP CONTAINER */
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #0b1120;
+    }
+
+    /* CUSTOM MAP PINS */
+    .map-pin-depot {
+      background: #1e40af;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .map-pin-pickup {
+      background: #0284c7;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .map-pin-dest {
+      background: #d97706;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .map-pin-truck {
+      background: #10b981;
+      color: #fff;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 4px solid #ffffff;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 0 4px 16px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transition: transform 0.8s ease-out;
+    }
+
+    /* EMPTY / ERROR STATE */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      color: #475569;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <a href="/tracking.html" class="brand">
+      <div class="brand-logo">
+        <i data-lucide="truck" size="20"></i>
+      </div>
+      <div>
+        <div class="brand-title">TRIP LOOKUP</div>
+        <div class="brand-subtitle">Live GPS Freight Radar</div>
+      </div>
+    </a>
+
+    <!-- Live Search -->
+    <div class="search-wrapper">
+      <i data-lucide="search" size="16" style="color: #64748b; margin-right: 8px;"></i>
+      <input type="text" id="trackSearchInput" class="search-input" placeholder="Enter Tracking Code or Trip #" />
+      <button class="search-btn" id="trackSearchBtn">
+        <span>Track</span>
+        <i data-lucide="arrow-right" size="14"></i>
+      </button>
+    </div>
+
+    <div class="header-badge">
+      <div class="pulse-dot"></div>
+      <span id="headerLiveStatus">Telemetry Active</span>
+    </div>
+  </header>
+
+  <!-- MAIN BODY -->
+  <div class="main-layout">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar" id="sidebarContent">
+      <div class="empty-state" id="loadingState">
+        <i data-lucide="radar" size="48" style="animation: pulse 1s infinite;"></i>
+        <h3 style="color: #fff; font-size: 16px; margin-bottom: 4px;">Locating Shipment...</h3>
+        <p style="font-size: 12px;">Querying live telemetry feed and satellite markers.</p>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div id="map"></div>
+  </div>
+
+  <script>
+    // Supabase Browser Client for Realtime Updates
+    const SUPABASE_URL = "https://uocavssoqmwjstmvdgwq.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvY2F2c3NvcW13anN0bXZkZ3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTg2NjEsImV4cCI6MjA3NzU3NDY2MX0.Ki2CEQ7Wqt4eTCOHs1o0mxKdcywtBh7eEk0JAe9H4xk";
+
+    let supabaseClient = null;
+    if (window.supabase) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // Parse tracking query from URL path or search query
+    function getQueryParam() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryParam = urlParams.get('code') || urlParams.get('query') || urlParams.get('trk');
+      if (queryParam) return queryParam.trim();
+
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      if (pathSegments.length >= 2 && pathSegments[0] === 'track') {
+        return pathSegments[1].trim();
+      }
+      return '';
+    }
+
+    let currentQuery = getQueryParam();
+    let map = null;
+    let truckMarker = null;
+    let depotMarker = null;
+    let pickupMarker = null;
+    let destMarker = null;
+    let routePolyline = null;
+    let activeDriverId = null;
+    let realtimeChannel = null;
+
+    // HQ Coordinates: Sitio Malalim, Morong, Rizal
+    const HQ_COORDS = [14.5126, 121.2381];
+
+    function initMap() {
+      map = L.map('map', { zoomControl: false }).setView(HQ_COORDS, 13);
+      L.control.zoom({ position: 'topright' }).addTo(map);
+
+      // Dark / Voyager map tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        maxZoom: 19
+      }).addTo(map);
+    }
+
+    async function fetchTrackingData(codeToFetch) {
+      if (!codeToFetch) {
+        renderSearchPrompt();
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/public-tracking/${encodeURIComponent(codeToFetch)}`);
+        const json = await res.json();
+
+        if (!json.ok || !json.trip) {
+          renderNotFound(codeToFetch, json.error);
+          return;
+        }
+
+        renderTripDetails(json.trip, json.liveLocation);
+        updateMap(json.trip, json.liveLocation);
+        subscribeRealtime(json.trip.driver?.id);
+      } catch (err) {
+        console.error("Tracking fetch error:", err);
+        renderNotFound(codeToFetch, "Unable to connect to telemetry server.");
+      }
+    }
+
+    function renderSearchPrompt() {
+      document.getElementById('sidebarContent').innerHTML = `
+        <div class="card" style="text-align: center; padding: 32px 20px;">
+          <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(37,99,235,0.2); color: #3b82f6; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+            <i data-lucide="navigation-2" size="28"></i>
+          </div>
+          <h2 style="font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 6px;">Track Your Shipment</h2>
+          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+            Enter your 8-digit tracking code (EX: <strong>TRP-XXXX</strong>) in the top search bar to view live GPS position and arrival estimates.
+          </p>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderNotFound(query, message) {
+      document.getElementById('sidebarContent').innerHTML = `
+        <div class="card" style="text-align: center; padding: 32px 20px;">
+          <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(239,68,68,0.2); color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+            <i data-lucide="alert-circle" size="28"></i>
+          </div>
+          <h2 style="font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 6px;">Shipment Not Found</h2>
+          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+            No shipment matches <strong>"${query}"</strong>.
+          </p>
+          <p style="font-size: 11px; color: var(--text-dim);">${message || "Please check the code provided in your booking confirmation email."}</p>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderTripDetails(trip, liveLoc) {
+      const isDelivered = (trip.status || '').toLowerCase() === 'delivered' || (trip.status || '').toLowerCase() === 'completed';
+      const isInTransit = (trip.status || '').toLowerCase() === 'in-transit' || (trip.status || '').toLowerCase() === 'in transit' || (trip.status || '').toLowerCase() === 'active';
+      const isFailed = (trip.status || '').toLowerCase() === 'failed';
+
+      let statusBadgeClass = 'status-scheduled';
+      let statusLabel = 'SCHEDULED';
+      if (isDelivered) { statusBadgeClass = 'status-delivered'; statusLabel = 'DELIVERED ✓'; }
+      else if (isInTransit) { statusBadgeClass = 'status-in-transit'; statusLabel = 'OUT FOR DELIVERY'; }
+      else if (isFailed) { statusBadgeClass = 'status-failed'; statusLabel = 'ATTEMPTED / FAILED'; }
+
+      const speedVal = liveLoc?.speed ? `${Math.round(liveLoc.speed)} km/h` : (isInTransit ? 'In Motion' : 'Parked / Stationary');
+      const etaMins = trip.leg2_duration_mins || trip.leg1_duration_mins || 35;
+      const totalKm = (trip.leg1_distance_km || 0) + (trip.leg2_distance_km || 0);
+
+      document.getElementById('sidebarContent').innerHTML = `
+        <!-- HERO CARD -->
+        <div class="tracking-hero">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Tracking Reference</div>
+              <div class="tracking-code-pill">
+                ${trip.tracking_code || trip.trip_number}
+                <button class="copy-code-btn" onclick="navigator.clipboard.writeText('${trip.tracking_code || trip.trip_number}'); alert('Tracking code copied to clipboard!');">
+                  <i data-lucide="copy" size="12"></i> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <span class="status-badge-lg ${statusBadgeClass}">${statusLabel}</span>
+          </div>
+        </div>
+
+        <!-- TELEMETRY HUD -->
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <div class="telemetry-label">Live Telemetry</div>
+            <div class="telemetry-value" style="color: #38bdf8;">${speedVal}</div>
+          </div>
+          <div class="telemetry-item">
+            <div class="telemetry-label">Estimated Transit</div>
+            <div class="telemetry-value" style="color: #34d399;">${isDelivered ? 'Arrived' : `~${etaMins} mins`}</div>
+          </div>
+        </div>
+
+        <!-- ROUTE STOPS -->
+        <div class="card">
+          <div style="font-size: 11px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Route Waypoints</div>
+          <div class="timeline">
+            <div class="timeline-step done">
+              <div class="timeline-dot"><i data-lucide="check" size="10"></i></div>
+              <div class="timeline-title">Morong Depot HQ</div>
+              <div class="timeline-desc">Sitio Malalim, Morong, 1960 Rizal</div>
+            </div>
+            <div class="timeline-step ${isInTransit || isDelivered ? 'done' : 'active'}">
+              <div class="timeline-dot"><i data-lucide="${isInTransit || isDelivered ? 'check' : 'package'}" size="10"></i></div>
+              <div class="timeline-title">Pickup Origin</div>
+              <div class="timeline-desc">${trip.pickup_location || 'Designated Pickup Station'}</div>
+            </div>
+            <div class="timeline-step ${isDelivered ? 'done' : (isInTransit ? 'active' : '')}">
+              <div class="timeline-dot"><i data-lucide="${isDelivered ? 'check' : 'map-pin'}" size="10"></i></div>
+              <div class="timeline-title">Delivery Destination</div>
+              <div class="timeline-desc">${trip.delivery_location || 'Customer Address'}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DRIVER & FLEET ASSET -->
+        <div class="card">
+          <div style="font-size: 11px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Assigned Driver & Unit</div>
+          <div class="driver-row">
+            <div class="driver-avatar">
+              ${trip.driver?.full_name ? trip.driver.full_name.charAt(0) : 'D'}
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 14px; font-weight: 700; color: #fff;">${trip.driver?.full_name || 'Fleet Driver On Duty'}</div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                ${trip.vehicle ? `${trip.vehicle.brand || ''} ${trip.vehicle.model || ''} • Plate: <strong>${trip.vehicle.plate || '—'}</strong>` : 'Commercial Logistics Vehicle'}
+              </div>
+            </div>
+          </div>
+          ${trip.driver?.phone ? `
+            <a href="tel:${trip.driver.phone}" class="btn-contact">
+              <i data-lucide="phone" size="14"></i> Contact Driver (${trip.driver.phone})
+            </a>
+          ` : ''}
+        </div>
+
+        ${isDelivered && trip.pod_recipient_name ? `
+          <!-- e-POD SIGN-OFF RECEIPT -->
+          <div class="card" style="border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08);">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: #34d399; margin-bottom: 6px;">
+              <i data-lucide="check-circle" size="16"></i> Verified Digital Proof of Delivery
+            </div>
+            <div style="font-size: 13px; color: #fff;">Received by: <strong>${trip.pod_recipient_name}</strong></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Delivered at: ${trip.pod_delivered_at ? new Date(trip.pod_delivered_at).toLocaleString() : 'Recently'}</div>
+          </div>
+        ` : ''}
+      `;
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateMap(trip, liveLoc) {
+      if (!map) return;
+
+      const boundsGroup = [];
+
+      // 1. Depot Marker
+      if (!depotMarker) {
+        const depotIcon = L.divIcon({
+          className: 'custom-depot-pin',
+          html: `<div class="map-pin-depot">🏢</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+        depotMarker = L.marker(HQ_COORDS, { icon: depotIcon }).addTo(map)
+          .bindPopup(`<strong>JRR Logistics Depot HQ</strong><br>Sitio Malalim, Morong, Rizal`);
+      }
+      boundsGroup.push(HQ_COORDS);
+
+      // 2. Pickup & Delivery Coordinates
+      let pickupCoords = [trip.pickup_lat || 14.5547, trip.pickup_lng || 121.0244];
+      let destCoords = [trip.delivery_lat || 14.5995, trip.delivery_lng || 120.9842];
+
+      if (!pickupMarker) {
+        const pickupIcon = L.divIcon({
+          className: 'custom-pickup-pin',
+          html: `<div class="map-pin-pickup">📦</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+        pickupMarker = L.marker(pickupCoords, { icon: pickupIcon }).addTo(map)
+          .bindPopup(`<strong>Pickup:</strong> ${trip.pickup_location || 'Origin'}`);
+      }
+      boundsGroup.push(pickupCoords);
+
+      if (!destMarker) {
+        const destIcon = L.divIcon({
+          className: 'custom-dest-pin',
+          html: `<div class="map-pin-dest">📍</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+        destMarker = L.marker(destCoords, { icon: destIcon }).addTo(map)
+          .bindPopup(`<strong>Destination:</strong> ${trip.delivery_location || 'Drop-Off'}`);
+      }
+      boundsGroup.push(destCoords);
+
+      // 3. Driver Live Location Marker
+      if (liveLoc && liveLoc.latitude && liveLoc.longitude) {
+        const driverLat = parseFloat(liveLoc.latitude);
+        const driverLng = parseFloat(liveLoc.longitude);
+        const driverCoords = [driverLat, driverLng];
+        boundsGroup.push(driverCoords);
+
+        if (!truckMarker) {
+          const truckIcon = L.divIcon({
+            className: 'custom-truck-pin',
+            html: `<div class="map-pin-truck">🚚</div>`,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22]
+          });
+          truckMarker = L.marker(driverCoords, { icon: truckIcon }).addTo(map)
+            .bindPopup(`<strong>Driver Position</strong><br>Speed: ${Math.round(liveLoc.speed || 0)} km/h`);
+        } else {
+          truckMarker.setLatLng(driverCoords);
+          truckMarker.setPopupContent(`<strong>Driver Position</strong><br>Speed: ${Math.round(liveLoc.speed || 0)} km/h`);
+        }
+      }
+
+      // 4. Route Polyline
+      const routePoints = [HQ_COORDS, pickupCoords, destCoords];
+      if (!routePolyline) {
+        routePolyline = L.polyline(routePoints, {
+          color: '#3b82f6',
+          weight: 4,
+          dashArray: '6, 8',
+          opacity: 0.8
+        }).addTo(map);
+      }
+
+      if (boundsGroup.length > 1) {
+        map.fitBounds(L.latLngBounds(boundsGroup), { padding: [50, 50], maxZoom: 15 });
+      }
+    }
+
+    // Subscribe to live GPS coordinates in driver_locations table via Supabase Realtime
+    function subscribeRealtime(driverId) {
+      if (!supabaseClient || !driverId || activeDriverId === driverId) return;
+      activeDriverId = driverId;
+
+      if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+      }
+
+      realtimeChannel = supabaseClient
+        .channel(`public:driver_locations:driver_id=eq.${driverId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'driver_locations', filter: `driver_id=eq.${driverId}` },
+          (payload) => {
+            console.log('📡 Realtime Driver Telemetry Received:', payload.new);
+            if (payload.new && payload.new.latitude && payload.new.longitude) {
+              const lat = parseFloat(payload.new.latitude);
+              const lng = parseFloat(payload.new.longitude);
+              if (truckMarker) {
+                truckMarker.setLatLng([lat, lng]);
+                truckMarker.setPopupContent(`<strong>Driver Position</strong><br>Speed: ${Math.round(payload.new.speed || 0)} km/h`);
+              }
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // Event Listeners for Search
+    document.getElementById('trackSearchBtn').addEventListener('click', () => {
+      const val = document.getElementById('trackSearchInput').value.trim();
+      if (val) {
+        window.history.pushState({}, '', `/tracking.html?code=${encodeURIComponent(val)}`);
+        fetchTrackingData(val);
+      }
+    });
+
+    document.getElementById('trackSearchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = e.target.value.trim();
+        if (val) {
+          window.history.pushState({}, '', `/tracking.html?code=${encodeURIComponent(val)}`);
+          fetchTrackingData(val);
+        }
+      }
+    });
+
+    // Initialize Map and Load Data
+    initMap();
+    if (currentQuery) {
+      document.getElementById('trackSearchInput').value = currentQuery;
+      fetchTrackingData(currentQuery);
+    } else {
+      renderSearchPrompt();
+    }
+
+    // Heartbeat Polling Fallback (every 5 seconds)
+    setInterval(() => {
+      const code = document.getElementById('trackSearchInput')?.value?.trim() || currentQuery;
+      if (code) {
+        fetchTrackingData(code);
+      }
+    }, 5000);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Delivery Tracking — JRR Transport</title>
+  <!-- Google Fonts & Leaflet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --primary: #1e40af;
+      --primary-light: #3b82f6;
+      --accent: #0284c7;
+      --success: #16a34a;
+      --bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.85);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: #fff;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      flex: 1;
+      height: calc(100vh - 65px);
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      #map {
+        height: 350px !important;
+      }
+    }
+
+    /* Sidebar info panel */
+    .sidebar {
+      padding: 24px;
+      overflow-y: auto;
+      background: var(--card-bg);
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-in-transit {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    .badge-delivered {
+      background: rgba(22, 163, 74, 0.2);
+      color: #4ade80;
+      border: 1px solid rgba(22, 163, 74, 0.4);
+    }
+
+    .badge-scheduled {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .route-stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      padding-left: 24px;
+      margin-top: 12px;
+    }
+
+    .route-stepper::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .step-item {
+      position: relative;
+    }
+
+    .step-dot {
+      position: absolute;
+      left: -24px;
+      top: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 3px solid #0f172a;
+    }
+
+    .step-dot.completed {
+      background: #10b981;
+    }
+
+    .step-dot.active {
+      background: #3b82f6;
+      box-shadow: 0 0 10px #3b82f6;
+    }
+
+    .step-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .step-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    .driver-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .driver-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .btn-call {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      background: #1e40af;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+
+    .btn-call:hover {
+      background: #2563eb;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #0b1120;
+    }
+
+    .eta-box {
+      background: linear-gradient(135deg, rgba(30, 64, 175, 0.4), rgba(59, 130, 246, 0.1));
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .eta-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #60a5fa;
+      font-family: 'Outfit', sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="brand">
+      <i data-lucide="truck"></i>
+      <span>Trip Lookup</span>
+    </div>
+    <div class="brand-badge">Live Cargo Radar</div>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;" id="orderNumber">Tracking
+            Code</span>
+          <span class="status-badge badge-in-transit" id="statusBadge">Locating...</span>
+        </div>
+        <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 6px;" id="cargoTitle">General Cargo Delivery</h2>
+        <p style="font-size: 12px; color: var(--text-muted);" id="serviceType">Express Logistics Service</p>
+      </div>
+
+      <!-- ETA Card -->
+      <div class="eta-box" id="etaContainer">
+        <div>
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Estimated
+            Arrival</div>
+          <div class="eta-val" id="etaText">Calculating...</div>
+        </div>
+        <i data-lucide="clock" size="28" style="color: #60a5fa;"></i>
+      </div>
+
+      <!-- Stops Stepper -->
+      <div class="card">
+        <div
+          style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
+          Delivery Route</div>
+        <div class="route-stepper">
+          <div class="step-item">
+            <div class="step-dot completed"></div>
+            <div class="step-label">Origin / Pickup</div>
+            <div class="step-val" id="pickupAddr">—</div>
+          </div>
+          <div class="step-item">
+            <div class="step-dot active"></div>
+            <div class="step-label">Destination / Delivery</div>
+            <div class="step-val" id="deliveryAddr">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driver & Asset Card -->
+      <div class="card">
+        <div class="driver-card">
+          <div class="driver-avatar"><i data-lucide="user"></i></div>
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 700;" id="driverName">Assigned Driver</div>
+            <div style="font-size: 12px; color: var(--text-muted);" id="vehiclePlate">Vehicle Plate: —</div>
+          </div>
+        </div>
+        <a href="#" class="btn-call" id="callDriverBtn" style="display: none;">
+          <i data-lucide="phone" size="16"></i> Contact Driver
+        </a>
+      </div>
+    </div>
+
+    <!-- Map -->
+    <div id="map"></div>
+  </div>
+
+  <script>
+    const pathParts = window.location.pathname.split('/');
+    const trackingCode = pathParts[pathParts.length - 1];
+
+    let map = null;
+    let truckMarker = null;
+    let routeLine = null;
+
+    function initMap() {
+      map = L.map('map', { zoomControl: true }).setView([14.5126, 121.2381], 13);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        maxZoom: 19
+      }).addTo(map);
+    }
+
+    async function loadTrackingData() {
+      try {
+        const res = await fetch(`/api/public-tracking/${trackingCode}`);
+        const data = await res.json();
+        if (!data.ok || !data.trip) {
+          document.getElementById('cargoTitle').textContent = 'Trip Not Found';
+          document.getElementById('statusBadge').textContent = 'INVALID CODE';
+          return;
+        }
+
+        const t = data.trip;
+        document.getElementById('orderNumber').textContent = `CODE: ${t.tracking_code || trackingCode}`;
+        document.getElementById('cargoTitle').textContent = t.cargo || `${t.trip_type.toUpperCase()} Cargo`;
+        document.getElementById('pickupAddr').textContent = t.pickup_location || 'Depot Origin';
+        document.getElementById('deliveryAddr').textContent = t.delivery_location || 'Destination';
+
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = t.status.toUpperCase();
+        badge.className = `status-badge badge-${t.status === 'delivered' ? 'delivered' : (t.status === 'active' || t.status === 'in-transit' ? 'in-transit' : 'scheduled')}`;
+
+        if (t.driver?.full_name) {
+          document.getElementById('driverName').textContent = t.driver.full_name;
+        }
+        if (t.vehicle?.plate) {
+          document.getElementById('vehiclePlate').textContent = `${t.vehicle.brand || ''} ${t.vehicle.model || ''} (${t.vehicle.plate})`;
+        }
+        if (t.driver?.phone) {
+          const callBtn = document.getElementById('callDriverBtn');
+          callBtn.href = `tel:${t.driver.phone}`;
+          callBtn.style.display = 'flex';
+        }
+
+        const totalEstMins = (t.leg1_duration_mins || 0) + (t.leg2_duration_mins || 30);
+        document.getElementById('etaText').textContent = t.status === 'delivered' ? 'Delivered' : `~${totalEstMins} mins`;
+
+        // Update Map Markers
+        if (data.liveLocation?.latitude && data.liveLocation?.longitude) {
+          const lat = parseFloat(data.liveLocation.latitude);
+          const lng = parseFloat(data.liveLocation.longitude);
+
+          if (!truckMarker) {
+            const truckIcon = L.divIcon({
+              className: 'custom-truck-pin',
+              html: `<div style="background: #1e40af; width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px;">🚚</div>`,
+              iconSize: [34, 34],
+              iconAnchor: [17, 17]
+            });
+            truckMarker = L.marker([lat, lng], { icon: truckIcon }).addTo(map);
+            map.setView([lat, lng], 13);
+          } else {
+            truckMarker.setLatLng([lat, lng]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load tracking data:', err);
+      }
+    }
+
+    initMap();
+    loadTrackingData();
+    setInterval(loadTrackingData, 10000); // Live poll every 10s
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+
+</html>

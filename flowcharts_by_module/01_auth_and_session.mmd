@@ -1,0 +1,50 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 01: AUTHENTICATION & SESSION MANAGEMENT
+    %% =========================================================================
+
+    Start([Start: User visits index.html]) --> InputCred[/Input: Email or Username & Password/]
+    InputCred --> ClickLogin[Action: Click 'Sign In' Button]
+    ClickLogin --> Sub_Login[[Predefined Process: Call Express /api/auth/login]]
+
+    Sub_Login --> Sub_SupaAuth[[Predefined Process: supabase.auth.signInWithPassword]]
+    Sub_SupaAuth --> Dec_AuthValid{Decision: Are Credentials Valid?}
+
+    Dec_AuthValid -- No --> Conn_Err1((E1))
+    Conn_Err1 --> Out_Err1[/Display Error: 'Invalid login credentials'/]
+    Out_Err1 --> InputCred
+
+    Dec_AuthValid -- Yes --> ReadUser[(Database: Query employees Table\nWHERE supabase_user_id = user.id)]
+    ReadUser --> Dec_Active{Decision: Is Account Active?}
+
+    Dec_Active -- No --> Out_Err2[/Display Error: HTTP 403 Account Deactivated/]
+    Out_Err2 --> InputCred
+
+    Dec_Active -- Yes --> WriteLocal[Action: Store access_token & session_user in localStorage]
+    WriteLocal --> Dec_Role{Decision: Evaluate User Role / Position}
+
+    Dec_Role -- Admin / Manager --> Off_Admin>["OFF-PAGE: To Module 13\nExecutive Dashboard (dashboard.html)"]
+    Dec_Role -- Driver --> Off_Driver>["OFF-PAGE: To Module 05\nDriver Console & Tracking (tracking.html)"]
+    Dec_Role -- Staff / Dispatcher --> Off_Staff>["OFF-PAGE: To Module 04\nDispatch Console (scheduling_page.html)"]
+
+    %% Self-Registration & Password Recovery Links
+    InputCred -. Click 'Create Account' .-> Off_Signup>["OFF-PAGE: To Module 15\nUser Self-Registration (signup_page.html)"]
+    InputCred -. Click 'Forgot Password' .-> Sub_Forgot
+
+    subgraph Password_Recovery_Flow ["Sub-Process: Password Reset"]
+        Sub_Forgot([Open forgot_password_page.html]) --> In_ForgotMail[/Input: Registered Work Email/]
+        In_ForgotMail --> Sub_ResetReq[[Predefined Process: POST /api/auth/forgot-password]]
+        Sub_ResetReq --> SendLink[Action: Supabase Dispatches Reset Token to Email]
+        SendLink --> Out_Notice[/Display Notice: 'Reset link sent to your inbox'/]
+        Out_Notice --> UserMailBox[Action: User Opens Email Recovery Link in Browser]
+        UserMailBox --> In_NewPass[/Input: Enter & Confirm New Password/]
+        In_NewPass --> SavePass[(Database: Update auth.users Password Hash)]
+        SavePass --> EndReset([Password Reset Complete -> Redirect to index.html])
+        EndReset --> Start
+    end
+
+    %% Hyperlinks
+    click Off_Admin "./13_executive_dashboard.mmd" "Open Module 13: Executive Dashboard"
+    click Off_Driver "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Driver Tracking"
+    click Off_Staff "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_Signup "./15_user_signup_and_otp.mmd" "Open Module 15: Self-Registration"

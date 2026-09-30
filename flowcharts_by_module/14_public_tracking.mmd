@@ -1,0 +1,43 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 14: PUBLIC SHIPMENT TRACKING PORTAL
+    %% =========================================================================
+
+    Start([Start: Consignee / Customer visits public_track.html or /track/:trackingCode]) --> In_Query[/Input: Tracking Code (e.g. TRK-ABC12345) or Trip Number/]
+    
+    In_Query -. Inflow from Milestone Email Link .-> Off_FromMail>["OFF-PAGE: Triggered by Link in Module 05 Email"]
+
+    In_Query --> ClickSearch[Action: Click 'Track Shipment' / GET /api/public-tracking/:query]
+    ClickSearch --> Sub_Resolve[[Predefined Process: Public Tracking Query Resolver]]
+
+    Sub_Resolve --> Q_Trip[(Database: SELECT * FROM trips\nWHERE tracking_code ILIKE query OR trip_number ILIKE query)]
+    Q_Trip --> Dec_Found{Decision: Trip Found in Database?}
+
+    %% Not Found Path
+    Dec_Found -- No --> Out_404[/Display Notice: 'Shipment not found. Please verify tracking code'/] --> In_Query
+
+    %% Found -> Resolve Relations
+    Dec_Found -- Yes --> Q_Driver[(Database: SELECT full_name, phone FROM employees WHERE id = trip.driver_id)]
+    Dec_Found --> Q_Vehicle[(Database: SELECT plate, brand, model FROM vehicles WHERE id = trip.vehicle_id)]
+    Dec_Found --> Q_Client[(Database: SELECT name, company_name FROM clients WHERE id = trip.client_id)]
+    Dec_Found --> Q_GPS[(Database: SELECT latitude, longitude, speed, updated_at FROM driver_locations WHERE driver_id = trip.driver_id)]
+
+    Q_Driver & Q_Vehicle & Q_Client & Q_GPS --> Sub_BuildPayload[[Predefined Process: Assemble Public Telemetry View]]
+
+    Sub_BuildPayload --> RenderPublicMap[Action: Render Interactive Leaflet Map with Truck Icon, Route & Pin]
+    RenderPublicMap --> Out_PublicUI[/Display: Live Shipment Status, Assigned Driver Name, Vehicle Plate,\nEstimated Time of Arrival, Live Location Marker/]
+
+    %% Status Lifecycle Evaluation
+    Out_PublicUI --> Dec_DeliveryStatus{Decision: Current Delivery Status?}
+
+    Dec_DeliveryStatus -- 'scheduled' / 'pending' --> ViewPending[/Display: 'Driver assigned. Shipment preparing for dispatch'/]
+    Dec_DeliveryStatus -- 'in transit' --> ViewTransit[/Display: 'Shipment is currently on route. Watch live moving pin'/]
+    Dec_DeliveryStatus -- 'delivered' --> ViewDelivered[/Display: 'Shipment Delivered! View Proof of Delivery confirmation'/]
+
+    ViewDelivered -. View Official Signature .-> Off_ToEPOD>["OFF-PAGE: Links to Module 06 (e-POD Receipt)"]
+
+    ViewPending & ViewTransit & ViewDelivered --> EndPublic([Public Session Completed])
+
+    %% Hyperlinks
+    click Off_FromMail "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Live Tracking"
+    click Off_ToEPOD "./06_electronic_pod.mmd" "Open Module 06: e-POD"

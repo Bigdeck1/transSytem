@@ -1,0 +1,58 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 00: MASTER END-TO-END LIFECYCLE
+    %% =========================================================================
+
+    M_Start([Customer / Operations Initiates Shipment Request]) --> M_Inquiry[/Receive Cargo & Location Details/]
+    M_Inquiry --> Conn_A1((A))
+
+    %% On-Page Connector A
+    Conn_A1 --> Off_Sched>["OFF-PAGE: Call Module 04\nTrip Scheduling & Route Engine"]
+    
+    Off_Sched --> Off_VehCheck>["OFF-PAGE: Call Module 03\nVehicle Pre-Trip Inspection"]
+    Off_VehCheck --> Dec_Pass{Inspection Passed?}
+    
+    Dec_Pass -- No --> Off_Maint>["OFF-PAGE: Call Module 03\nQuarantine to Maintenance"]
+    Off_Maint --> Off_Reassign>["OFF-PAGE: Return to Module 04\nReassign Available Vehicle"]
+    Off_Reassign --> Off_VehCheck
+
+    Dec_Pass -- Yes --> Step_Depart[Driver Departs Depot: Status = 'in transit']
+    Step_Depart --> Conn_B1((B))
+
+    %% In-Transit Telemetry
+    Conn_B1 --> Off_GPS>["OFF-PAGE: Call Module 05\nLive GPS Telemetry & Pings"]
+    Conn_B1 --> Off_Email>["OFF-PAGE: Call Module 05\nAutomated Milestone Email Webhook"]
+    Conn_B1 --> Off_Public>["OFF-PAGE: Call Module 14\nPublic Customer Live Tracking Portal"]
+
+    %% En-Route Decisions
+    Step_Depart --> Dec_EnRoute{En-Route Event?}
+    Dec_EnRoute -- Fuel / Toll --> Off_Exp>["OFF-PAGE: Call Module 08\nDriver Logs Expense via Mobile"]
+    Dec_EnRoute -- SOS / Breakdown --> Off_SOS>["OFF-PAGE: Call Module 07\nEmergency Siren & Incident Report"]
+    Dec_EnRoute -- Normal Arrival --> Conn_C1((C))
+
+    %% Delivery Completion
+    Conn_C1 --> Off_EPOD>["OFF-PAGE: Call Module 06\nElectronic Proof of Delivery (e-POD)"]
+    Off_EPOD --> Step_Delivered[Update trips: status = 'delivered'\nRelease Driver & Vehicle = 'available']
+    
+    Step_Delivered --> Off_Bill>["OFF-PAGE: Call Module 09\nGenerate Customer Invoice"]
+    Step_Delivered --> Off_Attend>["OFF-PAGE: Call Module 11\nLog Driver Shift Attendance"]
+    
+    Off_Attend --> Off_Payroll>["OFF-PAGE: Call Module 12\nCompute Bi-Monthly Payroll with TRAIN Tax"]
+    Off_Bill --> Off_Report>["OFF-PAGE: Call Module 18\nAggregate Digital Fleet & Financial Report"]
+    
+    Off_Report --> M_End([Shipment Completed, Assets Cleared & Accounts Closed])
+
+    %% Clickable Links Between Modules
+    click Off_Sched "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_VehCheck "./03_vehicle_fleet_and_inspection.mmd" "Open Module 03: Vehicle Inspection"
+    click Off_Maint "./03_vehicle_fleet_and_inspection.mmd" "Open Module 03: Maintenance Lock"
+    click Off_GPS "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Live Tracking"
+    click Off_Email "./05_live_tracking_and_webhooks.mmd" "Open Module 05: Milestone Webhook"
+    click Off_Public "./14_public_tracking.mmd" "Open Module 14: Public Tracking Portal"
+    click Off_Exp "./08_trip_expenses.mmd" "Open Module 08: Trip Expenses"
+    click Off_SOS "./07_incidents_and_sos.mmd" "Open Module 07: Incidents & SOS"
+    click Off_EPOD "./06_electronic_pod.mmd" "Open Module 06: e-POD Sign-Off"
+    click Off_Bill "./09_billing_and_invoicing.mmd" "Open Module 09: Billing & Invoices"
+    click Off_Attend "./11_attendance_and_leave.mmd" "Open Module 11: Attendance & Leaves"
+    click Off_Payroll "./12_payroll_and_tax.mmd" "Open Module 12: Payroll & Tax"
+    click Off_Report "./18_digital_reporting.mmd" "Open Module 18: Digital Reports"

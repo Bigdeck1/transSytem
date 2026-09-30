@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <title>Vishnuu | Tax Projection Tool</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap&family=Inter:wght@400;500;600"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/shared.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/web_api.js"></script>
+  <script src="../js/auth_guard.js"></script>
+  <style>
+    .tax-grid {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .result-section h3 {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 24px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .breakdown-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .breakdown-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .breakdown-list li:last-child {
+      border-bottom: none;
+    }
+
+    .income-card {
+      background: var(--primary);
+      color: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="visible">
+    <div class="loader"></div>
+    <p>Loading Fiscal Modules...</p>
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand-small" style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+      <div
+        style="background: white; padding: 4px; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+        <img src="../../assets/VishnuuLogo.png" alt="JRR Logo" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <h2><span id="welcomeTitle">VISHNUU</span></h2>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul id="menu-list">
+        <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+        <li><a href="employee_management.html"><i data-lucide="users"></i><span>Employees</span></a></li>
+        <li><a href="attendance_monitoring_page.html"><i data-lucide="calendar-check"></i><span>Attendance</span></a>
+        </li>
+        <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
+        <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
+        <li><a href="scheduling_page.html"><i data-lucide="map"></i><span>Dispatch</span></a></li>
+        <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
+        <li><a href="billing.html"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
+        <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
+        <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
+        <li><a href="tax_calculator_page.html" class="active"><i data-lucide="calculator"></i><span>Tax
+              Calculator</span></a></li>
+        <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
+        <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle" id="theme-toggle">
+        <span>Mode</span>
+        <i data-lucide="sun" id="theme-icon" size="16"></i>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar">AD</div>
+        <div class="admin-text">
+          <p class="name">Administrator</p>
+          <p class="email">admin@jrrtransport.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Fiscal Projection</h1>
+        <p style="color: var(--text-muted); margin-top: 4px;">Estimate annual tax obligations and net take-home
+          earnings.</p>
+      </div>
+    </header>
+
+    <div class="tax-grid">
+      <!-- INPUT CARD -->
+      <div class="card">
+        <h2 style="margin-bottom: 24px;">Financial Parameters</h2>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <label>ANNUAL GROSS SALARY ($)</label>
+            <input id="grossSalary" type="number" value="85000">
+          </div>
+          <div>
+            <label>FILING STATUS</label>
+            <select id="filingStatus">
+              <option value="single">Single Filer</option>
+              <option value="married">Married Filing Jointly</option>
+            </select>
+          </div>
+          <div>
+            <label>STANDARD DEDUCTION ($)</label>
+            <input id="deductions" type="number" value="12950">
+            <p id="deductionNote" style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">2024 single filer
+              baseline</p>
+          </div>
+          <button class="btn-primary" id="calculateBtn" style="justify-content: center; margin-top: 12px;">Run Fiscal
+            Simulation</button>
+
+          <div
+            style="background: rgba(59, 130, 246, 0.05); padding: 16px; border-radius: 8px; border-left: 4px solid var(--primary);">
+            <p style="font-size: 12px; line-height: 1.5; color: var(--text-main);"><strong>Note:</strong> Estimates
+              based on 2024 Federal brackets. Includes 5% estimated flat state tax. Final figures may vary by
+              jurisdiction.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULT COLUMN -->
+      <div class="result-section">
+        <div class="income-card">
+          <p style="font-size: 13px; opacity: 0.8; margin-bottom: 8px;">Estimated Annual Net Salary</p>
+          <h2 id="netSalary" style="font-size: 42px; font-weight: 900; margin: 0;">$0</h2>
+          <p id="monthlyNet" style="font-size: 14px; opacity: 0.9; margin-top: 8px;">$0.00 / month</p>
+        </div>
+
+        <div class="grid-2" style="gap: 24px;">
+          <div class="card">
+            <h3>Tax Liability Breakdown</h3>
+            <ul class="breakdown-list">
+              <li><span>Federal Income Tax</span><strong id="federalTax">$0</strong></li>
+              <li><span>Social Security</span><strong id="socialSecurity">$0</strong></li>
+              <li><span>Medicare</span><strong id="medicare">$0</strong></li>
+              <li><span>State Tax (Est.)</span><strong id="stateTax">$0</strong></li>
+              <li style="border-top: 2px solid var(--border); margin-top: 8px; font-weight: 800;">
+                <span>Total Tax</span><span id="totalTax">$0</span>
+              </li>
+            </ul>
+            <p id="effectiveRate"
+              style="font-size: 12px; color: var(--text-muted); margin-top: 12px; text-align: center;">0% Effective Tax
+              Rate</p>
+          </div>
+
+          <div class="card">
+            <h3>Take-Home Estimation</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">WEEKLY</p>
+                <strong id="weekly" style="font-size: 16px;">$0</strong>
+              </div>
+              <div style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">BI-WEEKLY</p>
+                <strong id="biweekly" style="font-size: 16px;">$0</strong>
+              </div>
+              <div style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">SEMI-MONTHLY</p>
+                <strong id="semimonthly" style="font-size: 16px;">$0</strong>
+              </div>
+              <div
+                style="padding: 12px; background: rgba(0,0,0,0.03); border-radius: 8px; border: 1px solid var(--primary-light);">
+                <p style="font-size: 11px; color: var(--primary); margin-bottom: 4px;">MONTHLY</p>
+                <strong id="monthly" style="font-size: 16px; color: var(--primary);">$0</strong>
+              </div>
+            </div>
+            <div style="margin-top: 24px; text-align: center;">
+              <p style="font-size: 12px; color: var(--text-muted);">Taxable Income: <span id="taxableIncome"
+                  style="font-weight: 600; color: var(--text-main);">$0</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="../js/lucide.min.js"></script>
+  <script src="../js/theme.js"></script>
+  <script src="../js/sidebarPaths.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script src="../js/tax_calculator_page.js"></script>
+  <script>
+    lucide.createIcons();
+    window.addEventListener("load", () => {
+      const loader = document.getElementById("loading-overlay");
+      setTimeout(() => loader.classList.remove("visible"), 800);
+    });
+  </script>
+</body>
+
+</html>

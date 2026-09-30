@@ -1,0 +1,57 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 05: LIVE GPS TRACKING & MILESTONE WEBHOOKS
+    %% =========================================================================
+
+    Start([Start: Driver departs depot with cargo]) --> Off_InSched>["OFF-PAGE: Receives Trip from Module 04"]
+
+    %% Continuous GPS Ping Sub-Loop
+    subgraph Driver_GPS_Loop ["Sub-Process: Continuous Driver GPS Telemetry"]
+        PingStart([Mobile Device GPS Timer: 10s]) --> ReadGPS[/Read Hardware Geolocation: Lat, Lng, Speed, Heading/]
+        ReadGPS --> PostLoc[[Predefined Process: POST /api/tracking/driver-location]]
+        PostLoc --> UpsertLoc[(Database: UPSERT INTO driver_locations Table)]
+        UpsertLoc --> PingStart
+    end
+
+    Off_InSched --> Step_InTransit[Action: Dispatcher/Driver updates trip status to 'in transit']
+    Step_InTransit --> PatchStatus[[Predefined Process: PATCH /api/trips/:id/status]]
+
+    PatchStatus --> WriteStatus[(Database: UPDATE trips SET status = 'in transit')]
+    WriteStatus --> Conn_Hook((H1))
+
+    %% Milestone Notification Webhook Flow
+    Conn_Hook --> Sub_Webhook[[Predefined Process: notificationWebhook.ts sendCustomerMilestoneEmail]]
+    Sub_Webhook --> ReadClient[(Database: SELECT email, name FROM clients WHERE id = trip.client_id)]
+    ReadClient --> Dec_ClientMail{Decision: Client Email Found on Record?}
+
+    Dec_ClientMail -- Yes --> GenEmail[Action: Render HTML Email Template with Live Tracking URL]
+    GenEmail --> Ext_MailService[Action: SendGrid / SMTP Dispatches Milestone Email to Customer]
+    Ext_MailService --> Out_MailNotice[/Customer Receives: 'Your delivery is on the way! Click to track'/]
+    
+    Dec_ClientMail -- No --> SkipMail[Action: Log 'Skipped: No client email' to Server Console]
+
+    %% Public Portal Inflow
+    Out_MailNotice -. Customer Clicks Link .-> Off_PublicPortal>["OFF-PAGE: To Module 14\nPublic Tracking Portal (public_track.html)"]
+
+    %% En-Route Hand-offs
+    Step_InTransit -. Driver Incurs Fuel/Toll .-> Off_Expenses>["OFF-PAGE: To Module 08\nLog Road Expenses"]
+    Step_InTransit -. Driver Experiences Emergency .-> Off_SOS>["OFF-PAGE: To Module 07\nReport Incident / SOS Alert"]
+    Step_InTransit -. Driver Arrives at Destination .-> Off_EPOD>["OFF-PAGE: To Module 06\nComplete Delivery (e-POD Sign-off)"]
+
+    %% Asset Freeing Flow when status delivered
+    subgraph Resource_Release_Flow ["Resource Release on Completion"]
+        In_Delivered([Status Changed to 'delivered' or 'completed']) --> CheckRemTripsD[(Database: Check other active trips for driver)]
+        CheckRemTripsD --> Dec_RemD{Decision: Any other active trips?}
+        Dec_RemD -- No --> FreeDriver[(Database: UPDATE employees SET status = 'available')]
+        
+        In_Delivered --> CheckRemTripsV[(Database: Check other active trips for vehicle)]
+        CheckRemTripsV --> Dec_RemV{Decision: Any other active trips?}
+        Dec_RemV -- No --> FreeVeh[(Database: UPDATE vehicles SET status = 'available')]
+    end
+
+    %% Hyperlinks
+    click Off_InSched "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_PublicPortal "./14_public_tracking.mmd" "Open Module 14: Public Tracking"
+    click Off_Expenses "./08_trip_expenses.mmd" "Open Module 08: Trip Expenses"
+    click Off_SOS "./07_incidents_and_sos.mmd" "Open Module 07: Incidents & SOS"
+    click Off_EPOD "./06_electronic_pod.mmd" "Open Module 06: e-POD Sign-Off"

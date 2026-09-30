@@ -1,0 +1,397 @@
+@import "./variables.css";
+@import "./shared.css";
+
+/* ==========================================================
+   DASHBOARD LAYOUT / SIDEBAR OFFSET
+   ========================================================== */
+
+body {
+  margin: 0;
+  background: var(--bg-main);
+  font-family: "Outfit", "Inter", sans-serif;
+  color: var(--text-main);
+}
+
+.header,
+.container {
+  padding-left: 0;
+}
+
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+
+.header {
+  background: #ffffff;
+  color: #111;
+  padding: 40px 30px;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.header h1 {
+  margin: 0;
+  font-weight: 700;
+}
+
+
+/* ==========================================================
+   STAT CARDS
+   ========================================================== */
+
+.stats-grid {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  padding: 0 30px 20px 30px;
+}
+
+.stat-item {
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow:
+      6px 6px 12px rgba(0,0,0,0.08),
+      -4px -4px 10px rgba(255,255,255,0.9);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow:
+      10px 10px 16px rgba(0,0,0,0.12),
+      -4px -4px 12px rgba(255,255,255,1);
+}
+
+.stat-item p {
+  margin: 0;
+  opacity: 0.7;
+}
+
+.stat-item h2 {
+  margin-top: 6px;
+  font-size: 28px;
+}
+
+
+/* ==========================================================
+   MAIN CONTAINER
+   ========================================================== */
+
+.container {
+  max-width: 1100px;
+  margin: 35px auto;
+  padding: 0 25px;
+}
+
+
+/* CONTROLS */
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.controls input,
+.controls select {
+  padding: 12px 14px;
+  font-size: 16px;
+  flex: 1;
+  border-radius: 10px;
+  border: 2px solid #d1d5db;
+  background: #ffffff;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.controls input:focus,
+.controls select:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+}
+
+#addBtn {
+  background-image: linear-gradient(to right, var(--primary-blue), #0891b2);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+#addBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+
+/* ==========================================================
+   VEHICLE CARDS
+   ========================================================== */
+
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 22px;
+}
+
+.vehicle-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow:
+      6px 6px 12px rgba(0,0,0,0.07),
+      -4px -4px 10px rgba(255,255,255,0.9);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+      10px 10px 18px rgba(0,0,0,0.12),
+      -4px -4px 12px rgba(255,255,255,1);
+}
+
+.vehicle-card .actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+
+button.deleteBtn,
+button.editBtn {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+button.deleteBtn {
+  background: #dc2626;
+  color: white;
+}
+
+button.editBtn {
+  background: var(--primary-blue);
+  color: white;
+}
+
+button.deleteBtn:hover,
+button.editBtn:hover {
+  opacity: 0.85;
+}
+
+
+/* ==========================================================
+   TRIP CARDS
+   ========================================================== */
+
+.trip-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.trip-card h3 {
+  margin-top: 0;
+}
+
+.trip-card .actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+
+button.editTripBtn {
+  background: var(--primary-blue);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+}
+
+button.deleteTripBtn {
+  background: #dc2626;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+}
+
+
+/* ==========================================================
+   MODAL
+   ========================================================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 14px;
+  width: 360px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  animation: fadeIn 0.25s ease;
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border-radius: 10px;
+  border: 2px solid #d1d5db;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 3px rgba(8,145,178,0.2);
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+
+/* ==========================================================
+   LOADER
+   ========================================================== */
+
+.loader {
+  width: 60px;
+  height: 60px;
+  border: 6px solid var(--primary-blue);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+  margin: 40px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* ==========================================================
+   RESPONSIVE RULES
+   ========================================================== */
+
+@media (max-width: 768px) {
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 20px;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  #addBtn {
+    width: 100%;
+  }
+
+  .vehicle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body {
+    margin-left: 0 !important;
+  }
+}
+
+
+
+/* ==========================================================
+   ==========================================================
+   PINK BIO PAGE — ISOLATED & SAFE (does NOT affect dashboard)
+   ==========================================================
+   ========================================================== */
+
+.bio-page {
+  --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --color-bg: #fce4ec;
+  --color-card: #ffffff;
+  --color-accent: #ec407a;
+  --color-text: #4a4a4a;
+
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 20px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.bio-container {
+  max-width: 1000px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bio-section {
+  background: var(--color-card);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.bio-section h2 {
+  margin-top: 0;
+  color: var(--color-accent);
+}
+
+@media (max-width: 900px) {
+  .bio-container {
+    max-width: 95%;
+  }
+  .bio-section {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .bio-container {
+    padding: 10px;
+  }
+  .bio-section {
+    padding: 15px;
+  }
+  .bio-section h2 {
+    font-size: 1.3rem;
+  }
+  .bio-section p {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .bio-section {
+    padding: 12px;
+  }
+  .bio-section h2 {
+    font-size: 1.1rem;
+  }
+}

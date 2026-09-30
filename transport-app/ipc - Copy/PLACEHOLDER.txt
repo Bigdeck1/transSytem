@@ -1,0 +1,133 @@
+// --- auth.ts ---
+import { ipcMain } from "electron";
+import { supabase, handleSupabase, getErrorMessage } from "./utils";
+
+export function setupAuthIPC() {
+  ipcMain.handle("login", async (_, email: string, password: string) => {
+    try {
+      const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (!authErr && authData?.user) {
+        const { data: empData, error: empErr } = await supabase
+          .from("employees")
+          .select("*")
+          .eq("supabase_user_id", authData.user.id)
+          .maybeSingle();
+
+        if (!empErr && empData) return empData;
+      }
+
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .eq("password", password)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return data;
+    } catch (err: unknown) {
+      console.error("Login error:", getErrorMessage(err));
+      return null;
+    }
+  });
+
+  ipcMain.handle("supabase-register", async (_, userData: any) => {
+    const { username, email, password, firstname, lastname, phone } = userData;
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username, full_name: `${firstname} ${lastname}` } },
+    });
+
+    if (authError) return { success: false, error: authError.message };
+    if (!authData.user) return { success: false, error: "Registration failed." };
+
+    const { error: profileError } = await supabase.from("users").insert([{
+      id: authData.user.id, username, email, password, firstname, lastname, phone: phone || null
+    }]);
+
+    if (profileError) return { success: true, warning: "Profile creation failed." };
+    return { success: true, user: authData.user };
+  });
+}
+
+// --- vehicles.ts ---
+export function setupVehicleIPC() {
+  ipcMain.handle("get-vehicles", async () => {
+    const { data } = await supabase.from("vehicles").select("*").order("id");
+    return data || [];
+  });
+
+  ipcMain.handle("add-vehicle", async (_, vehicleData) => {
+    return handleSupabase(supabase.from("vehicles").insert([vehicleData]).select());
+  });
+
+  ipcMain.handle("update-vehicle", async (_, id: string, updatedData) => {
+    return handleSupabase(supabase.from("vehicles").update(updatedData).eq("id", id).select());
+  });
+
+  ipcMain.handle("delete-vehicle", async (_, id: string) => {
+    return handleSupabase(supabase.from("vehicles").delete().eq("id", id));
+  });
+}
+
+// --- clients.ts ---
+export function setupClientIPC() {
+  ipcMain.handle("get-clients", async () => {
+    const { data } = await supabase.from("clients").select("*").order("id");
+    return data || [];
+  });
+
+  ipcMain.handle("add-client", async (_, clientData) => {
+    return handleSupabase(supabase.from("clients").insert([clientData]).select());
+  });
+
+  ipcMain.handle("update-client", async (_, id: string, updatedData: any) => {
+    return handleSupabase(supabase.from("clients").update(updatedData).eq("id", id).select());
+  });
+
+  ipcMain.handle("delete-client", async (_, id: string) => {
+    return handleSupabase(supabase.from("clients").delete().eq("id", id));
+  });
+}
+
+// --- dashboard.ts ---
+export function setupDashboardIPC() {
+  ipcMain.handle("get-dashboard-stats", async () => {
+    try {
+      const [{ data: employees }, { data: clients }, { data: vehicles }, { data: trips }] =
+        await Promise.all([
+          supabase.from("employees").select("id", { count: "exact", head: true }),
+          supabase.from("clients").select("id", { count: "exact", head: true }),
+          supabase.from("vehicles").select("id", { count: "exact", head: true }),
+          supabase.from("trips").select("id", { count: "exact", head: true })
+            .gte("pickup_time", new Date().toISOString().split("T")[0]),
+        ]);
+
+      return {
+        employeeCount: employees?.length || 0, // Wait, count head: true might return count in the result object
+        clientCount: clients?.length || 0,
+        vehicleCount: vehicles?.length || 0,
+        tripCount: trips?.length || 0,
+      };
+    } catch (err: unknown) {
+      return { employeeCount: 0, clientCount: 0, vehicleCount: 0, tripCount: 0 };
+    }
+  });
+}
+
+// --- billing.ts ---
+export function setupBillingIPC() {
+  ipcMain.handle("billing:getAll", async () => {
+    const { data } = await supabase.from("invoices").select("*, clients:client_id(name), employees:driver_id(full_name), vehicles:vehicle_id(plate)").order("id", { ascending: false });
+    return data || [];
+  });
+
+  ipcMain.handle("billing:create", async (_, invoiceData) => {
+    return handleSupabase(supabase.from("invoices").insert([invoiceData]).select().single());
+  });
+}

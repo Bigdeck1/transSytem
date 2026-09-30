@@ -1,0 +1,46 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 16: NOTIFICATIONS, BROADCASTS & PUSH TOKENS
+    %% =========================================================================
+
+    Start([Start: Central Notification & Push Engine]) --> SelectPath{Decision: Push Token, Inbound Alert, Broadcast, or Read Feed?}
+
+    %% Path 1: Device Token Registration
+    SelectPath -- Mobile App Launch --> In_TokenData[/Input: employee_id, expo_push_token, platform (android/ios)/]
+    In_TokenData --> Sub_RegisterToken[[Predefined Process: POST /api/notifications/device-token]]
+    Sub_RegisterToken --> UpsertToken[(Database: UPSERT INTO device_tokens Table)]
+    UpsertToken --> EndToken([Device Push Token Registered])
+
+    %% Path 2: Inbound Automated Triggers from other modules
+    SelectPath -- System Generated Alert --> InflowChoice{Decision: Trigger Source?}
+    
+    InflowChoice -- New Trip Assigned --> Off_InSched>["OFF-PAGE: From Module 04 (Trip Scheduling)"]
+    InflowChoice -- Emergency SOS Siren --> Off_InSOS>["OFF-PAGE: From Module 07 (Incidents & SOS)"]
+    InflowChoice -- Leave Approved/Denied --> Off_InLeave>["OFF-PAGE: From Module 11 (Attendance & Leave)"]
+
+    Off_InSched & Off_InSOS & Off_InLeave --> Sub_InsertNotif[[Predefined Process: createNotificationForEmployee]]
+    Sub_InsertNotif --> WriteNotification[(Database: INSERT INTO notifications Table\nemployee_id, title, message, urgency, type, is_read = false)]
+
+    %% Path 3: Super Admin Broadcast
+    SelectPath -- Admin Broadcast --> In_BroadcastMsg[/Input: Admin enters Announcement Title & Message/]
+    In_BroadcastMsg --> Sub_Broadcast[[Predefined Process: POST /api/notifications/broadcast]]
+    Sub_Broadcast --> ReadActiveEmp[(Database: SELECT id FROM employees WHERE status IN active)]
+    ReadActiveEmp --> BatchInsert[(Database: BATCH INSERT notifications FOR ALL active employees)]
+    BatchInsert --> PushService[Action: Dispatch Push Notification to registered mobile device_tokens]
+
+    %% Path 4: User Notification Feed & Read Lifecycle
+    SelectPath -- User Checks Bell Icon --> Sub_FetchNotifs[[Predefined Process: GET /api/notifications]]
+    Sub_FetchNotifs --> ReadUserNotifs[(Database: SELECT * FROM notifications WHERE employee_id = user ORDER BY id DESC)]
+    ReadUserNotifs --> CalcUnread[Action: Compute Unread Count Badge (is_read == false)]
+    CalcUnread --> RenderBell[/Display Red Unread Count Badge in App Header/]
+
+    RenderBell --> UserClicksItem[Action: User Clicks Notification in Dropdown]
+    UserClicksItem --> Sub_MarkRead[[Predefined Process: PATCH /api/notifications/:id/read]]
+    Sub_MarkRead --> UpdateRead[(Database: UPDATE notifications SET is_read = true WHERE id = id)]
+    UpdateRead --> DecrBadge[Action: Decrement Unread Badge Counter]
+    DecrBadge --> EndNotif([Notification Marked as Read])
+
+    %% Hyperlinks
+    click Off_InSched "./04_trip_scheduling.mmd" "Open Module 04: Trip Scheduling"
+    click Off_InSOS "./07_incidents_and_sos.mmd" "Open Module 07: Incidents & SOS"
+    click Off_InLeave "./11_attendance_and_leave.mmd" "Open Module 11: Attendance & Leave"

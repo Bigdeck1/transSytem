@@ -1,0 +1,46 @@
+flowchart TD
+    %% =========================================================================
+    %% JRR TRANSPORT SYSTEM — MODULE 17: ADMIN OPERATIONS, AUDIT TRAIL & HEALTH
+    %% =========================================================================
+
+    Start([Start: Super Admin opens admin_panel.html]) --> Off_FromLogin>["OFF-PAGE: Authenticated via Module 01"]
+
+    Off_FromLogin --> NavTabs{Decision: Which Admin Section to Inspect?}
+
+    %% Tab 1: User Management & Approvals
+    NavTabs -- User Management --> Sub_ListUsers[[Predefined Process: Query registered users & employees]]
+    Sub_ListUsers --> Out_UserTable[/Display User Table: Active, Pending Approval, Suspended/]
+    
+    Out_UserTable -. Inflow from Self-Signup .-> Off_PendingApproval>["OFF-PAGE: From Module 15 (Pending Approval)"]
+    
+    Out_UserTable --> AdminAction{Decision: Admin Action on User?}
+    AdminAction -- Approve --> WriteApprove[(Database: UPDATE users / employees SET status = 'active')]
+    AdminAction -- Suspend --> WriteSuspend[(Database: UPDATE users / employees SET status = 'inactive')]
+    AdminAction -- Change Role --> WriteRole[(Database: UPDATE position = Admin / Manager / Driver / Staff)]
+
+    WriteApprove & WriteSuspend & WriteRole --> LogAction1[(Database: Append Record to System Audit Log)]
+
+    %% Tab 2: System Health & Hardware Monitoring
+    NavTabs -- System Monitor --> Sub_HealthCheck[[Predefined Process: GET /api/health]]
+    Sub_HealthCheck --> PingServer[Action: Verify Express Engine 0.0.0.0:3000 online status]
+    PingServer --> PingDB[Action: Verify Supabase Cloud PostgreSQL connectivity & latency]
+    PingDB --> ReadMem[Action: Query Node.js process.memoryUsage & uptime]
+
+    ReadMem --> Out_HealthCards[/Display: Server Status Online, Environment dev/prod, Memory, DB Latency/]
+
+    %% Tab 3: System Audit Trail
+    NavTabs -- Audit Logs --> Sub_QueryAudit[[Predefined Process: Fetch System Audit Trail]]
+    Sub_QueryAudit --> ReadAudit[(Database: SELECT * FROM audit_logs ORDER BY timestamp DESC)]
+    ReadAudit --> Out_AuditStream[/Display Chronological Event Feed: Logins, Dispatches, Deletions, Errors/]
+
+    %% Tab 4: Cloudflare Proxy Status
+    NavTabs -- Network Proxy --> Off_TunnelCheck>["OFF-PAGE: To Module 20\nInspect Cloudflare Quick Tunnel Status"]
+
+    LogAction1 --> EndAdmin([Admin Operation Logged & Complete])
+    Out_HealthCards --> EndAdmin
+    Out_AuditStream --> EndAdmin
+
+    %% Hyperlinks
+    click Off_FromLogin "./01_auth_and_session.mmd" "Open Module 01: Auth & Session"
+    click Off_PendingApproval "./15_user_signup_and_otp.mmd" "Open Module 15: Self-Signup"
+    click Off_TunnelCheck "./20_network_tunnel_proxy.mmd" "Open Module 20: Network Proxy"

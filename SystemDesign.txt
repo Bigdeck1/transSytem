@@ -1,0 +1,1006 @@
+# JRR Transport Logistics Management System
+## Enterprise System Architecture & Comprehensive Detailed Design Specification
+---
+## 1. Executive Summary & Architectural Philosophy
+The **JRR Transport Logistics Management System** is a mission-critical, enterprise-grade logistics, telematics, and workforce management platform designed for modern multi-modal transport and freight operations. 
+### Architectural Core Principles:
+1. **Omnichannel Ingestion**: Seamless ingestion of commercial B2B freight requests alongside public direct-to-consumer bookings.
+2. **Deterministic Dispatch & Conflict Prevention**: Real-time locking of human and vehicular assets to eliminate dual-booking, combined with open-source road network routing (OSRM) and volumetric rating engines.
+3. **High-Frequency Telematics & Spatial Visibility**: Millisecond-level location tracking, live radar plotting, and proactive geofencing.
+4. **Resilient Dual-Tier Authentication**: Zero single-point-of-failure authentication supporting Cloud Identity (Supabase GoTrue), local cryptographic fallback, rate-limiting, and 3-stage OTP password recovery.
+5. **Automated Compliance & Financial Finalization**: Integrated Philippine statutory payroll engine (BIR TRAIN Law, SSS, PhilHealth, Pag-IBIG), sequential accounts receivable invoicing, and customer milestone webhooks.
+---
+## 2. Master System Architecture (5-Tier Topology)
+The system is structured into five distinct operational tiers ensuring separation of concerns, high availability, and secure edge ingress:
+```mermaid
+graph TB
+    %% =========================================================================
+    %% TIER 1: PRESENTATION & CLIENT HUBS
+    %% =========================================================================
+    subgraph Tier1 ["Tier 1: Multi-Platform Presentation & Client Hubs"]
+        subgraph AdminDesktop ["Desktop & Admin Command Hub"]
+            AdminApp["Desktop Admin Portal\n(Electron v28 / Native Web)\n• Executive Command (dashboard.html)\n• Staff Duty Board (status_page.html)\n• Business Intelligence (graph_page.html)\n• Fleet Dispatcher (scheduling_page.html)\n• Financial Suite (billing.html / payroll_management.html)\n• Governance (admin_panel.html)"]
+        end
+        subgraph MobileField ["Field Operations & Drivers"]
+            MobileApp["Native Mobile Driver Suite\n(React Native / Expo Router v3)\n• Geofenced GPS Timecard (attendance.tsx)\n• Active Waypoint Manifest (trips.tsx)\n• Touch Canvas e-POD & Camera Verification\n• Instant SOS Panic Alarm & Defect Logger\n• Road Expense Submissions (expenses.tsx)\n• Mobile Payslip Viewer (paycheck.tsx)"]
+        end
+        subgraph PublicChannels ["Public & Consignee Channels"]
+            CustomerWeb["Customer Web Portal\n(transport_web_site/booking.html)\n• Self-Service Vehicle Booking\n• Instant Volumetric Estimation\n• Automated Client Registration"]
+            PublicTracker["Consignee Tracking Portal\n(public_track.html / /track/:code)\n• Real-Time Driver Map Marker\n• Milestone Progress Tracker"]
+        end
+    end
+    %% =========================================================================
+    %% TIER 2: EDGE INGRESS & ZERO-TRUST TUNNEL
+    %% =========================================================================
+    subgraph Tier2 ["Tier 2: Edge Ingress & Network Proxy Tier"]
+        CFTunnel["Cloudflare Zero-Trust Edge Tunnel\n(cloudflared.exe QUIC / TLS 1.3)\n• Dynamic Ingress (*.trycloudflare.com)\n• Bidirectional Reverse Proxy to Localhost:3000\n• Edge DDoS & WAF Protection"]
+    end
+    %% =========================================================================
+    %% TIER 3: APPLICATION & TELEMATICS API ENGINE
+    %% =========================================================================
+    subgraph Tier3 ["Tier 3: Application & Telematics API Engine (Express.js / Node.js 18+)"]
+        API_Gateway["Express Ingress & Middleware Core\n• CORS Dynamic Whitelisting\n• 10MB JSON Payload Ingestion\n• Request Logger & Health Diagnostics (/api/health)"]
+        
+        API_Auth["Authentication & Security Router\n(/api/auth)\n• Dual-Store Validation\n• 5-Attempt Rate Limiting (15m Lockout)\n• 3-Stage 6-Digit OTP Recovery Engine\n• 30-Min Inactivity Auto-Logout"]
+        
+        API_TMS["TMS & Dispatch Route Engine\n(/api/trips, /api/tracking)\n• Dual-Leg OSRM Route Calculator\n• Multi-Stop Manifest Dispatch (trip_stops)\n• Contract Rate Cards (client_rate_cards)\n• Conflict Lock Guard (Driver/Vehicle Busy)"]
+        
+        API_Fleet["Fleet Safety & Preventive Maintenance\n(/api/vehicles)\n• 12-Point Inspection Lock (vehicle_assessments)\n• Preventive Maintenance Schedule (PMS Engine)\n• Admin Workshop Release Clearance"]
+        
+        API_Field["Field Telematics, e-POD & SOS\n(/api/epod, /api/incidents, /api/expenses)\n• Touch Canvas Signatures & Photo Ingest\n• SOS Siren Broadcast & Audio Alarm (/alarm)\n• Literage, Odometer & Fuel Auditing"]
+        
+        API_Finance["Finance, Billing & Workforce Engine\n(/api/billing, /api/payroll, /api/requests)\n• Sequential Invoice Engine (INV-YYYY-XXXX)\n• Shift Hour Computation (calcHours vs 8h)\n• PH TRAIN Law, SSS, PhilHealth, Pag-IBIG\n• Leave Recalculation Background Cron"]
+        
+        Svc_Webhook["Notification & Webhook Dispatcher\n(notificationWebhook.ts)\n• 5-Stage Customer Milestone Emails\n• Direct Google Maps Navigation Links\n• Role-Targeted Device Push Tokens (APNS/FCM)"]
+    end
+
+    %% =========================================================================
+    %% TIER 4: CLOUD DATA & REALTIME PERSISTENCE
+    %% =========================================================================
+    subgraph Tier4 ["Tier 4: Cloud Data & Realtime Persistence Tier (Supabase Cloud)"]
+        Supa_Auth["Supabase GoTrue Auth\n• JWT Token Generation\n• auth.users Identity Store"]
+        Supa_DB[(PostgreSQL 15 Cloud Database\n• 18 Normalized Domain Tables\n• Row Level Security (RLS) Policies\n• Stored Procedures, Functions & Triggers)]
+        Supa_Realtime["Supabase Realtime Engine\n• PostgreSQL WAL Replication\n• WebSocket Broadcast to Connected Hubs"]
+        Supa_Storage["Supabase Storage Buckets\n• e-POD Signatures & Waypoint Gate Photos\n• Incident Damage & Fuel Receipt Proofs"]
+    end
+
+    %% =========================================================================
+    %% TIER 5: EXTERNAL MICROSERVICES
+    %% =========================================================================
+    subgraph Tier5 ["Tier 5: External Microservices & Gateways"]
+        Ext_OSRM["OSRM OpenStreetMap Engine\n• Road Polyline Coordinates\n• Dual-Leg Distance & Travel Minutes"]
+        Ext_SMTP["SMTP / NodeMailer Mail Server\n• Customer Milestone Status Notifications\n• Password Recovery & Signup 6-Digit OTP\n• Employee HTML Payslips"]
+        Ext_Expo["Expo Push Notification Gateway\n• APNS (iOS) & FCM (Android) Deliveries"]
+    end
+
+    %% Network Connections
+    AdminApp -- "Local HTTP / Preload IPC" --> API_Gateway
+    MobileApp -- "HTTPS Telematics & Push" --> CFTunnel
+    CustomerWeb -- "POST /api.php Supabase Proxy" --> Supa_DB
+    CustomerWeb -. "Auto-Generates Scheduled Trip" .-> API_TMS
+    PublicTracker -- "GET /api/public-tracking/:query" --> CFTunnel
+    CFTunnel -- "Encrypted Multiplexed QUIC" --> API_Gateway
+
+    API_Gateway --> API_Auth
+    API_Gateway --> API_TMS
+    API_Gateway --> API_Fleet
+    API_Gateway --> API_Field
+    API_Gateway --> API_Finance
+
+    API_Auth --> Supa_Auth
+    API_Auth --> Supa_DB
+    API_Auth --> Ext_SMTP
+    
+    API_TMS --> Ext_OSRM
+    API_TMS --> Supa_DB
+    
+    API_Fleet --> Supa_DB
+    
+    API_Field --> Supa_DB
+    API_Field --> Supa_Storage
+    
+    API_Finance --> Supa_DB
+    API_Finance --> Ext_SMTP
+    
+    API_TMS --> Svc_Webhook
+    API_Field --> Svc_Webhook
+    Svc_Webhook --> Ext_SMTP
+    Svc_Webhook --> Ext_Expo
+
+    Supa_DB --> Supa_Realtime
+    Supa_Realtime -- "WebSocket Push (driver_locations, trips)" --> AdminApp
+    Supa_Realtime -- "WebSocket Push (notifications)" --> MobileApp
+```
+
+---
+
+## 3. Network Topology, Ingress & Security Boundaries
+
+```mermaid
+flowchart LR
+    subgraph PublicInternet ["Public Internet"]
+        MobileDriver["Driver Mobile App\n(Cellular / 4G / 5G)"]
+        WebCustomer["Customer Browser\n(Booking & Tracking)"]
+    end
+
+    subgraph CloudflareEdge ["Cloudflare Global Anycast Edge"]
+        CF_Edge["Cloudflare Edge Tunnel\n(*.trycloudflare.com)\n• TLS 1.3 Termination\n• DDoS Mitigation\n• QUIC / HTTP/2 Transport"]
+    end
+
+    subgraph InternalPerimeter ["Enterprise On-Premise / Cloud Host"]
+        CF_Daemon["cloudflared.exe Daemon\n(Local Tunnel Agent)"]
+        LocalHost["Express.js Server\n0.0.0.0:3000\n• CORS Dynamic Whitelisting\n• Rate-Limiting In-Memory Maps"]
+        AdminGUI["Electron Desktop App\n(Renderer + Preload Context Bridge)"]
+    end
+
+    subgraph CloudVPC ["Supabase Cloud VPC (AWS ap-southeast-1)"]
+        Postgres[(PostgreSQL 15 Cloud Database)]
+        GoTrue["GoTrue Auth Service"]
+        Storage["S3-Compatible Object Storage"]
+    end
+
+    MobileDriver -->|HTTPS / Port 443| CF_Edge
+    WebCustomer -->|HTTPS / Port 443| CF_Edge
+    CF_Edge <-->|Outbound QUIC Tunnel| CF_Daemon
+    CF_Daemon -->|HTTP / Loopback :3000| LocalHost
+    AdminGUI -->|IPC Bridge & Loopback :3000| LocalHost
+
+    LocalHost -->|TLS / Port 5432| Postgres
+    LocalHost -->|HTTPS / REST| GoTrue
+    LocalHost -->|HTTPS / Multipart S3| Storage
+```
+
+### Security Boundary Protections:
+1. **Zero Public Port Forwarding**: The Express server listens on local interface `0.0.0.0:3000`. No router NAT ports are opened. Ingress is exclusively handled via an outbound persistent QUIC connection established by `cloudflared.exe`.
+2. **Electron Context Isolation**: The desktop admin application enables `contextIsolation: true` and `nodeIntegration: false`. Renderer processes communicate strictly via `preload.ts` exposed IPC bridges.
+3. **Brute-Force & Credential Shield**: In-memory rate limiting locks accounts for 15 minutes after 5 failed authentication or OTP verification attempts.
+4. **Client Inactivity Guard**: `auth_guard.js` monitors DOM events (`mousemove`, `keydown`, `scroll`, `touchstart`) and forces logout upon 30 minutes of idle time.
+
+---
+
+## 4. End-to-End Operational Lifecycle & Master State Machine
+
+The master operational lifecycle spans customer demand, dispatch conflict locking, pre-trip inspection, real-time transit telematics, waypoint deliveries, proof of delivery, and financial settlement:
+
+```mermaid
+stateDiagram-v2
+    [*] --> OrderIngestion: Customer Web Booking OR Dispatcher Scheduling
+    
+    state OrderIngestion {
+        [*] --> DraftOrder
+        DraftOrder --> VolumetricEstimation: Compute Dimensions & Weight
+        VolumetricEstimation --> OSRMRouting: Compute Dual-Leg Geometry
+        OSRMRouting --> RateCardCalculation: Apply Base Fare + Per-Km + Stop Surcharges
+        RateCardCalculation --> ResourceAssignment: Select Driver & Vehicle
+    }
+
+    OrderIngestion --> AssetConflictCheck: Validate Driver & Vehicle Availability
+    
+    state AssetConflictCheck {
+        [*] --> CheckStatus
+        CheckStatus --> ConflictDetected: Driver or Vehicle != 'available'
+        ConflictDetected --> ResourceAssignment: Re-select Resources
+        CheckStatus --> PreTripInspection: Resources Available
+    }
+
+    state PreTripInspection {
+        [*] --> VehicleChecklist
+        VehicleChecklist --> SafetyLock: Critical Failure in 12-point Assessment
+        SafetyLock --> [*]: Vehicle Marked 'maintenance'
+        VehicleChecklist --> DispatchManifestReady: Assessment Passed
+    }
+
+    PreTripInspection --> Scheduled: Trip Inserted (status = 'scheduled')
+    Scheduled --> InTransit: Driver taps 'Start Trip' in Mobile App
+    
+    note right of Scheduled
+        Milestone Email 1 Dispatched:
+        ORDER BOOKED
+    end note
+
+    state InTransit {
+        [*] --> TelematicsStreaming
+        TelematicsStreaming --> MilestoneApproaching: Driver within 15 mins of destination
+        TelematicsStreaming --> WaypointArrival: Arrived at Intermediate Stop (trip_stops)
+        WaypointArrival --> WaypointDelivery: Complete Stop e-POD
+        WaypointDelivery --> TelematicsStreaming: Next Waypoint
+        TelematicsStreaming --> IncidentOccurred: SOS Panic or Road Breakdown
+        IncidentOccurred --> EmergencyProtocol: Admin Siren Alert Triggered
+        EmergencyProtocol --> TelematicsStreaming: Resume Transit
+    }
+
+    note right of InTransit
+        Milestone Email 2 Dispatched:
+        OUT FOR DELIVERY (Live GPS + Driver Details)
+    end note
+
+    note right of MilestoneApproaching
+        Milestone Email 3 Dispatched:
+        ARRIVING SOON
+    end note
+
+    InTransit --> FinalDeliveryCheck: Reached Final Destination
+    
+    FinalDeliveryCheck --> Delivered: Recipient Signs Touch Canvas e-POD + Photo Upload
+    FinalDeliveryCheck --> FailedDelivery: Consignee Absent / Goods Refused
+
+    note right of Delivered
+        Milestone Email 4 Dispatched:
+        DELIVERED (Signatory Name + POD Proof)
+    end note
+
+    note right of FailedDelivery
+        Milestone Email 5 Dispatched:
+        DELIVERY ATTEMPTED (Reason Logged)
+    end note
+
+    Delivered --> SettlementAndSettling: Auto-Release Assets ('available')
+    FailedDelivery --> SettlementAndSettling: Auto-Release Assets ('available')
+
+    state SettlementAndSettling {
+        [*] --> AccountsReceivable
+        AccountsReceivable --> SequentialInvoicing: Generate INV-YYYY-XXXX
+        SequentialInvoicing --> PaymentReceipt: Mark Paid upon Client Remittance
+        [*] --> WorkforceSettlement
+        WorkforceSettlement --> AttendanceHours: calcHours(check_in, check_out)
+        AttendanceHours --> TRAINPayroll: Deduct SSS, PhilHealth, Pag-IBIG & Tax
+        TRAINPayroll --> FinalizePaychecks: Dispatched Branded HTML Payslips
+    }
+
+    SettlementAndSettling --> [*]
+```
+
+---
+
+## 5. Detailed Subsystem Specifications & Illustrations
+
+### Subsystem 1: Identity, Dual-Store Authentication, Lockout & OTP Recovery
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Employee / Admin
+    participant UI as Login Portal (index.html)
+    participant Guard as Session Guard (auth_guard.js)
+    participant AuthAPI as Auth Router (/api/auth)
+    participant SupaAuth as Supabase GoTrue Auth
+    participant DB as Postgres (users / employees)
+    participant SMTP as NodeMailer SMTP Server
+
+    User->>UI: Input Email/Username & Password
+    UI->>AuthAPI: POST /api/auth/login
+
+    rect rgb(245, 245, 255)
+        Note over AuthAPI: Check 1: Super Admin Master Bypass
+        alt Credentials == admin / admin@jrr.com + admin
+            AuthAPI-->>UI: HTTP 200: role = 'super_admin' (Full Bypass)
+        end
+    end
+
+    rect rgb(255, 240, 240)
+        Note over AuthAPI: Check 2: Brute-Force Rate Limiting
+        alt Failed attempts >= 5 in loginAttempts Map
+            AuthAPI-->>UI: HTTP 429: Account locked for 15 minutes
+        end
+    end
+
+    AuthAPI->>SupaAuth: signInWithPassword({ email, password })
+
+    alt Supabase Auth Succeeds
+        AuthAPI->>DB: Query users (WHERE email = ?)
+        alt email_verified == false
+            AuthAPI-->>UI: HTTP 403: Email verification required
+        else account_status != 'approved'
+            AuthAPI-->>UI: HTTP 403: Account pending administrator approval
+        else Account Active & Approved
+            AuthAPI->>DB: Query employees (WHERE supabase_user_id = user.id)
+            AuthAPI-->>UI: HTTP 200: Employee Session Payload + Access Token
+        end
+    else Supabase Auth Fails (Network / Legacy / Unsynced User)
+        AuthAPI->>DB: Fallback Query users (WHERE email = ? AND password = ?)
+        alt User Match in Database
+            AuthAPI-->>UI: HTTP 200: Local Database Session
+        else Invalid Credentials
+            AuthAPI-->>UI: HTTP 401: Invalid credentials (Attempts remaining recorded)
+        end
+    end
+
+    UI->>Guard: Save user session & lastActivity in localStorage
+    Guard->>Guard: Set 30-min idle timer; reset on mousemove, keydown, click
+    
+    opt Idle Exceeds 30 Minutes
+        Guard->>UI: Auto-terminate session & redirect to index.html
+    end
+
+    %% 3-Stage Password Recovery
+    rect rgb(240, 255, 240)
+        Note over User, SMTP: 3-Stage Rate-Limited Password Recovery Flow
+        User->>UI: Click "Forgot Password", submit email
+        UI->>AuthAPI: POST /api/auth/send-recovery-code
+        AuthAPI->>DB: Verify email exists in users
+        AuthAPI->>AuthAPI: Generate 6-digit cryptographic OTP (expires in 15 mins)
+        AuthAPI->>SMTP: Send Branded HTML OTP Email
+        AuthAPI-->>UI: HTTP 200: Code dispatched
+        User->>UI: Input 6-digit OTP code
+        UI->>AuthAPI: POST /api/auth/verify-recovery-code
+        AuthAPI-->>UI: HTTP 200: OTP Validated
+        User->>UI: Input New Password (min 8 chars)
+        UI->>AuthAPI: POST /api/auth/update-password-with-code
+        AuthAPI->>DB: UPDATE users SET password = ?
+        AuthAPI->>SupaAuth: supabaseAdmin.auth.admin.updateUserById(id, { password })
+        AuthAPI-->>UI: HTTP 200: Password reset successful
+    end
+```
+
+---
+
+### Subsystem 2: Omnichannel Order Inflow, Multi-Stop TMS Dispatch & Contract Dynamic Pricing
+
+```mermaid
+flowchart TD
+    %% Inflow Channels
+    subgraph Ingestion_Channels ["Order Ingestion Channels"]
+        WebPortal["Public Customer Booking\n(transport_web_site/booking.html)"]
+        DispPortal["Commercial Dispatcher Hub\n(scheduling_page.html)"]
+    end
+
+    %% Web Order Processing
+    WebPortal --> WebProxy["api.php Proxy Script"]
+    WebProxy --> CheckClient{Client Phone Registered?}
+    CheckClient -- No --> InsertClient[(Insert clients Table:\nclient_type: 'Individual'\ncompany_name: 'Website Booking')]
+    CheckClient -- Yes --> UpdateClient[(Update clients Name/Email)]
+    InsertClient & UpdateClient --> CreateWebTrip[(Insert trips Table:\ntrip_number: 'TRP-WEB-timestamp'\nstatus: 'scheduled')]
+
+    %% Dispatcher Flow
+    DispPortal --> InputLocations[/Select Origin HQ, Pickup & Delivery Points/]
+    InputLocations --> OSRM_DualLeg["POST /api/tracking/estimate-route\n(OSRM Engine)"]
+    
+    OSRM_DualLeg --> ComputeLegs["Compute Dual-Leg Coordinates:\n• Leg 1 (Dispatch): HQ -> Pickup\n• Leg 2 (Delivery): Pickup -> Dropoff\nOutput: leg1_distance_km, leg2_distance_km, duration_mins"]
+    
+    ComputeLegs --> VolumetricEngine["POST /api/tracking/estimate-package\nVolumetric Weight = (L * W * H) / 5000\nChargeable Weight = max(Actual, Volumetric)"]
+    
+    VolumetricEngine --> RateCardCheck["Query client_rate_cards Table"]
+    RateCardCheck --> FreightFormula["Compute Dynamic Price:\nBase Fare + (Distance Km * Per-Km Rate) +\n(Waypoints * Stop Surcharge)\nAssert >= min_charge"]
+
+    FreightFormula --> ResourceCheck[/Select Driver & Vehicle/]
+    ResourceCheck --> ConflictValidation{Resource Conflict Check}
+
+    ConflictValidation -- Driver Busy on Active Trip --> ErrDriver[Reject HTTP 400: Driver currently engaged]
+    ConflictValidation -- Vehicle Busy on Active Trip --> ErrVehicle[Reject HTTP 400: Vehicle currently in transit]
+    ConflictValidation -- Delivery Time <= Pickup Time --> ErrTime[Reject HTTP 400: Chronological timestamp error]
+    
+    ConflictValidation -- Validation Passed --> InsertTrip[(Insert trips Table:\ntracking_code: 'TRK-XXXXXXXX'\nstatus: 'scheduled')]
+
+    %% Multi-Stop Logic
+    InsertTrip --> CheckWaypoints{Contains Intermediate Stops?}
+    CheckWaypoints -- Yes --> InsertWaypoints[(Insert trip_stops Table:\n• stop_sequence: 1..N\n• stop_type: pickup/dropoff/waypoint\n• tracking_code per stop\n• status: 'pending')]
+    CheckWaypoints -- No --> LockResources
+
+    InsertWaypoints --> LockResources
+    CreateWebTrip --> LockResources
+
+    LockResources[(UPDATE employees SET status = 'in-use'\nUPDATE vehicles SET status = 'in-use')]
+    LockResources --> TriggerNotification[(Insert notifications Table:\nurgency: 'alert', title: 'New Trip Assigned')]
+    LockResources --> DispatchMilestone1["notificationWebhook.ts:\nMilestone 1 Email (ORDER BOOKED)"]
+
+    %% Deletion & Asset Recovery
+    subgraph Asset_Recovery ["Trip Cancellation & Asset Auto-Release"]
+        DelReq([DELETE /api/trips/:id]) --> DelDB[(Delete from trips)]
+        DelDB --> CheckDriverActive{Driver has other active trips?}
+        CheckDriverActive -- No --> FreeDriver[(UPDATE employees SET status = 'available')]
+        DelDB --> CheckVehicleActive{Vehicle has other active trips?}
+        CheckVehicleActive -- No --> FreeVehicle[(UPDATE vehicles SET status = 'available')]
+    end
+```
+
+---
+
+### Subsystem 3: Fleet Safety Quarantine, 12-Point Inspection & PMS Schedule
+
+```mermaid
+flowchart TD
+    subgraph Reactive_Inspection ["Reactive Safety: 12-Point Physical Inspection"]
+        DepotVehicle([Vehicle at Terminal Depot]) --> DriverInspect[Inspector / Driver Performs 12-Point Audit]
+        DriverInspect --> FillForm[/Fill Checklist: Odometer, Fuel %, Brakes, Tires, Lights, Horn, Fluids/]
+        FillForm --> PostAssessment[POST /api/vehicles/assessments]
+        PostAssessment --> InsertAssess[(Insert vehicle_assessments Table)]
+        
+        InsertAssess --> CheckCritical{has_critical_failure == true OR status == 'failed'?}
+        CheckCritical -- Yes --> AutoLock[(UPDATE vehicles SET status = 'maintenance')]
+        AutoLock --> DispatchLockout([Vehicle Locked from Dispatch Grid])
+        
+        DispatchLockout --> WorkshopRepair[Maintenance Workshop Completes Repair]
+        WorkshopRepair --> PostClear[POST /api/vehicles/:id/clear-maintenance]
+        PostClear --> AutoRelease[(UPDATE vehicles SET status = 'available')]
+        
+        CheckCritical -- No --> AutoRelease
+    end
+
+    subgraph Proactive_PMS ["Proactive Safety: Preventive Maintenance Schedules (PMS)"]
+        PMS_Table[(maintenance_schedules Table)] --> TrackTypes[/Track Service Categories:\n• engine_oil\n• tire_rotation\n• brake_pads\n• transmission_fluid\n• battery/]
+        TrackTypes --> CompareOdo{Current Odometer vs next_due_odo}
+        
+        CompareOdo -- Current >= next_due_odo --> MarkOverdue[status = 'overdue'\nTrigger Urgent Dashboard Warning]
+        CompareOdo -- Within 500 km --> MarkDueSoon[status = 'due_soon'\nQueue for Service]
+        CompareOdo -- Distance Safe --> MarkHealthy[status = 'healthy']
+        
+        MarkOverdue --> AutoLock
+    end
+
+    subgraph Telematics_Stream ["Continuous Telematics Ingest"]
+        MobileGPS([Driver Mobile App]) --> PostCoords[POST /api/tracking/driver-location]
+        PostCoords --> UpsertLoc[(UPSERT driver_locations Table:\nlatitude, longitude, speed, heading, updated_at)]
+        UpsertLoc --> RadarMap[Render Live Vehicle Markers on Leaflet Fleet Radar]
+    end
+```
+
+---
+
+### Subsystem 4: 5-Stage Customer Milestone Webhooks & Consignee Self-Service
+
+```mermaid
+stateDiagram-v2
+    [*] --> Booked: Dispatcher or Web creates trip
+    
+    Booked --> InTransit: Driver taps 'Start Trip'
+    note right of Booked
+        Milestone Email 1: ORDER BOOKED
+        • Subject: "Your Shipment has been Booked"
+        • Payload: Tracking code, Pickup & Delivery ETA
+    end note
+
+    InTransit --> Approaching: Driver within 15 mins radius
+    note right of InTransit
+        Milestone Email 2: OUT FOR DELIVERY
+        • Subject: "Driver is En Route"
+        • Payload: Driver Name, Live GPS coordinates,
+          Speed, and direct Google Maps Tracking Link
+    end note
+
+    Approaching --> Delivered: Recipient signs e-POD
+    note right of Approaching
+        Milestone Email 3: ARRIVING SOON
+        • Subject: "Shipment Arriving in 10-15 Minutes"
+        • Payload: Please prepare authorized signatory
+    end note
+
+    Approaching --> Failed: Recipient absent / Refused
+    InTransit --> Failed: Road blocked / Breakdown
+
+    note right of Failed
+        Milestone Email 5: DELIVERY ATTEMPTED
+        • Subject: "Delivery Unsuccessful"
+        • Payload: pod_notes failure reason, return tracking
+    end note
+
+    Delivered --> [*]: Driver & Vehicle released to 'available'
+    note right of Delivered
+        Milestone Email 4: DELIVERED ✓
+        • Subject: "Delivery Completed Successfully"
+        • Payload: Signatory name, timestamp, and e-POD photo
+    end note
+
+    Failed --> [*]: Return to Depot
+```
+
+---
+
+### Subsystem 5: Native Mobile Driver App Lifecycle, e-POD & SOS Panic Engine
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Driver as Driver Field Staff
+    participant App as Mobile App (React Native / Expo)
+    participant API as Express API (:3000)
+    participant DB as Postgres Database
+    participant AdminUI as Admin Radar & Audio Siren
+
+    Note over App: App Initialization & Push Token Registration
+    App->>API: POST /api/notifications/device-token
+    API->>DB: UPSERT device_tokens (expo_push_token, employee_id)
+
+    rect rgb(240, 255, 240)
+        Note over Driver, App: Shift Start & Timecard Clock-In
+        Driver->>App: Tab attendance.tsx: Tap 'Clock In'
+        App->>API: POST /api/requests/attendance
+        API->>DB: Insert attendance (employee_id, date, check_in)
+    end
+
+    rect rgb(255, 255, 240)
+        Note over Driver, App: Active Transit & Real-Time Tracking
+        Driver->>App: Open Active Trip Manifest (trips.tsx)
+        Driver->>App: Tap 'Start Trip'
+        App->>API: PATCH /api/trips/:id/status ('in transit')
+        
+        loop Every 10 Seconds (Background / Foreground)
+            App->>API: POST /api/tracking/driver-location (lat, lng, speed, heading)
+            API->>DB: UPSERT driver_locations
+        end
+
+        opt Road Toll or Fuel Refill Incurred
+            Driver->>App: Submit Expense (type, amount, liters, odometer, photo)
+            App->>API: POST /api/expenses/log
+            API->>DB: Insert trip_expenses
+        end
+
+        opt Road Emergency / SOS Panic Event
+            Driver->>App: Tap Red SOS Panic Button
+            App->>API: POST /api/incidents/report (severity: 'sos', incident_type: 'sos_panic')
+            API->>DB: Insert incident_reports
+            API->>DB: Insert notifications (urgency: 'alarm', title: 'SOS EMERGENCY')
+            API->>AdminUI: Broadcast /alarm -> Play High-Pitch Siren & Pulse Map Marker
+        end
+    end
+
+    rect rgb(240, 248, 255)
+        Note over Driver, App: Waypoint / Final Destination e-POD Handover
+        Driver->>App: Tap 'Complete Delivery'
+        Driver->>App: Collect Signatory Name, Digital Canvas Signature & Gate Photo
+        App->>API: POST /api/epod/submit
+        API->>DB: UPDATE trips (status = 'delivered', pod_recipient_name, pod_signature_data, pod_photo_url, pod_delivered_at)
+        API->>DB: UPDATE employees SET status = 'available'
+        API->>DB: UPDATE vehicles SET status = 'available'
+    end
+```
+
+---
+
+### Subsystem 6: Invoicing, Workforce Attendance & Philippine Enterprise Payroll Engine
+
+```mermaid
+flowchart TD
+    %% Workforce Attendance
+    subgraph Attendance_And_Leave ["Workforce Attendance & Leave Management"]
+        ClockInOut([Daily Clock-In / Clock-Out]) --> AttRecord[(attendance Table:\ndate, check_in, check_out)]
+        LeaveReq([Submit Leave Request]) --> LeaveTable[(time_off_requests Table)]
+        LeaveTable --> MgrApproval{Manager Review}
+        MgrApproval -- Approve --> SetApproved[PATCH /api/requests/timeoff/:id/status\nstatus = 'Approved']
+        MgrApproval -- Deny --> SetDenied[PATCH /api/requests/timeoff/:id/status\nstatus = 'Denied']
+        
+        RecalcCron[POST /api/requests/recalculate-statuses\n(Daily Cron)] --> EvalDates{Current Date vs Leave Range}
+        EvalDates -- Date within start & end --> SetOngoing[(status = 'Ongoing')]
+        EvalDates -- Date > end_date --> SetCompleted[(status = 'Completed')]
+    end
+
+    %% Payroll Engine
+    subgraph Payroll_Engine ["Enterprise Payroll & TRAIN Law Engine"]
+        Officer([Payroll Officer Opens payroll_management.html]) --> SelectPeriod[/Select Pay Period: YYYY-MM/]
+        SelectPeriod --> FetchAttData[GET /api/payroll/monthly-all]
+        FetchAttData --> AttRecord
+        
+        FetchAttData --> ComputeHours["Compute Effective Hours:\ncalcHours(check_in, check_out)\nDaily Earned = daily_rate * min(hours / 8.0, 1.0)"]
+        
+        ComputeHours --> ApplyStatutory["Compute Philippine Statutory Deductions:\n• SSS Contribution Matrix\n• PhilHealth (5% Monthly Split)\n• Pag-IBIG HDMF (Php 100/200 Tier)"]
+        
+        ApplyStatutory --> ApplyTRAIN["Apply BIR TRAIN Law Graduated Tax:\nTaxable Base = Gross - (SSS + PhilHealth + Pag-IBIG)\nCalculate Withholding Tax Bracket"]
+        
+        ApplyTRAIN --> ComputeNetPay["Compute Final Net Take-Home Pay"]
+        
+        ComputeNetPay --> MailPayslip[POST /api/payroll/send-payslip\nDispatches Responsive HTML Payslip via SMTP]
+        ComputeNetPay --> FinalizePeriod[POST /api/payroll/finalize]
+        
+        FinalizePeriod --> PurgeDrafts[(Delete previous draft records for period)]
+        PurgeDrafts --> InsertPaychecks[(Insert paychecks Table:\nstatus = 'paid', gross_pay, deductions, net_pay)]
+        InsertPaychecks --> PushWorkerNotice[(Insert notifications Table:\ntype = 'paycheck', title = 'Payslip Ready')]
+    end
+
+    %% Invoicing Engine
+    subgraph Accounts_Receivable ["Billing & Accounts Receivable"]
+        TripCompleted([Trip Status = 'delivered']) --> FetchNextNum[GET /api/billing/last-number]
+        FetchNextNum --> FormatInvoiceNum[Format Sequential Code: INV-YYYY-XXXX]
+        FormatInvoiceNum --> InsertInvoice[POST /api/billing]
+        InsertInvoice --> InvoicesTable[(Insert invoices Table:\namount, client_id, trip_id, due_date, status = 'Pending')]
+        InvoicesTable --> ClientPays[Client Remits Payment -> PUT /api/billing/:id status: 'Paid']
+        ClientPays --> RefreshStats[GET /api/billing/stats Updates Revenue Cards]
+        
+        ClientCRM[Client CRM: client_history_page.html] --> QueryLedger[GET /api/clients/history?clientId=...]
+        QueryLedger --> RenderClientHistory[Display Historical Shipments & Outstanding Ledger]
+    end
+```
+
+---
+
+## 6. Master Database Entity-Relationship Diagram (ERD)
+
+The enterprise database comprises 18 normalized tables spanning authentication, operations, telematics, safety, billing, and workforce:
+
+```mermaid
+erDiagram
+    users ||--o| employees : "links via supabase_user_id"
+    employees ||--o{ trips : "assigned driver"
+    vehicles ||--o{ trips : "assigned vehicle"
+    clients ||--o{ trips : "contracts"
+    trips ||--o{ trip_stops : "contains waypoints"
+    trips ||--o{ trip_expenses : "incurs expenses"
+    trips ||--o{ incident_reports : "logs road incidents"
+    trips ||--o| invoices : "billed under"
+    
+    employees ||--o{ attendance : "logs daily timecards"
+    employees ||--o{ time_off_requests : "submits leaves"
+    employees ||--o{ paychecks : "receives compensation"
+    employees ||--o{ notifications : "receives push alerts"
+    employees ||--o{ device_tokens : "registers mobile tokens"
+    employees ||--o| driver_locations : "reports real-time GPS"
+    
+    vehicles ||--o{ vehicle_assessments : "evaluated under"
+    vehicles ||--o{ maintenance_schedules : "serviced under"
+    clients ||--o{ client_rate_cards : "custom contract pricing"
+    clients ||--o{ invoices : "invoiced to"
+
+    users {
+        uuid id PK
+        varchar username
+        varchar email UK
+        varchar password
+        varchar firstname
+        varchar lastname
+        boolean email_verified
+        varchar account_status
+        varchar role
+        timestamptz created_at
+    }
+
+    employees {
+        uuid id PK
+        varchar employee_id UK
+        varchar full_name
+        varchar email UK
+        varchar phone
+        varchar position
+        varchar department
+        varchar status
+        numeric daily_rate
+        numeric salary
+        uuid supabase_user_id FK
+        date hire_date
+    }
+
+    vehicles {
+        bigserial id PK
+        varchar vehicle_number
+        varchar plate UK
+        varchar vehicle_type
+        varchar brand
+        varchar model
+        integer year
+        varchar status
+        numeric max_capacity_kg
+    }
+
+    clients {
+        bigserial id PK
+        varchar name
+        varchar company_name
+        varchar email UK
+        varchar phone
+        text address
+        varchar client_type
+        timestamptz created_at
+    }
+
+    trips {
+        bigserial id PK
+        varchar trip_number UK
+        varchar tracking_code UK
+        uuid driver_id FK
+        bigint vehicle_id FK
+        bigint client_id FK
+        text hq_address
+        numeric hq_lat
+        numeric hq_lng
+        text pickup_location
+        numeric pickup_lat
+        numeric pickup_lng
+        text delivery_location
+        numeric delivery_lat
+        numeric delivery_lng
+        timestamptz pickup_time
+        timestamptz delivery_time
+        varchar cargo
+        numeric package_length_cm
+        numeric package_width_cm
+        numeric package_height_cm
+        numeric package_weight_kg
+        numeric volumetric_weight_kg
+        numeric chargeable_weight_kg
+        numeric leg1_distance_km
+        integer leg1_duration_mins
+        numeric leg2_distance_km
+        integer leg2_duration_mins
+        integer total_est_duration_mins
+        varchar status
+        numeric estimated_fare
+        varchar pod_recipient_name
+        text pod_signature_data
+        text pod_photo_url
+        timestamptz pod_delivered_at
+        text pod_notes
+    }
+
+    trip_stops {
+        bigserial id PK
+        bigint trip_id FK
+        integer stop_sequence
+        varchar stop_type
+        text location_name
+        text address
+        numeric latitude
+        numeric longitude
+        varchar contact_person
+        varchar contact_phone
+        varchar cargo_description
+        numeric package_weight_kg
+        varchar tracking_code UK
+        varchar status
+        text failed_reason
+        text failed_photo_url
+        text pod_recipient_name
+        text pod_signature_data
+        text pod_photo_url
+        timestamptz delivered_at
+        timestamptz created_at
+    }
+
+    vehicle_assessments {
+        uuid id PK
+        bigint vehicle_id FK
+        uuid inspector_id FK
+        bigint trip_id FK
+        varchar assessment_type
+        numeric odometer_reading
+        integer fuel_level_percentage
+        jsonb checklist
+        boolean has_critical_failure
+        varchar status
+        text damage_notes
+        text_array photo_urls
+        text inspector_signature
+        timestamptz created_at
+    }
+
+    maintenance_schedules {
+        bigserial id PK
+        bigint vehicle_id FK
+        varchar service_type
+        numeric interval_km
+        numeric last_service_odo
+        numeric next_due_odo
+        date last_service_date
+        varchar status
+        text notes
+        timestamptz created_at
+    }
+
+    trip_expenses {
+        bigserial id PK
+        bigint trip_id FK
+        uuid driver_id FK
+        bigint vehicle_id FK
+        varchar expense_type
+        numeric amount
+        numeric liters
+        numeric odometer
+        text receipt_photo_url
+        text notes
+        timestamptz created_at
+    }
+
+    incident_reports {
+        bigserial id PK
+        bigint trip_id FK
+        uuid driver_id FK
+        bigint vehicle_id FK
+        varchar severity
+        varchar incident_type
+        text description
+        numeric latitude
+        numeric longitude
+        jsonb photos
+        varchar police_report_no
+        varchar status
+        timestamptz created_at
+        timestamptz resolved_at
+    }
+
+    invoices {
+        bigserial id PK
+        varchar invoice_number UK
+        bigint client_id FK
+        bigint trip_id FK
+        numeric amount
+        date issue_date
+        date due_date
+        varchar status
+        timestamptz created_at
+    }
+
+    paychecks {
+        bigserial id PK
+        uuid employee_id FK
+        date pay_period_start
+        date pay_period_end
+        numeric gross_pay
+        numeric deductions
+        numeric net_pay
+        numeric hours_worked
+        varchar status
+        date payment_date
+        timestamptz created_at
+    }
+
+    attendance {
+        bigserial id PK
+        uuid employee_id FK
+        date date
+        time check_in
+        time check_out
+        timestamptz created_at
+    }
+
+    time_off_requests {
+        bigserial id PK
+        uuid employee_id FK
+        date start_date
+        date end_date
+        varchar request_type
+        text reason
+        varchar status
+        timestamptz created_at
+    }
+
+    driver_locations {
+        uuid driver_id PK,FK
+        bigint vehicle_id FK
+        bigint trip_id FK
+        numeric latitude
+        numeric longitude
+        numeric speed
+        numeric heading
+        timestamptz updated_at
+    }
+
+    device_tokens {
+        uuid id PK
+        uuid employee_id FK
+        text expo_push_token UK
+        varchar platform
+        timestamptz updated_at
+    }
+
+    notifications {
+        bigserial id PK
+        uuid employee_id FK
+        varchar title
+        text message
+        varchar type
+        varchar urgency
+        varchar target_role
+        boolean is_read
+        jsonb metadata
+        timestamptz created_at
+    }
+
+    client_rate_cards {
+        bigserial id PK
+        bigint client_id FK
+        varchar rate_card_name
+        numeric base_fare
+        numeric base_distance_km
+        numeric per_km_rate
+        numeric dropoff_surcharge_per_stop
+        numeric min_charge
+        boolean is_default
+        timestamptz created_at
+    }
+```
+
+---
+
+## 7. Master REST API Specification (The Endpoint Dictionary)
+
+The Express.js backend exposes 45+ endpoints across 15 router modules. All requests and responses conform to JSON standards:
+
+| Module / Route | Method | Endpoint Path | Auth / Target | Description & Side Effects |
+| :--- | :---: | :--- | :--- | :--- |
+| **Auth** | `POST` | `/api/auth/login` | Public | Authenticates via Supabase GoTrue or fallback `users` table; rate-limited (5 tries); checks approval status. |
+| **Auth** | `POST` | `/api/auth/signup` | Public | Registers pending user; generates initial 6-digit confirmation code; sends verification email. |
+| **Auth** | `POST` | `/api/auth/send-recovery-code` | Public | Generates 15-min cryptographic 6-digit OTP; stores in `recoveryCodes` memory map; sends SMTP email. |
+| **Auth** | `POST` | `/api/auth/verify-recovery-code`| Public | Verifies 6-digit recovery code against stored token; tracks failed attempts. |
+| **Auth** | `POST` | `/api/auth/update-password-with-code` | Public | Updates user password in `users` table and synchronizes cloud identity via Supabase Admin API. |
+| **Auth** | `GET` | `/api/auth/pending-users` | SuperAdmin | Returns list of unverified or pending employee accounts awaiting approval. |
+| **Auth** | `PATCH`| `/api/auth/approve-user/:id` | SuperAdmin | Approves user (`account_status = 'approved'`); triggers welcome notification. |
+| **Auth** | `DELETE`| `/api/auth/users/:id` | SuperAdmin | Purges user account and cascaded profile records. |
+| **Employees** | `GET` | `/api/employees` | Authenticated | Retrieves active workforce roster with current statuses (`available`, `in-use`, `on-leave`). |
+| **Employees** | `POST` | `/api/employees` | Admin | Inserts new employee record with statutory rates (`daily_rate`, `salary`). |
+| **Employees** | `PUT` | `/api/employees/:id` | Admin | Updates employee profile information, position, department, and compensation. |
+| **Employees** | `DELETE`| `/api/employees/:id` | Admin | Deletes employee record from database. |
+| **Employees** | `POST` | `/api/employees/sync-email` | Admin | Links unattached employee to Supabase user account; auto-generates temp password `EMP<USER>`. |
+| **Trips** | `GET` | `/api/trips` | Authenticated | Retrieves fleet trip manifests with joined driver, vehicle, and client records. |
+| **Trips** | `POST` | `/api/trips` | Dispatcher | Validates asset conflicts; inserts trip; inserts `trip_stops`; locks driver and vehicle to `in-use`. |
+| **Trips** | `PUT` | `/api/trips/:id` | Dispatcher | Modifies trip details, route waypoints, or schedules. |
+| **Trips** | `PATCH`| `/api/trips/:id/status` | Field / Disp | Updates status (`in transit`, `delivered`, `failed`); triggers customer milestone webhook. |
+| **Trips** | `DELETE`| `/api/trips/:id` | Admin | Deletes trip; auto-releases driver and vehicle back to `available` if no other active trips exist. |
+| **Vehicles** | `GET` | `/api/vehicles` | Authenticated | Retrieves vehicle inventory with maintenance status, plate, and load capacity. |
+| **Vehicles** | `POST` | `/api/vehicles` | Admin | Registers new fleet asset. |
+| **Vehicles** | `POST` | `/api/vehicles/assessments` | Inspector | Records 12-point pre/post trip inspection; auto-quarantines vehicle to `maintenance` on failure. |
+| **Vehicles** | `POST` | `/api/vehicles/:id/clear-maintenance` | Admin | Clears maintenance flag; releases vehicle back to `available`. |
+| **Tracking** | `POST` | `/api/tracking/driver-location` | Mobile Driver | Ingests real-time GPS coordinates (lat, lng, speed, heading); upserts `driver_locations`. |
+| **Tracking** | `GET` | `/api/tracking/live` | Authenticated | Fetches latest positions of all active fleet drivers. |
+| **Tracking** | `POST` | `/api/tracking/estimate-route` | Dispatcher | Calls OSRM engine to calculate dual-leg coordinates, distance km, and travel time. |
+| **Tracking** | `POST` | `/api/tracking/estimate-package` | Dispatcher | Calculates volumetric weight (`L*W*H/5000`) and recommends appropriate vehicle class. |
+| **Public Track** | `GET` | `/api/public-tracking/:query` | Public | Resolves trip by tracking code or ID; returns sanitized status, coordinates, and driver name. |
+| **e-POD** | `POST` | `/api/epod/submit` | Mobile Driver | Submits recipient name, canvas signature, photo URL; marks trip `delivered`; frees assets. |
+| **Expenses** | `POST` | `/api/expenses/log` | Mobile Driver | Ingests fuel, toll, parking receipts with liters and odometer readings into `trip_expenses`. |
+| **Expenses** | `GET` | `/api/expenses/trip/:tripId` | Authenticated | Retrieves all audited road disbursements for a given trip. |
+| **Incidents** | `POST` | `/api/incidents/report` | Mobile Driver | Ingests road accident, breakdown, or SOS panic event; broadcasts sirens to admin dashboards. |
+| **Incidents** | `PATCH`| `/api/incidents/:id/status` | Admin | Updates incident status (`under_review`, `resolved`). |
+| **Billing** | `GET` | `/api/billing` | Accounts | Fetches all accounts receivable invoices with client metadata. |
+| **Billing** | `POST` | `/api/billing` | Accounts | Generates sequential invoice (`INV-YYYY-XXXX`) tied to delivered trip. |
+| **Billing** | `PUT` | `/api/billing/:id` | Accounts | Updates payment status (`Paid`, `Cancelled`, `Pending`). |
+| **Billing** | `GET` | `/api/billing/last-number` | Accounts | Queries highest existing invoice sequence to propose next invoice number. |
+| **Billing** | `GET` | `/api/billing/stats` | Accounts | Computes total invoiced revenue, pending collections, and paid totals. |
+| **Clients** | `GET` | `/api/clients` | Authenticated | Retrieves corporate and individual client registry. |
+| **Clients** | `POST` | `/api/clients` | Admin | Inserts new client profile. |
+| **Clients** | `GET` | `/api/clients/history` | Admin | Fetches client historical shipment ledger, total spend, and fulfillment track record. |
+| **Requests** | `POST` | `/api/requests/attendance` | Mobile Driver | Clocks in/out employee daily attendance. |
+| **Requests** | `POST` | `/api/requests/timeoff` | Employee | Submits vacation/sick leave request. |
+| **Requests** | `PATCH`| `/api/requests/timeoff/:id/status` | Manager | Approves or denies leave request. |
+| **Requests** | `POST` | `/api/requests/recalculate-statuses` | Cron Daemon | Evaluates date boundaries; transitions leaves to `Ongoing` or `Completed`. |
+| **Payroll** | `GET` | `/api/payroll/monthly-all` | HR/Payroll | Aggregates monthly hours worked via `calcHours`; computes Gross, SSS, PhilHealth, Pag-IBIG, Tax. |
+| **Payroll** | `POST` | `/api/payroll/send-payslip` | HR/Payroll | Generates responsive HTML payslip and dispatches to employee email via SMTP. |
+| **Payroll** | `POST` | `/api/payroll/finalize` | HR/Payroll | Publishes finalized paychecks to `paychecks` table; emits employee notification. |
+| **Notifications** | `POST` | `/api/notifications/device-token` | Mobile App | Registers Expo push token for APNS and FCM push delivery. |
+| **Notifications** | `POST` | `/api/notifications/alarm` | Field / System | Emits high-priority audio alarm siren to administrative command hubs. |
+| **System** | `GET` | `/api/health` | Monitoring | Returns server uptime, memory usage, environment, and latency diagnostics. |
+
+---
+
+## 8. Failure Modes, Resilience & Disaster Recovery
+
+| Failure Scenario | Threat & Impact | Automated Mitigation & Architectural Redundancy |
+| :--- | :--- | :--- |
+| **Supabase GoTrue Outage** | Cloud auth unreachable; staff cannot login. | **Dual-Store Fallback**: Auth router automatically falls back to validating credentials directly against the local `users` table with bcrypt matching. |
+| **Driver Drops Offline in Deadzone** | GPS telemetry stops; delivery status unconfirmed. | **Store-and-Forward**: Mobile app queues location pings and e-POD signature payloads in local SQLite/AsyncStorage; auto-retries upon signal re-establishment. |
+| **Concurrent Dispatch Conflict** | Two dispatchers assign the same driver or vehicle. | **Atomic Status Guard**: SQL queries assert `WHERE status = 'available'`. If affected rows == 0, transaction aborts with HTTP 400 conflict error. |
+| **Cloudflare Tunnel Failure** | Remote mobile drivers cannot hit Express API. | **Dynamic LAN Discovery**: Server binds to `0.0.0.0:3000` and displays local Wi-Fi LAN IP at startup (`http://192.168.x.x:3000`) for direct local network routing. |
+| **Vehicle Breakdown Mid-Transit** | Shipment halted on highway. | **SOS Incident Protocol**: Driver hits red SOS panic button; system broadcasts `/api/notifications/alarm`; status page triggers siren; incident report logs coordinates for rescue dispatch. |
+| **Email SMTP Server Timeout** | Milestone email delivery hangs. | **Asynchronous Fire-and-Forget**: Webhook dispatch is non-blocking (`Promise.catch` logged); trip status update returns immediately to caller without latency penalty. |
+
+---
+
+## 9. Deployment Topology & Production Runbook
+
+```mermaid
+graph TD
+    subgraph HostServer ["Host Server Environment (Windows 11 / Linux Server)"]
+        Batch["scripts/start_tunnel.bat / start_system.bat"] --> NodeApp["Node.js 18+ (Express API Engine)\nPort 3000 (0.0.0.0)"]
+        Batch --> CF_Agent["cloudflared.exe Tunnel Agent\n(QUIC to Cloudflare Edge)"]
+        Batch --> ElectronGUI["Electron Desktop Client\n(npm start)"]
+    end
+
+    subgraph MobileRun ["Driver Deployment"]
+        ExpoHost["Expo Go / Standalone APK / IPA\n(transport_mobile_app)"] --> CF_Agent
+    end
+
+    subgraph WebRun ["Public Web Portal"]
+        PHP_Host["Apache / Nginx + PHP 8+\n(transport_web_site)"] --> CloudVPC
+    end
+
+    subgraph CloudVPC ["Supabase Cloud Managed VPC"]
+        DB[(PostgreSQL 15)]
+        Auth[GoTrue Auth]
+        Bucket[Storage Buckets]
+    end
+
+    NodeApp --> DB
+    NodeApp --> Auth
+    NodeApp --> Bucket
+```
+
+### Quick Startup Sequence:
+1. Run `scripts/start_tunnel.bat` or `start_system.bat`.
+2. The batch script spawns `cloudflared.exe tunnel --url http://localhost:3000`, establishes the encrypted tunnel, and displays the public `*.trycloudflare.com` URL.
+3. The Express API initializes, verifies database connectivity to Supabase, binds to port `3000`, and exposes the static web client.
+4. Electron launches the command desktop portal with context-isolated preload bridges.
+5. Field drivers launch the Expo React Native app and point their API base URL to the secure Cloudflare tunnel.

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+   <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+   <title>Vishnuu | Digital Reporting</title>
+   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap"
+      rel="stylesheet">
+   <link rel="stylesheet" href="../css/shared.css" />
+   <link rel="stylesheet" href="../css/sidebar.css" />
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <script src="../js/web_api.js"></script>
+   <script src="../js/auth_guard.js"></script>
+   <style>
+      .report-grid {
+         display: grid;
+         grid-template-columns: 1fr 1fr;
+         gap: 24px;
+      }
+
+      .selection-btn {
+         background: var(--card-bg);
+         border: 1px solid var(--border);
+         padding: 16px;
+         border-radius: 8px;
+         cursor: pointer;
+         display: flex;
+         align-items: center;
+         gap: 12px;
+         font-size: 14px;
+         font-weight: 600;
+         transition: var(--transition);
+      }
+
+      .selection-btn:hover {
+         background: rgba(59, 130, 246, 0.05);
+         border-color: var(--primary-light);
+      }
+
+      .selection-btn.active {
+         background: var(--primary);
+         color: white;
+         border-color: var(--primary);
+         box-shadow: var(--shadow-sm);
+      }
+
+      .format-btn {
+         background: var(--card-bg);
+         border: 1px solid var(--border);
+         padding: 24px;
+         border-radius: 12px;
+         cursor: pointer;
+         text-align: center;
+         transition: var(--transition);
+      }
+
+      .format-btn:hover {
+         transform: translateY(-4px);
+         box-shadow: var(--shadow-md);
+         border-color: var(--primary);
+      }
+   </style>
+</head>
+
+<body>
+   <!-- LOADING OVERLAY -->
+   <div id="loading-overlay" class="visible">
+      <div class="loader"></div>
+      <p>Compiling System Data...</p>
+      <div class="loading-dots">
+         <span></span><span></span><span></span>
+      </div>
+   </div>
+
+   <!-- SIDEBAR -->
+   <div class="sidebar">
+      <div class="brand-small">
+         <div>
+            <img src="../../assets/VishnuuLogo.png" alt="JRR Logo"
+               style="width: 100%; height: 100%; object-fit: contain;">
+         </div>
+         <h2><span id="welcomeTitle">VISHNUU</span></h2>
+      </div>
+
+      <nav class="sidebar-nav">
+         <ul id="menu-list">
+            <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+            <li><a href="employee_management.html"><i data-lucide="users"></i><span>Employees</span></a></li>
+            <li><a href="attendance_monitoring_page.html"><i
+                     data-lucide="calendar-check"></i><span>Attendance</span></a></li>
+            <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
+            <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
+            <li><a href="scheduling_page.html"><i data-lucide="map"></i><span>Dispatch</span></a></li>
+            <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
+            <li><a href="billing.html"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
+            <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
+            <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
+            <li><a href="tax_calculator_page.html"><i data-lucide="calculator"></i><span>Tax Calculator</span></a></li>
+            <li><a href="report_page.html" class="active"><i data-lucide="file-text"></i><span>Reports</span></a></li>
+            <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+         </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+         <div class="theme-toggle" id="theme-toggle">
+            <span>Mode</span>
+            <i data-lucide="sun" id="theme-icon" size="16"></i>
+         </div>
+         <div class="admin-info">
+            <div class="admin-avatar">AD</div>
+            <div class="admin-text">
+               <p class="name">Administrator</p>
+               <p class="email">admin@jrrtransport.com</p>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- MAIN CONTENT -->
+   <div class="main-content">
+      <header class="page-header">
+         <div>
+            <h1>System Reporting</h1>
+            <p style="color: var(--text-muted); margin-top: 4px;">Extract and export operational data for external
+               auditing and compliance.</p>
+         </div>
+      </header>
+
+      <div class="report-grid">
+         <!-- DATA SELECTION -->
+         <div class="card">
+            <h2 style="margin-bottom: 20px;">Data Compilation</h2>
+            <label>SELECT DATA REPOSITORY</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+               <button class="selection-btn active" data-type="shipments">
+                  <i data-lucide="package" size="18"></i> Shipments
+               </button>
+               <button class="selection-btn" data-type="vehicles">
+                  <i data-lucide="truck" size="18"></i> Fleet Assets
+               </button>
+               <button class="selection-btn" data-type="routes">
+                  <i data-lucide="map" size="18"></i> Logistics Routes
+               </button>
+               <button class="selection-btn" data-type="deliveries">
+                  <i data-lucide="box" size="18"></i> Delivery History
+               </button>
+               <button class="selection-btn" data-type="employees">
+                  <i data-lucide="users" size="18"></i> Employees
+               </button>
+               <button class="selection-btn" data-type="attendance">
+                  <i data-lucide="calendar-check" size="18"></i> Attendance
+               </button>
+               <button class="selection-btn" data-type="invoices">
+                  <i data-lucide="credit-card" size="18"></i> Invoices
+               </button>
+               <button class="selection-btn" data-type="clients">
+                  <i data-lucide="handshake" size="18"></i> Clients
+               </button>
+               <button class="selection-btn" data-type="payroll" style="grid-column: span 2;">
+                  <i data-lucide="banknote" size="18"></i> Payroll (Full Month)
+               </button>
+            </div>
+
+            <label>TEMPORAL RANGE</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+               <div>
+                  <label style="font-size: 11px;">START DATE</label>
+                  <input type="date" id="dateFrom">
+               </div>
+               <div>
+                  <label style="font-size: 11px;">END DATE</label>
+                  <input type="date" id="dateTo">
+               </div>
+            </div>
+         </div>
+
+         <!-- FORMAT SELECTION -->
+         <div class="card">
+            <h2 style="margin-bottom: 20px;">Export Parameters</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+               <button class="format-btn" data-format="excel">
+                  <div
+                     style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                     <i data-lucide="file-spreadsheet" color="#10b981"></i>
+                  </div>
+                  <div style="font-weight: 600;">Excel</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Tabular</div>
+               </button>
+               <button class="format-btn" data-format="pdf">
+                  <div
+                     style="background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                     <i data-lucide="file-text" color="#ef4444"></i>
+                  </div>
+                  <div style="font-weight: 600;">PDF</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Document</div>
+               </button>
+               <button class="format-btn" data-format="word">
+                  <div
+                     style="background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                     <i data-lucide="file-type" color="#3b82f6"></i>
+                  </div>
+                  <div style="font-weight: 600;">Word</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Rich Text</div>
+               </button>
+            </div>
+
+            <div style="background: var(--bg-soft); padding: 16px; border-radius: 8px;">
+               <h3 style="font-size: 14px; margin-top: 0; margin-bottom: 8px;">Job Manifest</h3>
+               <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-main);">
+                  <li style="margin-bottom: 8px;"><strong>Target:</strong> <span id="summaryType">Shipments</span></li>
+                  <li style="margin-bottom: 8px;"><strong>Range:</strong> <span id="summaryRange">Lifetime</span></li>
+                  <li style="margin-bottom: 8px;"><strong>Records Found:</strong> <span id="previewCount"
+                        style="color: var(--primary); font-weight: bold;">Loading...</span></li>
+               </ul>
+
+               <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+                  <strong
+                     style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">AVAILABLE
+                     FIELDS:</strong>
+                  <div id="previewFields"
+                     style="font-size: 11px; color: var(--text-light); line-height: 1.5; display: flex; flex-wrap: wrap; gap: 4px;">
+                     <!-- Fields will be injected here -->
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center;">
+         <button id="generateReportBtn" class="btn-primary" style="padding: 12px 32px; font-size: 16px;">
+            <i data-lucide="download-cloud" size="20"></i>
+            Initiate Batch Export
+         </button>
+      </div>
+   </div>
+
+   <script src="../js/lucide.min.js"></script>
+   <script src="../js/theme.js"></script>
+   <script src="../js/sidebarPaths.js"></script>
+   <script src="../js/sidebar.js"></script>
+   <script src="../js/export_utils.js"></script>
+   <script src="../js/report_page.js"></script>
+   <script>
+      lucide.createIcons();
+      window.addEventListener("load", () => {
+         const loader = document.getElementById("loading-overlay");
+         setTimeout(() => loader.classList.remove("visible"), 800);
+      });
+   </script>
+</body>
+
+</html>
