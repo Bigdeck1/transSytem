@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,41 @@ import {
   Linking,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { X, Navigation, Fuel, PenTool, QrCode, ShieldAlert, ExternalLink, MapPin } from 'lucide-react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import {
+  X,
+  Navigation,
+  Fuel,
+  PenTool,
+  QrCode,
+  ShieldAlert,
+  ExternalLink,
+  MapPin,
+  Camera,
+  Eye,
+  Minimize2,
+  Maximize2,
+  Sliders,
+  AlertTriangle,
+  RotateCcw,
+} from 'lucide-react-native';
+import {
+  FatigueLevel,
+  FATIGUE_LEVEL_LABELS,
+  FATIGUE_LEVEL_COLORS,
+} from '../types/safety';
 
 interface InAppNavigationModalProps {
   visible: boolean;
   onClose: () => void;
   trip: any;
   driverLocation?: { latitude: number; longitude: number; speed?: number };
+  driverName?: string;
+  fatigueLevel?: FatigueLevel;
+  fatigueScore?: number;
+  dominantSignal?: string;
+  eventCount?: number;
+  onSimulate?: (signal: 'eye_closure' | 'yawn' | 'head_drop' | 'reset' | 'level_1' | 'level_2' | 'level_3') => void;
   onOpenEpod?: () => void;
   onOpenScanner?: () => void;
   onOpenExpense?: () => void;
@@ -28,12 +56,31 @@ export function InAppNavigationModal({
   onClose,
   trip,
   driverLocation,
+  driverName = 'Driver',
+  fatigueLevel = 0,
+  fatigueScore = 0,
+  dominantSignal = 'none',
+  eventCount = 0,
+  onSimulate,
   onOpenEpod,
   onOpenScanner,
   onOpenExpense,
   onTriggerSos,
 }: InAppNavigationModalProps) {
   if (!trip) return null;
+
+  const [permission, requestPermission] = useCameraPermissions();
+  const [isCameraActive, setIsCameraActive] = useState(true);
+  const [isCameraMinimized, setIsCameraMinimized] = useState(false);
+  const [showTestBench, setShowTestBench] = useState(false);
+
+  useEffect(() => {
+    if (visible && !permission?.granted) {
+      requestPermission();
+    }
+  }, [visible, permission?.granted]);
+
+  const levelColor = FATIGUE_LEVEL_COLORS[fatigueLevel] || '#22c55e';
 
   const hqLat = 14.546827;
   const hqLng = 121.229383;
@@ -144,15 +191,25 @@ export function InAppNavigationModal({
         {/* Top HUD Bar */}
         <View style={styles.topHud}>
           <View style={styles.hudLeft}>
-            <View style={styles.pulseDot} />
+            <View style={[styles.pulseDot, { backgroundColor: levelColor }]} />
             <View>
               <Text style={styles.hudTitle}>Live In-App Navigation</Text>
-              <Text style={styles.hudSub}>Order #{trip.trip_number}</Text>
+              <Text style={styles.hudSub}>
+                Order #{trip.trip_number} • {driverName}
+              </Text>
             </View>
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X size={20} color="#fff" />
-          </TouchableOpacity>
+          <View style={styles.hudRightActions}>
+            <TouchableOpacity
+              onPress={() => setShowTestBench(prev => !prev)}
+              style={styles.testBenchIconBtn}
+            >
+              <Sliders size={18} color="#94a3b8" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <X size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Live Map View */}
@@ -185,6 +242,155 @@ export function InAppNavigationModal({
               <Text style={styles.routeMetricSub}>ETA: ~{durationEst}</Text>
             </View>
           </View>
+
+          {/* ─────────────────────────────────────────────────────────────
+              DRIVER SAFETY FRONT CAMERA PiP (Picture-in-Picture)
+              Runs simultaneously with the in-app map without closing HERMES
+              ───────────────────────────────────────────────────────────── */}
+          <View style={[styles.cameraPipContainer, isCameraMinimized && styles.cameraPipMinimized]}>
+            <View style={styles.cameraHeader}>
+              <View style={styles.cameraTitleRow}>
+                <View style={[styles.camLiveDot, { backgroundColor: levelColor }]} />
+                <Eye size={12} color={levelColor} />
+                <Text style={styles.cameraTitleText}>
+                  {isCameraMinimized ? 'AI MONITOR' : 'DRIVER SAFETY CAM'}
+                </Text>
+              </View>
+              <View style={styles.cameraActionsRow}>
+                <View style={[styles.pipScoreBadge, { backgroundColor: levelColor }]}>
+                  <Text style={styles.pipScoreText}>{fatigueScore}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setIsCameraMinimized(prev => !prev)}
+                  style={styles.minimizeBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  {isCameraMinimized ? (
+                    <Maximize2 size={13} color="#cbd5e1" />
+                  ) : (
+                    <Minimize2 size={13} color="#cbd5e1" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {!isCameraMinimized && (
+              <View style={styles.cameraFrame}>
+                {permission?.granted ? (
+                  <CameraView
+                    style={styles.cameraView}
+                    facing="front"
+                  />
+                ) : (
+                  <TouchableOpacity
+                    style={styles.camPermPrompt}
+                    onPress={requestPermission}
+                  >
+                    <Camera size={22} color="#94a3b8" />
+                    <Text style={styles.camPermText}>Tap to Enable Front Camera</Text>
+                  </TouchableOpacity>
+                )}
+                <View style={styles.camStatusOverlay}>
+                  <Text style={[styles.camStatusText, { color: levelColor }]}>
+                    {FATIGUE_LEVEL_LABELS[fatigueLevel]}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* ─────────────────────────────────────────────────────────────
+              PROGRESSIVE DROWSINESS / FATIGUE ALERTS ON THE MAP
+              ───────────────────────────────────────────────────────────── */}
+          {fatigueLevel === 1 && (
+            <View style={[styles.mapAlertBanner, styles.mapBannerLevel1]}>
+              <AlertTriangle size={24} color="#f59e0b" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mapBannerTitle}>⚠️ PLEASE STAY ALERT</Text>
+                <Text style={styles.mapBannerDesc}>
+                  Early signs of driver fatigue detected ({dominantSignal.replace('_', ' ')}).
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {fatigueLevel === 2 && (
+            <View style={[styles.mapAlertBanner, styles.mapBannerLevel2]}>
+              <ShieldAlert size={28} color="#f97316" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mapBannerTitle}>🚨 DROWSINESS DETECTED</Text>
+                <Text style={styles.mapBannerDesc}>
+                  Eyes closing / yawning detected! Please safely pull over and take a short break.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {fatigueLevel === 3 && (
+            <View style={[styles.mapAlertBanner, styles.mapBannerLevel3]}>
+              <ShieldAlert size={32} color="#ffffff" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.mapBannerTitle, { color: '#ffffff' }]}>
+                  🛑 CRITICAL SAFETY ALERT
+                </Text>
+                <Text style={[styles.mapBannerDesc, { color: '#fee2e2' }]}>
+                  Severe fatigue! Pull over immediately in a safe spot. Dispatch notified.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              DEV TEST BENCH ON NAVIGATION SCREEN
+              ───────────────────────────────────────────────────────────── */}
+          {showTestBench && (
+            <View style={styles.testBenchNavCard}>
+              <View style={styles.testBenchNavHeader}>
+                <Text style={styles.testBenchNavTitle}>🧪 Fatigue Test Bench (In-App Map)</Text>
+                <TouchableOpacity onPress={() => setShowTestBench(false)}>
+                  <X size={16} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.testBtnGrid}>
+                <TouchableOpacity
+                  style={[styles.simNavBtn, { backgroundColor: '#f1f5f9' }]}
+                  onPress={() => onSimulate?.('eye_closure')}
+                >
+                  <Text style={styles.simNavText}>👁 Eyes Closed</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.simNavBtn, { backgroundColor: '#f1f5f9' }]}
+                  onPress={() => onSimulate?.('yawn')}
+                >
+                  <Text style={styles.simNavText}>🥱 Yawn</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.simNavBtn, { backgroundColor: '#fef3c7' }]}
+                  onPress={() => onSimulate?.('level_1')}
+                >
+                  <Text style={[styles.simNavText, { color: '#b45309' }]}>🟡 Level 1</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.simNavBtn, { backgroundColor: '#ffedd5' }]}
+                  onPress={() => onSimulate?.('level_2')}
+                >
+                  <Text style={[styles.simNavText, { color: '#c2410c' }]}>🟠 Level 2</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.simNavBtn, { backgroundColor: '#fee2e2' }]}
+                  onPress={() => onSimulate?.('level_3')}
+                >
+                  <Text style={[styles.simNavText, { color: '#b91c1c' }]}>🔴 Level 3</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.simNavBtn, { backgroundColor: '#e2e8f0' }]}
+                  onPress={() => onSimulate?.('reset')}
+                >
+                  <Text style={styles.simNavText}>↺ Normal (0)</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Floating Quick Action Bar */}
@@ -197,7 +403,11 @@ export function InAppNavigationModal({
                 {delivery}
               </Text>
             </View>
-            <TouchableOpacity style={styles.extNavBtn} onPress={handleExternalMaps}>
+            <TouchableOpacity
+              style={styles.extNavBtn}
+              onPress={handleExternalMaps}
+              accessibilityLabel="Open in external Google Maps if needed"
+            >
               <ExternalLink size={16} color="#2563eb" />
             </TouchableOpacity>
           </View>
@@ -390,5 +600,214 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: '700',
+  },
+  hudRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  testBenchIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1e293b',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // ── Camera PiP ──
+  cameraPipContainer: {
+    position: 'absolute',
+    top: 76,
+    right: 14,
+    width: 140,
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#334155',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 100,
+  },
+  cameraPipMinimized: {
+    width: 130,
+  },
+  cameraHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: '#1e293b',
+  },
+  cameraTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  camLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  cameraTitleText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#f8fafc',
+    letterSpacing: 0.3,
+  },
+  cameraActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pipScoreBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  pipScoreText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  minimizeBtn: {
+    padding: 2,
+  },
+  cameraFrame: {
+    width: '100%',
+    height: 100,
+    backgroundColor: '#020617',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraView: {
+    width: '100%',
+    height: '100%',
+  },
+  camPermPrompt: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  camPermText: {
+    fontSize: 9,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  camStatusOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    right: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderRadius: 6,
+    paddingVertical: 2,
+    alignItems: 'center',
+  },
+  camStatusText: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
+  // ── Progressive Map Alerts ──
+  mapAlertBanner: {
+    position: 'absolute',
+    top: 76,
+    left: 14,
+    right: 160,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 99,
+  },
+  mapBannerLevel1: {
+    backgroundColor: '#fffbeb',
+    borderWidth: 2,
+    borderColor: '#f59e0b',
+  },
+  mapBannerLevel2: {
+    backgroundColor: '#fff7ed',
+    borderWidth: 2,
+    borderColor: '#f97316',
+  },
+  mapBannerLevel3: {
+    backgroundColor: '#dc2626',
+    borderWidth: 2.5,
+    borderColor: '#b91c1c',
+  },
+  mapBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  mapBannerDesc: {
+    fontSize: 11,
+    color: '#475569',
+    marginTop: 2,
+    lineHeight: 14,
+  },
+
+  // ── Test Bench ──
+  testBenchNavCard: {
+    position: 'absolute',
+    bottom: 12,
+    left: 14,
+    right: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 10,
+    zIndex: 110,
+  },
+  testBenchNavHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  testBenchNavTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  testBtnGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  simNavBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    minWidth: '30%',
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  simNavText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#334155',
   },
 });

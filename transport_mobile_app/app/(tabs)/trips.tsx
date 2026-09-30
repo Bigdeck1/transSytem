@@ -190,21 +190,13 @@ export default function Trips() {
 
   const formatDate = (dateStr?: string) => dateStr ? new Date(dateStr).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
 
-  const handleStartNavigation = (address: string) => {
-    if (!address) {
-      Alert.alert("Error", "Location address is missing.");
-      return;
+  const handleStartNavigation = (address?: string, tripObj?: Trip | null) => {
+    if (tripObj) {
+      setSelectedTrip(tripObj);
+    } else if (!selectedTrip && activeTrip) {
+      setSelectedTrip(activeTrip);
     }
-    const encodedAddress = encodeURIComponent(address);
-    const url = Platform.select({
-      android: `google.navigation:q=${encodedAddress}`,
-      ios: `http://maps.apple.com/?daddr=${encodedAddress}&dirflg=d`,
-    }) || `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
-
-    Linking.canOpenURL(url).then((supported) => {
-      if (supported) Linking.openURL(url);
-      else Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`);
-    }).catch((err) => console.error('Navigation error:', err));
+    setIsNavModalVisible(true);
   };
 
   const handleUpdateStatus = async (tripId: number | string, newStatus: string) => {
@@ -505,6 +497,52 @@ export default function Trips() {
         </View>
         <ChevronRight size={16} color="#cbd5e1" />
       </View>
+
+      {/* DIRECT ACTION BUTTONS ON TRIP CARD */}
+      {(trip.status === 'scheduled' || trip.status === 'pending') && (
+        <View style={styles.cardDirectActionsRow}>
+          <TouchableOpacity
+            style={[styles.cardDirectBtn, { backgroundColor: '#0D47A1', flex: 1.2 }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              setSelectedTrip(trip);
+              handleUpdateStatus(trip.id, 'active');
+              setIsNavModalVisible(true);
+            }}
+          >
+            <Truck size={14} color="#fff" />
+            <Text style={styles.cardDirectBtnText}>Start Trip</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.cardDirectBtn, { backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#cbd5e1', flex: 1 }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              setSelectedTrip(trip);
+              setIsAssessmentModalVisible(true);
+            }}
+          >
+            <ClipboardCheck size={14} color="#0D47A1" />
+            <Text style={[styles.cardDirectBtnText, { color: '#0D47A1' }]}>Pre-Trip</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {(trip.status === 'active' || trip.status === 'in-transit') && (
+        <View style={styles.cardDirectActionsRow}>
+          <TouchableOpacity
+            style={[styles.cardDirectBtn, { backgroundColor: '#1976D2', flex: 1 }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              setSelectedTrip(trip);
+              setIsNavModalVisible(true);
+            }}
+          >
+            <Navigation size={14} color="#fff" />
+            <Text style={styles.cardDirectBtnText}>Open In-App Map & Safety Cam</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -682,10 +720,14 @@ export default function Trips() {
                     <>
                       <TouchableOpacity 
                         style={[styles.actionBtn, {backgroundColor: '#0D47A1'}]} 
-                        onPress={() => handleUpdateStatus(selectedTrip.id, 'active')}
+                        onPress={() => {
+                          handleUpdateStatus(selectedTrip.id, 'active');
+                          setIsModalVisible(false);
+                          setIsNavModalVisible(true);
+                        }}
                       >
                          <Truck size={18} color="#fff" />
-                         <Text style={styles.actionBtnText}>Start Trip Now</Text>
+                         <Text style={styles.actionBtnText}>Start Trip & Launch In-App Map</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity 
@@ -718,10 +760,13 @@ export default function Trips() {
                       {/* In-App Live HUD Map */}
                       <TouchableOpacity 
                         style={[styles.actionBtn, {backgroundColor: '#1976D2'}]} 
-                        onPress={() => setIsNavModalVisible(true)}
+                        onPress={() => {
+                          setIsModalVisible(false);
+                          setIsNavModalVisible(true);
+                        }}
                       >
                          <Navigation size={18} color="#fff" />
-                         <Text style={styles.actionBtnText}>Open In-App Route Map & Speed HUD</Text>
+                         <Text style={styles.actionBtnText}>Open In-App Map & Safety Cam</Text>
                       </TouchableOpacity>
 
                       {/* Scan Cargo QR Code */}
@@ -780,10 +825,16 @@ export default function Trips() {
                     </>
                  )}
 
-                 {/* External Turn-by-Turn Navigation */}
-                 <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#334155'}]} onPress={() => handleStartNavigation(selectedTrip?.delivery_location || '')}>
+                 {/* In-App Navigation with Safety Cam */}
+                 <TouchableOpacity
+                   style={[styles.actionBtn, {backgroundColor: '#1976D2'}]} 
+                   onPress={() => {
+                     setIsModalVisible(false);
+                     handleStartNavigation(selectedTrip?.delivery_location || '', selectedTrip);
+                   }}
+                 >
                     <Navigation size={18} color="#fff" />
-                    <Text style={styles.actionBtnText}>Open in Google / Apple Maps</Text>
+                    <Text style={styles.actionBtnText}>Open In-App Map & Safety Cam</Text>
                  </TouchableOpacity>
               </View>
            </View>
@@ -1021,7 +1072,13 @@ export default function Trips() {
       <InAppNavigationModal
         visible={isNavModalVisible}
         onClose={() => setIsNavModalVisible(false)}
-        trip={selectedTrip}
+        trip={selectedTrip || activeTrip}
+        driverName={employee?.full_name || 'Driver'}
+        fatigueLevel={monitorState.fatigueLevel}
+        fatigueScore={monitorState.fatigueScore}
+        dominantSignal={monitorState.dominantSignal}
+        eventCount={monitorState.eventCount}
+        onSimulate={simulateSignal}
         onOpenEpod={() => {
           setIsNavModalVisible(false);
           setIsEpodModalVisible(true);
@@ -1177,5 +1234,26 @@ const styles = StyleSheet.create({
     color: '#166534',
     marginTop: 2,
     fontWeight: '500',
+  },
+  cardDirectActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  cardDirectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  cardDirectBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
