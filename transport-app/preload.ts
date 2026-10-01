@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld("api", {
     approveUser: (userId: string) => ipcRenderer.invoke("admin:approveUser", userId),
     rejectUser: (userId: string) => ipcRenderer.invoke("admin:rejectUser", userId),
     deleteUser: (userId: string) => ipcRenderer.invoke("admin:deleteUser", userId),
+    updateUserRole: (userId: string, role: string) => ipcRenderer.invoke("admin:updateUserRole", userId, role),
   },
 
   // --------------------

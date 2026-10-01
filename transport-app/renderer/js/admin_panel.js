@@ -220,20 +220,35 @@
       const statusClass = (user.status || 'pending').toLowerCase();
       const isVerified = user.email_confirmed_at || user.email_verified;
       const isPending = statusClass === 'pending';
+      const currentRole = user.role || 'user';
+
+      const roleOptions = [
+        { value: 'super_admin', label: 'Super Admin' },
+        { value: 'admin', label: 'Admin (Operations)' },
+        { value: 'dispatcher', label: 'Hauling Dispatcher' },
+        { value: 'rental_manager', label: 'Rental Manager' },
+        { value: 'billing_clerk', label: 'Billing Clerk' },
+        { value: 'driver', label: 'Driver' },
+        { value: 'user', label: 'User' }
+      ];
+
+      const roleOptionsHtml = roleOptions.map(r => 
+        `<option value="${r.value}" ${currentRole === r.value ? 'selected' : ''}>${r.label}</option>`
+      ).join('');
 
       return `
         <tr style="animation-delay: ${index * 0.04}s">
-          <td>${escapeHtml(user.username || '—')}</td>
+          <td style="font-weight: 600;">${escapeHtml(user.username || '—')}</td>
           <td>${escapeHtml(user.email || '—')}</td>
           <td>${escapeHtml(user.full_name || '—')}</td>
           <td>
-            <span class="status-badge ${statusClass}">
-              ${escapeHtml(user.status || 'pending')}
-            </span>
+            <select class="role-select-input" data-user-id="${escapeHtml(user.id)}" data-username="${escapeHtml(user.username)}" style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 4px 8px; color: #60a5fa; font-size: 12px; font-weight: 600; outline: none;">
+              ${roleOptionsHtml}
+            </select>
           </td>
           <td>
-            <span class="verified-icon ${isVerified ? 'yes' : 'no'}">
-              <i data-lucide="${isVerified ? 'check' : 'x'}" size="16"></i>
+            <span class="status-badge ${statusClass}">
+              ${escapeHtml(user.status || 'pending')}
             </span>
           </td>
           <td>
@@ -254,7 +269,7 @@
                   Verify Email
                 </button>
               ` : ''}
-              ${(isVerified && !isPending) ? `<span class="no-action">No actions</span>` : ''}
+              ${(isVerified && !isPending) ? `<span class="no-action">Approved</span>` : ''}
             </div>
           </td>
         </tr>
@@ -262,6 +277,34 @@
     }).join('');
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Bind role select change handlers
+    DOM.tableBody.querySelectorAll('.role-select-input').forEach(select => {
+      select.addEventListener('change', async (e) => {
+        const userId = e.target.dataset.userId;
+        const username = e.target.dataset.username;
+        const newRole = e.target.value;
+
+        try {
+          const res = await window.api.admin.updateUserRole(userId, newRole);
+          if (res && res.success) {
+            showToast(`Role for "${username}" updated to ${newRole.replace('_', ' ').toUpperCase()}`, 'success');
+            if (window.api.governance?.logAction) {
+              window.api.governance.logAction({
+                action: 'Role Update',
+                module: 'User Governance',
+                details: { targetUser: username, newRole }
+              });
+            }
+          } else {
+            showToast(`Failed to update role: ${res?.error || 'Unknown error'}`, 'error');
+          }
+        } catch (err) {
+          console.error('Role update error:', err);
+          showToast('Failed to update user role.', 'error');
+        }
+      });
+    });
 
     // Bind action buttons
     DOM.tableBody.querySelectorAll('.btn-approve:not(.btn-verify-email)').forEach(btn => {
@@ -535,11 +578,33 @@
     });
   }
 
-  function renderAuditLogs() {
+  async function renderAuditLogs() {
     if (!DOM.auditTableBody) return;
 
+    // Fetch real audit logs if available
+    let dbLogs = [];
+    if (window.api.governance?.getAuditLogs) {
+      try {
+        dbLogs = await window.api.governance.getAuditLogs({ limit: 50 });
+      } catch (e) {
+        console.error("Error fetching db audit logs:", e);
+      }
+    }
+
+    const mergedLogs = [
+      ...dbLogs.map(l => ({
+        time: new Date(l.created_at).toISOString().replace('T', ' ').substring(0, 19),
+        actor: l.username || l.user_role || 'System',
+        event: `${l.module} — ${l.action}`,
+        target: JSON.stringify(l.details || {}),
+        status: 'SUCCESS',
+        node: 'Supabase DB Node'
+      })),
+      ...auditLogs
+    ];
+
     const query = DOM.auditSearchInput ? DOM.auditSearchInput.value.trim().toLowerCase() : '';
-    const filtered = auditLogs.filter(log => {
+    const filtered = mergedLogs.filter(log => {
       if (!query) return true;
       return (
         log.actor.toLowerCase().includes(query) ||

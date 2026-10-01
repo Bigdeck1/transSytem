@@ -513,6 +513,33 @@ export function setupAuthIPC() {
     }
   });
 
+  // =========================
+  // ADMIN: UPDATE USER ROLE
+  // =========================
+  ipcMain.handle("admin:updateUserRole", async (_, userId: string, role: string) => {
+    try {
+      const allowedRoles = ["super_admin", "admin", "dispatcher", "rental_manager", "billing_clerk", "driver", "user"];
+      if (!allowedRoles.includes(role)) {
+        return { success: false, error: `Invalid role specified. Allowed roles: ${allowedRoles.join(", ")}` };
+      }
+
+      const { error } = await supabaseAdmin
+        .from("users")
+        .update({ role })
+        .eq("id", userId);
+
+      if (error) {
+        console.error("[ADMIN] updateUserRole error:", error.message);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`[ADMIN] User ${userId} role updated to ${role}.`);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: getErrorMessage(err) };
+    }
+  });
+
   // --- Custom Desktop Password Recovery (SMTP based) ---
   // Store verification codes temporarily in memory
   const recoveryCodes = new Map<string, { code: string; expires: number }>();
