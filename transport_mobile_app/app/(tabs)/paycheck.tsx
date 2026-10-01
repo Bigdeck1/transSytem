@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function PaycheckScreen() {
   const { employee, loading: authLoading } = useAuth();
   const [paychecks, setPaychecks] = useState<Paycheck[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPaycheck, setSelectedPaycheck] = useState<Paycheck | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -35,16 +35,24 @@ export default function PaycheckScreen() {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await supabase
+
+      // Race the Supabase query against a 10-second timeout so the
+      // screen never hangs forever on a slow/paused Supabase project.
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out. Please try again.')), 10000)
+      );
+      const query = supabase
         .from('paychecks')
         .select('*')
         .eq('employee_id', employee.id)
         .order('payment_date', { ascending: false });
 
+      const { data, error: fetchError } = await Promise.race([query, timeout]) as any;
+
       if (fetchError) throw fetchError;
       setPaychecks(data || []);
     } catch (err: any) {
-      setError('Unable to load payment history.');
+      setError(err?.message || 'Unable to load payment history.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -58,7 +66,9 @@ export default function PaycheckScreen() {
 
   const formatCurrency = (amount: number) => `₱${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 
-  if (loading || authLoading) {
+  // Only block on local fetch loading — not authLoading — to avoid
+  // the screen being stuck if auth takes too long to resolve.
+  if (loading) {
     return <View style={styles.center}><ActivityIndicator size="large" color="#1e40af" /></View>;
   }
 

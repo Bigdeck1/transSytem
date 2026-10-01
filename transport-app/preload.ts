@@ -321,4 +321,28 @@ contextBridge.exposeInMainWorld("api", {
     updateStatus: (incidentId: number, status: string) =>
       ipcRenderer.invoke("incidents:updateStatus", { incidentId, status }),
   },
+
+  // --------------------
+  // Car Rental API
+  // --------------------
+  rentals: {
+    getAll: () => ipcRenderer.invoke("rentals:getAll"),
+    getById: (id: number | string) => ipcRenderer.invoke("rentals:getById", id),
+    checkAvailability: (payload: { vehicle_id: number | string; start_datetime: string; end_datetime: string; exclude_agreement_id?: number | string }) =>
+      ipcRenderer.invoke("rentals:checkAvailability", payload),
+    create: (payload: any) => ipcRenderer.invoke("rentals:create", payload),
+    updateStatus: (id: number | string, status: string) =>
+      ipcRenderer.invoke("rentals:updateStatus", id, status),
+    checkout: (payload: any) => ipcRenderer.invoke("rentals:checkout", payload),
+    return: (payload: any) => ipcRenderer.invoke("rentals:return", payload),
+    delete: (id: number | string) => ipcRenderer.invoke("rentals:delete", id),
+  },
+
+  // --------------------
+  // Super Admin Governance API
+  // --------------------
+  governance: {
+    getAuditLogs: (options?: any) => ipcRenderer.invoke("governance:getAuditLogs", options),
+    logAction: (payload: any) => ipcRenderer.invoke("governance:logAction", payload),
+  },
 });

@@ -9,6 +9,8 @@ import { setupTrackingIPC } from "./tracking";
 import { setupEpodIPC } from "./epod";
 import { setupExpensesIPC } from "./expenses";
 import { setupIncidentsIPC } from "./incidents";
+import { setupRentalIPC } from "./rentals";
+import { setupGovernanceIPC } from "./governance";
 
 // We'll add remaining ones here as we create them
 import { ipcMain } from "electron";
@@ -26,6 +28,8 @@ export function setupAllIPC() {
   setupEpodIPC();
   setupExpensesIPC();
   setupIncidentsIPC();
+  setupRentalIPC();
+  setupGovernanceIPC();
   
   // Inline remaining small ones for now, or create files for them
   setupClientIPC();
@@ -136,13 +140,14 @@ function setupClientIPC() {
 function setupDashboardIPC() {
   ipcMain.handle("get-dashboard-stats", async () => {
     try {
-      const [{ count: employees }, { count: clients }, { count: vehicles }, { count: trips }] =
+      const [{ count: employees }, { count: clients }, { count: vehicles }, { count: trips }, { count: activeRentals }, { count: availableVehicles }] =
         await Promise.all([
           supabase.from("employees").select("*", { count: "exact", head: true }),
           supabase.from("clients").select("*", { count: "exact", head: true }),
           supabase.from("vehicles").select("*", { count: "exact", head: true }),
-          supabase.from("trips").select("*", { count: "exact", head: true })
-            .gte("pickup_time", new Date().toISOString().split("T")[0]),
+          supabase.from("trips").select("*", { count: "exact", head: true }),
+          supabase.from("rental_agreements").select("*", { count: "exact", head: true }).eq("rental_status", "Active"),
+          supabase.from("vehicles").select("*", { count: "exact", head: true }).eq("status", "available"),
         ]);
 
       return {
@@ -150,9 +155,11 @@ function setupDashboardIPC() {
         clientCount: clients || 0,
         vehicleCount: vehicles || 0,
         tripCount: trips || 0,
+        activeRentalCount: activeRentals || 0,
+        availableVehicleCount: availableVehicles || 0,
       };
     } catch (err: unknown) {
-      return { employeeCount: 0, clientCount: 0, vehicleCount: 0, tripCount: 0 };
+      return { employeeCount: 0, clientCount: 0, vehicleCount: 0, tripCount: 0, activeRentalCount: 0, availableVehicleCount: 0 };
     }
   });
 }

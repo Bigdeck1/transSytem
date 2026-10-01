@@ -49,28 +49,28 @@ window.initDashboard = async function () {
 
     const cards = [
       {
-        title: "Total Employees",
-        value: stats.employeeCount ?? 0,
-        subtitle: "Operational staff on record",
-        icon: "users",
+        title: "Active Rentals",
+        value: stats.activeRentalCount ?? 0,
+        subtitle: "Vehicles currently rented out",
+        icon: "car",
         badge: "blue"
       },
       {
-        title: "Active Clients",
+        title: "Active Customers",
         value: stats.clientCount ?? 0,
-        subtitle: "Enterprise partners",
+        subtitle: "Hauling & rental clients",
         icon: "building-2",
         badge: "green"
       },
       {
         title: "Fleet Assets",
         value: vehicles.length,
-        subtitle: `<span class="up">▲</span> ${available} available for dispatch`,
+        subtitle: `<span class="up">▲</span> ${available} available for hire`,
         icon: "truck",
         badge: "navy"
       },
       {
-        title: "Total Dispatches",
+        title: "Hauling Dispatches",
         value: stats.tripCount ?? 0,
         subtitle: `${inTransit > 0 ? `<span class="up">${inTransit} in transit</span>` : `${delivered} delivered`}`,
         icon: "navigation",
