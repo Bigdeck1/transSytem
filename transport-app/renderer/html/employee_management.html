@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: blob: https:; worker-src blob:;">
   <title>Vishnu | Employee Management</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap"
     rel="stylesheet">
@@ -14,6 +14,74 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/web_api.js"></script>
   <script src="../js/auth_guard.js"></script>
+  <style>
+    /* ── License Scan Zone ── */
+    .license-drop-zone {
+      border: 2.5px dashed #c7d2fe;
+      border-radius: 16px;
+      background: #f5f7ff;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s ease;
+      position: relative;
+    }
+    .license-drop-zone:hover { border-color: #4f46e5; background: #eef2ff; }
+    .license-drop-zone.scanning { border-color: #6366f1; background: #eef2ff; pointer-events: none; }
+    .license-drop-zone.done { border-color: #10b981; background: #f0fdf4; }
+    .license-drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .license-preview {
+      width: 100%; max-height: 130px; object-fit: contain;
+      border-radius: 10px; margin-top: 12px; display: none;
+    }
+    .scan-status {
+      font-size: 12px; font-weight: 700; margin-top: 10px;
+      padding: 6px 14px; border-radius: 20px; display: inline-block;
+    }
+    .scan-status.idle { background: #e0e7ff; color: #4338ca; }
+    .scan-status.running { background: #fef9c3; color: #92400e; }
+    .scan-status.success { background: #dcfce7; color: #166534; }
+    .scan-status.error { background: #fee2e2; color: #991b1b; }
+    .scan-progress-bar {
+      width: 100%; height: 4px; background: #e2e8f0; border-radius: 4px;
+      margin-top: 10px; overflow: hidden; display: none;
+    }
+    .scan-progress-fill {
+      height: 100%; background: linear-gradient(90deg, #4f46e5, #06b6d4);
+      border-radius: 4px; transition: width .3s ease;
+    }
+    /* ── Form field label ── */
+    .field-label {
+      display: block; font-size: 11px; font-weight: 700;
+      margin-bottom: 6px; color: #64748b; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .field-input {
+      width: 100%; padding: 11px 14px; border-radius: 10px;
+      border: 2px solid #e2e8f0; background: #fff;
+      color: #1e293b; font-size: 14px; outline: none;
+      transition: border-color .15s;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .field-input:focus { border-color: #6366f1; }
+    .field-input.autofilled { border-color: #10b981; background: #f0fdf4; }
+    .field-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .modal-section-title {
+      font-size: 10px; font-weight: 800; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin: 4px 0 14px; padding-bottom: 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    /* ── Scrollable modal body ── */
+    .modal-scroll-body {
+      max-height: 72vh; overflow-y: auto;
+      padding-right: 4px;
+    }
+    .modal-scroll-body::-webkit-scrollbar { width: 4px; }
+    .modal-scroll-body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+  </style>
 </head>
 
 <body>
@@ -39,16 +107,13 @@
       <ul id="menu-list">
         <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
         <li><a href="employee_management.html" class="active"><i data-lucide="users"></i><span>Employees</span></a></li>
-        <li><a href="attendance_monitoring_page.html"><i data-lucide="calendar-check"></i><span>Attendance</span></a>
-        </li>
+        <li><a href="attendance_monitoring_page.html"><i data-lucide="calendar-check"></i><span>Attendance</span></a></li>
         <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
         <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
         <li><a href="scheduling_page.html"><i data-lucide="map"></i><span>Dispatch</span></a></li>
         <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
-        <li><a href="billing.html"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
-        <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
+        
         <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
-        <li><a href="tax_calculator_page.html"><i data-lucide="calculator"></i><span>Tax Calculator</span></a></li>
         <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
         <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
       </ul>
@@ -74,8 +139,7 @@
     <header class="page-header">
       <div>
         <h1>Employee Directory</h1>
-        <p style="color: var(--text-muted); margin-top: 4px;">Manage Drivers, Maintenance Crew, and Administrative
-          Staff.</p>
+        <p style="color: var(--text-muted); margin-top: 4px;">Manage Drivers, Maintenance Crew, and Administrative Staff.</p>
       </div>
       <button class="btn-primary" id="addEmployeeBtn">
         <i data-lucide="user-plus" size="18"></i>
@@ -111,174 +175,208 @@
     </div>
   </div>
 
-  <!-- ADD EMPLOYEE MODAL -->
+  <!-- ═══════════════════════════════════════
+       ADD EMPLOYEE MODAL (with License Scan)
+       ═══════════════════════════════════════ -->
   <div id="addEmployeeModal" class="modal"
-    style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+    style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
     <div class="modal-content"
-      style="background: #ffffff; padding: 32px; border-radius: 16px; width: 520px; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
-      <span class="close-btn" id="closeAddModalBtn"
-        style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 24px; color: #64748b;">&times;</span>
-      <h2 style="margin-top: 0; margin-bottom: 24px; font-weight: 800; color: #1e293b;">Register Employee</h2>
+      style="background: #fff; padding: 0; border-radius: 20px; width: 560px; max-width: 96vw; position: relative; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden;">
 
-      <form id="addEmployeeForm" style="display: flex; flex-direction: column; gap: 20px;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); padding: 24px 28px 20px; position: relative;">
+        <h2 style="margin: 0; font-weight: 800; color: #fff; font-size: 18px;">Register New Employee</h2>
+        <p style="margin: 4px 0 0; color: rgba(255,255,255,0.75); font-size: 13px;">Scan the driver's license to auto-fill the form.</p>
+        <span id="closeAddModalBtn"
+          style="position: absolute; right: 20px; top: 18px; cursor: pointer; font-size: 22px; color: rgba(255,255,255,0.8); line-height:1;">&times;</span>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="modal-scroll-body" style="padding: 24px 28px 28px;">
+        <form id="addEmployeeForm" style="display: flex; flex-direction: column; gap: 18px;">
+
+          <!-- ── STEP 1: License Scanner ── -->
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">First
-              Name</label>
-            <input type="text" id="empName" required placeholder="John Doe" maxlength="100"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
+            <p class="modal-section-title">Step 1 — Scan Driver's License</p>
+            <div class="license-drop-zone" id="licenseDropZone">
+              <input type="file" id="licenseFileInput" accept="image/*" />
+              <i data-lucide="scan-line" size="32" style="color: #6366f1; margin-bottom: 8px;"></i>
+              <p style="margin: 0; font-weight: 700; color: #4338ca; font-size: 14px;">Click to upload license photo</p>
+              <p style="margin: 4px 0 0; color: #94a3b8; font-size: 12px;">PNG, JPG or HEIC — clear, well-lit photo works best</p>
+              <img id="licensePreview" class="license-preview" alt="License preview" />
+              <div class="scan-progress-bar" id="scanProgressBar">
+                <div class="scan-progress-fill" id="scanProgressFill" style="width: 0%;"></div>
+              </div>
+              <span class="scan-status idle" id="scanStatusBadge">Ready to scan</span>
+            </div>
           </div>
+
+          <!-- ── STEP 2: Auto-filled Info ── -->
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Work
-              Email</label>
-            <input type="email" id="empEmail" required placeholder="john@jrr.com" maxlength="150"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
+            <p class="modal-section-title">Step 2 — Verify & Complete Information</p>
+
+            <!-- Full Name -->
+            <div style="margin-bottom: 14px;">
+              <label class="field-label">Full Name</label>
+              <input type="text" id="empName" class="field-input" required placeholder="e.g. Juan Dela Cruz" maxlength="100">
+            </div>
+
+            <div class="field-grid-2" style="margin-bottom: 14px;">
+              <!-- Date of Birth -->
+              <div>
+                <label class="field-label">Date of Birth</label>
+                <input type="date" id="empDOB" class="field-input">
+              </div>
+              <!-- Blood Type -->
+              <div>
+                <label class="field-label">Blood Type</label>
+                <select id="empBloodType" class="field-input">
+                  <option value="">— Unknown —</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Address -->
+            <div style="margin-bottom: 14px;">
+              <label class="field-label">Address / Province</label>
+              <input type="text" id="empAddress" class="field-input" placeholder="e.g. Brgy. San Jose, Batangas City" maxlength="200">
+            </div>
+
+            <div class="field-grid-2" style="margin-bottom: 14px;">
+              <!-- License Number -->
+              <div>
+                <label class="field-label">License Number</label>
+                <input type="text" id="empLicenseNo" class="field-input" placeholder="N01-00-000000" maxlength="50">
+              </div>
+              <!-- License Expiry -->
+              <div>
+                <label class="field-label">License Expiry</label>
+                <input type="date" id="empLicenseExpiry" class="field-input">
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label
-            style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Phone
-            Number</label>
-          <input type="text" id="empPhone" required placeholder="+63 9xx xxx xxxx" pattern="[\d\s\+\-\(\)]{7,20}"
-            title="Valid phone: digits, spaces, +, -, () — 7 to 20 characters"
-            style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <!-- ── STEP 3: Contact & Role ── -->
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Daily
-              Rate (₱)</label>
-            <input type="number" id="empDailyRate" required placeholder="500" min="0" step="0.01"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
-          </div>
-          <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Monthly
-              Salary (₱)</label>
-            <input type="number" id="empSalary" required placeholder="15000" min="0" step="0.01"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
-          </div>
-        </div>
+            <p class="modal-section-title">Step 3 — Contact & Role</p>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Position</label>
-            <select id="empPosition" required
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none; cursor: pointer;">
-              <option value="Driver">Driver</option>
-              <option value="Mechanic">Mechanic</option>
-              <option value="Dispatcher">Dispatcher</option>
-              <option value="Admin">Admin</option>
-              <option value="Manager">Manager</option>
-              <option value="Accountant">Accountant</option>
-              <option value="HR">HR</option>
-            </select>
+            <div class="field-grid-2" style="margin-bottom: 14px;">
+              <div>
+                <label class="field-label">Work Email</label>
+                <input type="email" id="empEmail" class="field-input" required placeholder="juan@jrr.com" maxlength="150">
+              </div>
+              <div>
+                <label class="field-label">Phone Number</label>
+                <input type="text" id="empPhone" class="field-input" placeholder="+63 9xx xxx xxxx"
+                  pattern="[\d\s\+\-\(\)]{7,20}" title="Valid phone: digits, spaces, +, -, () — 7 to 20 chars">
+              </div>
+            </div>
+
+            <div class="field-grid-2" style="margin-bottom: 14px;">
+              <div>
+                <label class="field-label">Position</label>
+                <select id="empPosition" class="field-input" required>
+                  <option value="Driver">Driver</option>
+                  <option value="Mechanic">Mechanic</option>
+                  <option value="Dispatcher">Dispatcher</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Accountant">Accountant</option>
+                  <option value="HR">HR</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">Department</label>
+                <select id="empDept" class="field-input" required>
+                  <option value="Operations">Operations</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Administration">Administration</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Logistics">Logistics</option>
+                  <option value="Human Resources">Human Resources</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="field-label">Initial Status</label>
+              <select id="empStatus" class="field-input">
+                <option value="available">Available</option>
+                <option value="pending">Pending Onboarding</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Department</label>
-            <select id="empDept" required
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none; cursor: pointer;">
-              <option value="Operations">Operations</option>
-              <option value="Maintenance">Maintenance</option>
-              <option value="Administration">Administration</option>
-              <option value="Finance">Finance</option>
-              <option value="Logistics">Logistics</option>
-              <option value="Human Resources">Human Resources</option>
-            </select>
-          </div>
-        </div>
 
-        <div>
-          <label
-            style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Initial
-            Status</label>
-          <select id="empStatus"
-            style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none; cursor: pointer;">
-            <option value="available">Available</option>
-            <option value="pending">Pending Onboarding</option>
-          </select>
-        </div>
+          <!-- HIDDEN FIELDS -->
+          <input type="hidden" id="empEmployeeId">
+          <input type="hidden" id="empPin4">
+          <input type="hidden" id="empTempPassword">
+          <input type="hidden" id="empUsername">
 
-        <!-- HIDDEN FIELDS -->
-        <input type="hidden" id="empEmployeeId">
-        <input type="hidden" id="empPin4">
-        <input type="hidden" id="empTempPassword">
-        <input type="hidden" id="empUsername">
-
-        <button type="submit" class="btn-primary"
-          style="margin-top: 8px; height: 48px; font-weight: 700; font-size: 15px; border-radius: 12px; background: #4f46e5; color: white; border: none; cursor: pointer;">Confirm
-          Registration</button>
-      </form>
+          <button type="submit" id="submitEmployeeBtn"
+            style="margin-top: 4px; height: 52px; font-weight: 800; font-size: 15px; border-radius: 14px; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(79,70,229,.35); transition: opacity .2s;">
+            <i data-lucide="user-check" size="18"></i>
+            Confirm Registration
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 
-  <!-- EDIT EMPLOYEE MODAL -->
+  <!-- ═══════════════════════════════════════
+       EDIT EMPLOYEE MODAL (no payroll fields)
+       ═══════════════════════════════════════ -->
   <div id="editEmployeeModal" class="modal"
     style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
     <div class="modal-content"
-      style="background: #ffffff; padding: 32px; border-radius: 16px; width: 520px; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+      style="background: #ffffff; padding: 32px; border-radius: 16px; width: 520px; max-width: 96vw; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
       <span class="close-btn" id="closeEditModalBtn"
         style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 24px; color: #64748b;">&times;</span>
       <h2 style="margin-top: 0; margin-bottom: 24px; font-weight: 800; color: #1e293b;">Edit Employee</h2>
 
-      <form id="editEmployeeForm" style="display: flex; flex-direction: column; gap: 20px;">
+      <form id="editEmployeeForm" style="display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto; padding-right: 4px;">
         <input type="hidden" id="editEmpId">
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field-grid-2">
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Full
-              Name</label>
-            <input type="text" id="editEmpName" required maxlength="100"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
+            <label class="field-label">Full Name</label>
+            <input type="text" id="editEmpName" class="field-input" required maxlength="100">
           </div>
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Work
-              Email</label>
-            <input type="email" id="editEmpEmail" required maxlength="150"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
+            <label class="field-label">Work Email</label>
+            <input type="email" id="editEmpEmail" class="field-input" required maxlength="150">
           </div>
         </div>
 
         <div>
-          <label
-            style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Phone
-            Number</label>
-          <input type="text" id="editEmpPhone" required pattern="[\d\s\+\-\(\)]{7,20}"
-            title="Valid phone: digits, spaces, +, -, () — 7 to 20 characters"
-            style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
+          <label class="field-label">Phone Number</label>
+          <input type="text" id="editEmpPhone" class="field-input" pattern="[\d\s\+\-\(\)]{7,20}"
+            title="Valid phone: digits, spaces, +, -, () — 7 to 20 characters">
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field-grid-2">
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Daily
-              Rate (₱)</label>
-            <input type="number" id="editEmpDailyRate" required min="0" step="0.01"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
+            <label class="field-label">License Number</label>
+            <input type="text" id="editEmpLicenseNo" class="field-input" maxlength="50">
           </div>
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Monthly
-              Salary (₱)</label>
-            <input type="number" id="editEmpSalary" required min="0" step="0.01"
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none;">
+            <label class="field-label">License Expiry</label>
+            <input type="date" id="editEmpLicenseExpiry" class="field-input">
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field-grid-2">
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Position</label>
-            <select id="editEmpPosition" required
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none; cursor: pointer;">
+            <label class="field-label">Position</label>
+            <select id="editEmpPosition" class="field-input" required>
               <option value="Driver">Driver</option>
               <option value="Mechanic">Mechanic</option>
               <option value="Dispatcher">Dispatcher</option>
@@ -289,10 +387,8 @@
             </select>
           </div>
           <div>
-            <label
-              style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Department</label>
-            <select id="editEmpDept" required
-              style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none; cursor: pointer;">
+            <label class="field-label">Department</label>
+            <select id="editEmpDept" class="field-input" required>
               <option value="Operations">Operations</option>
               <option value="Maintenance">Maintenance</option>
               <option value="Administration">Administration</option>
@@ -304,10 +400,8 @@
         </div>
 
         <div>
-          <label
-            style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase;">Status</label>
-          <select id="editEmpStatus"
-            style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; color: #1e293b; font-size: 14px; outline: none; cursor: pointer;">
+          <label class="field-label">Status</label>
+          <select id="editEmpStatus" class="field-input">
             <option value="available">Available</option>
             <option value="in-use">In-Use</option>
             <option value="unavailable">Unavailable</option>
@@ -315,9 +409,10 @@
           </select>
         </div>
 
-        <button type="submit" class="btn-primary"
-          style="margin-top: 8px; height: 48px; font-weight: 700; font-size: 15px; border-radius: 12px; background: #4f46e5; color: white; border: none; cursor: pointer;">Save
-          Changes</button>
+        <button type="submit"
+          style="margin-top: 4px; height: 48px; font-weight: 700; font-size: 15px; border-radius: 12px; background: #4f46e5; color: white; border: none; cursor: pointer;">
+          Save Changes
+        </button>
       </form>
     </div>
   </div>
@@ -335,6 +430,7 @@
       setTimeout(() => loader.classList.remove("visible"), 800);
     });
   </script>
+
 </body>
 
 </html>

@@ -17,7 +17,6 @@ export default function TabLayout() {
 
   useEffect(() => {
     // If we're fully loaded and have no employee, the user is likely logged out.
-    // Ensure routing handles this, though auth bounds should usually catch it.
   }, [loading, employee]);
 
   if (loading) {
@@ -28,7 +27,10 @@ export default function TabLayout() {
     );
   }
 
-  const isAdmin = employee?.position?.toLowerCase() === "admin" || employee?.position?.toLowerCase() === "owner" || employee?.position?.toLowerCase() === "manager";
+  const isAdmin =
+    employee?.position?.toLowerCase() === "admin" ||
+    employee?.position?.toLowerCase() === "owner" ||
+    employee?.position?.toLowerCase() === "manager";
 
   return (
     <Tabs
@@ -37,16 +39,16 @@ export default function TabLayout() {
         tabBarActiveTintColor: "#1976D2",
         tabBarInactiveTintColor: "#64748b",
         tabBarStyle: { backgroundColor: "#fff", height: 60, paddingBottom: 8, paddingTop: 8 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" }
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
       }}
     >
+      {/* ── Active Tabs ─────────────────────────── */}
+
       <Tabs.Screen
         name="dashboard"
         options={{
           title: "Home",
-          tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
-          ),
+          tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
         }}
       />
 
@@ -54,31 +56,7 @@ export default function TabLayout() {
         name="trips"
         options={{
           title: isAdmin ? "All Trips" : "My Trips",
-          tabBarIcon: ({ size, color }) => (
-            <Truck size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="attendance"
-        options={{
-          title: "Attendance",
-          tabBarIcon: ({ size, color }) => (
-            <Calendar size={size} color={color} />
-          ),
-          href: isAdmin ? null : undefined,
-        }}
-      />
-
-      <Tabs.Screen
-        name="paycheck"
-        options={{
-          title: "Paycheck",
-          tabBarIcon: ({ size, color }) => (
-            <DollarSign size={size} color={color} />
-          ),
-          href: isAdmin ? null : undefined,
+          tabBarIcon: ({ size, color }) => <Truck size={size} color={color} />,
         }}
       />
 
@@ -86,10 +64,16 @@ export default function TabLayout() {
         name="requests"
         options={{
           title: "Leaves",
-          tabBarIcon: ({ size, color }) => (
-            <FileClock size={size} color={color} />
-          ),
+          tabBarIcon: ({ size, color }) => <FileClock size={size} color={color} />,
           href: isAdmin ? null : undefined,
+        }}
+      />
+
+      <Tabs.Screen
+        name="notification"
+        options={{
+          title: "Alerts",
+          tabBarIcon: ({ size, color }) => <Bell size={size} color={color} />,
         }}
       />
 
@@ -99,23 +83,34 @@ export default function TabLayout() {
           title: isAdmin ? "Admin Profile" : "Profile",
           tabBarIcon: ({ size, color }) => (
             <View style={[styles.tabAvatar, { borderColor: color }]}>
-               {employee?.avatar_url ? (
-                 <Image source={{ uri: employee.avatar_url }} style={styles.tabAvatarImg} />
-               ) : (
-                 <User size={size - 2} color={color} />
-               )}
+              {employee?.avatar_url ? (
+                <Image source={{ uri: employee.avatar_url }} style={styles.tabAvatarImg} />
+              ) : (
+                <User size={size - 2} color={color} />
+              )}
             </View>
           ),
         }}
       />
-      
+
+      {/* ── ARCHIVED — Money-related tabs hidden for all users ─── */}
+      {/* To restore: remove href: null from the relevant screen   */}
+
       <Tabs.Screen
-        name="notification"
+        name="attendance"
         options={{
-          title: "Alerts",
-          tabBarIcon: ({ size, color }) => (
-            <Bell size={size} color={color} />
-          ),
+          title: "Attendance",
+          tabBarIcon: ({ size, color }) => <Calendar size={size} color={color} />,
+          href: null, // ARCHIVED — clock-in/out hidden
+        }}
+      />
+
+      <Tabs.Screen
+        name="paycheck"
+        options={{
+          title: "Paycheck",
+          tabBarIcon: ({ size, color }) => <DollarSign size={size} color={color} />,
+          href: null, // ARCHIVED — payroll hidden
         }}
       />
     </Tabs>
@@ -128,13 +123,13 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 1,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc'
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
   },
   tabAvatarImg: {
-    width: '100%',
-    height: '100%'
-  }
+    width: "100%",
+    height: "100%",
+  },
 });

@@ -1,242 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-   <meta charset="UTF-8" />
-   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-   <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
-   <title>Vishnuu | Billing & Invoices</title>
-   <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap&family=Inter:wght@400;500;600"
-      rel="stylesheet">
-   <link rel="stylesheet" href="../css/shared.css" />
-   <link rel="stylesheet" href="../css/sidebar.css" />
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-   <script src="../js/web_api.js"></script>
-   <script src="../js/auth_guard.js"></script>
+  <meta charset="UTF-8"/>
+  <meta http-equiv="refresh" content="3;url=dashboard.html">
+  <title>Archived</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; background: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #fff; border-radius: 20px; padding: 48px 40px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 420px; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 22px; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+    p { color: #64748b; font-size: 15px; line-height: 1.6; }
+    .badge { display: inline-block; background: #fef3c7; color: #92400e; font-weight: 700; font-size: 11px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+    a { color: #4f46e5; font-weight: 700; text-decoration: none; }
+  </style>
 </head>
-
 <body>
-   <!-- LOADING OVERLAY -->
-   <div id="loading-overlay" class="visible">
-      <div class="loader"></div>
-      <p>Loading Financial Records...</p>
-      <div class="loading-dots">
-         <span></span><span></span><span></span>
-      </div>
-   </div>
-
-   <!-- SIDEBAR -->
-   <div class="sidebar">
-      <div class="brand-small">
-         <div>
-            <img src="../../assets/VishnuuLogo.png" alt="JRR Logo"
-               style="width: 100%; height: 100%; object-fit: contain;">
-         </div>
-         <h2><span id="welcomeTitle">VISHNUU</span></h2>
-      </div>
-
-      <nav class="sidebar-nav">
-         <ul id="menu-list">
-            <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
-            <li><a href="employee_management.html"><i data-lucide="users"></i><span>Employees</span></a></li>
-            <li><a href="attendance_monitoring_page.html"><i
-                     data-lucide="calendar-check"></i><span>Attendance</span></a></li>
-            <li><a href="status_page.html"><i data-lucide="activity"></i><span>Status</span></a></li>
-            <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
-            <li><a href="scheduling_page.html"><i data-lucide="map"></i><span>Dispatch</span></a></li>
-            <li><a href="client_history_page.html"><i data-lucide="handshake"></i><span>Clients</span></a></li>
-            <li><a href="billing.html" class="active"><i data-lucide="credit-card"></i><span>Billing</span></a></li>
-            <li><a href="payroll_management.html"><i data-lucide="banknote"></i><span>Payroll</span></a></li>
-            <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
-            <li><a href="tax_calculator_page.html"><i data-lucide="calculator"></i><span>Tax Calculator</span></a></li>
-            <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
-            <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
-         </ul>
-      </nav>
-
-      <div class="sidebar-footer">
-         <div class="theme-toggle" id="theme-toggle">
-            <span>Mode</span>
-            <i data-lucide="sun" id="theme-icon" size="16"></i>
-         </div>
-         <div class="admin-info">
-            <div class="admin-avatar">AD</div>
-            <div class="admin-text">
-               <p class="name">Administrator</p>
-               <p class="email">admin@jrrtransport.com</p>
-            </div>
-         </div>
-      </div>
-   </div>
-
-   <!-- MAIN CONTENT -->
-   <div class="main-content">
-      <header class="page-header">
-         <div>
-            <h1>Billing & Invoices</h1>
-            <p style="color: var(--text-muted); margin-top: 4px;">Track revenue, issue invoices, and manage client
-               accounts.</p>
-         </div>
-         <button class="btn-primary" id="createBtn">
-            <i data-lucide="plus-circle" size="18"></i>
-            Generate New Invoice
-         </button>
-      </header>
-
-      <!-- STATS SUMMARY -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
-         <div
-            style="background: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden;">
-            <div style="font-size: 11px; font-weight: 800; color: var(--success); margin-bottom: 8px;">TOTAL REVENUE
-            </div>
-            <div id="totalRevenue" style="font-size: 32px; font-weight: 900; color: var(--text-main);">$0.00</div>
-            <p id="invoiceCount" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">from 0 settlements
-            </p>
-            <i data-lucide="trending-up"
-               style="position: absolute; right: -10px; bottom: -10px; size: 80px; color: var(--success); opacity: 0.1;"></i>
-         </div>
-         <div
-            style="background: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden;">
-            <div style="font-size: 11px; font-weight: 800; color: var(--primary); margin-bottom: 8px;">SETTLED AMOUNT
-            </div>
-            <div id="paidAmount" style="font-size: 32px; font-weight: 900; color: var(--text-main);">$0.00</div>
-            <p id="paidCount" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">0 paid invoices</p>
-            <i data-lucide="check-circle"
-               style="position: absolute; right: -10px; bottom: -10px; size: 80px; color: var(--primary); opacity: 0.1;"></i>
-         </div>
-         <div
-            style="background: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden;">
-            <div style="font-size: 11px; font-weight: 800; color: var(--warning); margin-bottom: 8px;">PENDING
-               RECEIVABLES</div>
-            <div id="pendingAmount" style="font-size: 32px; font-weight: 900; color: var(--text-main);">$0.00</div>
-            <p id="pendingCount" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">0 awaiting payment
-            </p>
-            <i data-lucide="clock"
-               style="position: absolute; right: -10px; bottom: -10px; size: 80px; color: var(--warning); opacity: 0.1;"></i>
-         </div>
-      </div>
-
-      <!-- INVOICE LIST -->
-      <div class="card">
-         <div style="position: relative; margin-bottom: 24px;">
-            <i data-lucide="search" size="16"
-               style="position: absolute; left: 16px; top: 12px; color: var(--text-light);"></i>
-            <input type="text" id="searchInput" placeholder="Filter by invoice no, client name, or driver..."
-               style="padding-left: 44px;">
-         </div>
-
-         <div class="table-container" style="overflow-x: auto;">
-            <table class="invoice-table">
-               <thead>
-                  <tr>
-                     <th>Invoice #</th>
-                     <th>Client</th>
-                     <th>Driver & Vehicle</th>
-                     <th>Program / Area</th>
-                     <th>Due Date</th>
-                     <th>Amount</th>
-                     <th>Status</th>
-                     <th style="text-align: right;">Actions</th>
-                  </tr>
-               </thead>
-               <tbody id="invoiceTableBody"></tbody>
-            </table>
-         </div>
-      </div>
-   </div>
-
-   <!-- INVOICE MODAL -->
-   <div id="invoiceModal" class="modal">
-      <div class="modal-content" style="width: 700px; padding: 32px;">
-         <span class="close-btn" id="closeModal">&times;</span>
-         <h2 style="margin-top: 0; margin-bottom: 24px;">Invoice Generator</h2>
-         <form id="invoiceForm" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-            <div>
-               <label>INVOICE #</label>
-               <input type="text" id="invoiceNumber" readonly style="background: rgba(0,0,0,0.05);">
-            </div>
-            <div>
-               <label>CLIENT</label>
-               <select id="clientName" required></select>
-            </div>
-            <div>
-               <label>DRIVER</label>
-               <select id="driverName" required></select>
-            </div>
-            <div>
-               <label>VEHICLE / PLATE</label>
-               <select id="vehicleName" required></select>
-            </div>
-            <div>
-               <label>PROGRAM</label>
-               <input id="program" type="text" placeholder="e.g. Standard" maxlength="100">
-            </div>
-            <div>
-               <label>OPERATIONAL AREA</label>
-               <input id="area" type="text" placeholder="e.g. Metro Manila" maxlength="200">
-            </div>
-            <div>
-               <label>HOURS/UNIT</label>
-               <input id="hours" type="number" min="0" max="9999" step="0.5" placeholder="0">
-            </div>
-            <div>
-               <label>SRO ID</label>
-               <input id="sro" type="text" maxlength="50" placeholder="Service Request Order">
-            </div>
-            <div>
-               <label>VTT ID</label>
-               <input id="vtt" type="text" maxlength="50" placeholder="Vehicle Trip Ticket">
-            </div>
-            <div>
-               <label>TOTAL AMOUNT (₱)</label>
-               <input id="amount" type="number" step="0.01" min="0" max="99999999" required placeholder="0.00">
-            </div>
-            <div>
-               <label>ISSUE DATE</label>
-               <input type="date" id="issueDate" required>
-            </div>
-            <div>
-               <label>PAYMENT DUE</label>
-               <input type="date" id="dueDate" required>
-            </div>
-            <div style="grid-column: span 2;">
-               <label>DESCRIPTION / NOTES</label>
-               <textarea id="description" maxlength="500" placeholder="Additional details..."
-                  style="width: 100%; min-height: 80px; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; font-size: 14px;"></textarea>
-            </div>
-            <div>
-               <label>PAYMENT STATUS</label>
-               <select id="status">
-                  <option value="Pending">Pending</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Overdue">Overdue</option>
-               </select>
-            </div>
-            <div style="grid-column: span 3; display: flex; gap: 12px; margin-top: 12px;">
-               <button type="submit" class="btn-primary" style="flex: 2; justify-content: center;">Finalize & Save
-                  Invoice</button>
-               <button type="button" id="cancelModal" class="btn-secondary"
-                  style="flex: 1; justify-content: center;">Discard</button>
-            </div>
-         </form>
-      </div>
-   </div>
-
-   <!-- SCRIPTS -->
-   <script src="../js/lucide.min.js"></script>
-   <script src="../js/theme.js"></script>
-   <script src="../js/sidebarPaths.js"></script>
-   <script src="../js/sidebar.js"></script>
-   <script src="../js/billing.js"></script>
-   <script>
-      lucide.createIcons();
-      window.addEventListener("load", () => {
-         const loader = document.getElementById("loading-overlay");
-         setTimeout(() => loader.classList.remove("visible"), 800);
-      });
-   </script>
+  <div class="card">
+    <div class="icon">??</div>
+    <div class="badge">Archived</div>
+    <h1>This page has been archived</h1>
+    <p>This feature is currently not in use. Redirecting you to the <a href="dashboard.html">Dashboard</a> in 3 seconds&hellip;</p>
+  </div>
 </body>
-
 </html>
