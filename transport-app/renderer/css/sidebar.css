@@ -5,8 +5,9 @@
 }
 
 #welcomeTitle {
-  color: #3b82f6;
-  font-family: 'Times New Roman', Times, serif;
+  color: var(--primary-navy);
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+  font-weight: 800;
 }
 
 /* sidebar.css */

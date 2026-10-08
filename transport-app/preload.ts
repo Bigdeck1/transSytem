@@ -40,6 +40,11 @@ interface CreateEmployeePayload {
   department?: string;
   auth_email?: string;
   auth_password?: string;
+  date_of_birth?: string;
+  blood_type?: string;
+  address?: string;
+  license_no?: string;
+  license_expiry?: string;
 }
 
 contextBridge.exposeInMainWorld("api", {

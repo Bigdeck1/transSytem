@@ -6,9 +6,13 @@ import { useAlarmNotifications } from "@/hooks/useAlarmNotifications";
 import { useEffect } from "react";
 import { View, ActivityIndicator, Image, StyleSheet } from "react-native";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, isTablet, moderateScale } from "@/constants/theme";
+
 export default function TabLayout() {
   const { employee, loading } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Continuously broadcast live GPS location when logged in
   useDriverLocationBroadcaster();
@@ -21,8 +25,8 @@ export default function TabLayout() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#1976D2" />
+      <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={Colors.primaryBlue} />
       </View>
     );
   }
@@ -32,14 +36,32 @@ export default function TabLayout() {
     employee?.position?.toLowerCase() === "owner" ||
     employee?.position?.toLowerCase() === "manager";
 
+  const bottomPadding = Math.max(insets.bottom, 8);
+  const tabHeight = 58 + (insets.bottom > 0 ? insets.bottom - 4 : 0);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#1976D2",
-        tabBarInactiveTintColor: "#64748b",
-        tabBarStyle: { backgroundColor: "#fff", height: 60, paddingBottom: 8, paddingTop: 8 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        tabBarActiveTintColor: Colors.primaryNavy,
+        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: Colors.card,
+          height: tabHeight,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+          borderTopColor: Colors.border,
+          borderTopWidth: 1,
+          elevation: 8,
+          shadowColor: "#0D47A1",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: isTablet ? 13 : 11,
+          fontWeight: "700",
+        },
       }}
     >
       {/* ── Active Tabs ─────────────────────────── */}

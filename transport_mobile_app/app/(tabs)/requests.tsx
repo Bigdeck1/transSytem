@@ -11,11 +11,23 @@ import {
   RefreshControl,
   SafeAreaView,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
 } from "react-native";
-import { FileClock, Calendar, MessageSquare, Send, CheckCircle, Clock as ClockIcon, XCircle, ChevronRight, ListFilter } from "lucide-react-native";
+import {
+  FileClock,
+  Calendar,
+  MessageSquare,
+  Send,
+  CheckCircle,
+  Clock as ClockIcon,
+  XCircle,
+  ChevronRight,
+  ListFilter,
+  Info,
+} from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { Colors, moderateScale, isTablet, isSmallDevice } from "@/constants/theme";
 
 type TimeOffRequest = {
   id: string;
@@ -29,9 +41,27 @@ type TimeOffRequest = {
 
 const getStatusStyle = (status: string) => {
   switch (status.toLowerCase()) {
-    case 'approved': return { bg: '#dcfce7', text: '#15803d', border: '#bbf7d0', icon: <CheckCircle size={14} color="#15803d" /> };
-    case 'rejected': return { bg: '#fee2e2', text: '#b91c1c', border: '#fecaca', icon: <XCircle size={14} color="#b91c1c" /> };
-    default: return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', icon: <ClockIcon size={14} color="#92400e" /> };
+    case "approved":
+      return {
+        bg: Colors.successSoft,
+        text: Colors.successText,
+        border: Colors.successBorder,
+        icon: <CheckCircle size={14} color={Colors.success} />,
+      };
+    case "rejected":
+      return {
+        bg: Colors.dangerSoft,
+        text: Colors.dangerText,
+        border: Colors.dangerBorder,
+        icon: <XCircle size={14} color={Colors.danger} />,
+      };
+    default:
+      return {
+        bg: Colors.warningSoft,
+        text: Colors.warningText,
+        border: Colors.warningBorder,
+        icon: <ClockIcon size={14} color={Colors.warning} />,
+      };
   }
 };
 
@@ -47,15 +77,14 @@ export default function RequestsScreen() {
   const getNextWeekMinDate = () => {
     const today = new Date();
     const nextWeek = new Date(today);
-    // Move to next week (+7 days)
     nextWeek.setDate(today.getDate() + 7);
     return nextWeek;
   };
 
   const formatDateYYYYMMDD = (d: Date) => {
     const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -107,7 +136,6 @@ export default function RequestsScreen() {
     const end = new Date(endDate);
     const minDate = new Date(minAllowedDateStr);
 
-    // Validate no backdating & must be at least next week
     if (start < minDate) {
       Alert.alert(
         "Invalid Start Date",
@@ -130,13 +158,13 @@ export default function RequestsScreen() {
           start_date: startDate,
           end_date: endDate,
           reason: reason.trim(),
-          status: "Pending"
-        }
+          status: "Pending",
+        },
       ]);
 
       if (error) throw error;
 
-      Alert.alert("Success", "Your leave request has been submitted for approval.");
+      Alert.alert("Success", "Your leave request has been submitted to dispatch for approval.");
       setReason("");
       setStartDate(minAllowedDateStr);
       setEndDate(minAllowedDateStr);
@@ -149,53 +177,80 @@ export default function RequestsScreen() {
   };
 
   if (authLoading || loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#1e40af" /></View>;
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={Colors.primaryBlue} />
+      </View>
+    );
   }
+
+  const hPadding = isSmallDevice ? 14 : isTablet ? 28 : 18;
 
   return (
     <View style={styles.wrapper}>
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
-          <View style={styles.topHeader}>
-            <Text style={styles.headerTitle}>Leave Requests</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          {/* --- TOP HEADER --- */}
+          <View style={[styles.topHeader, { paddingHorizontal: hPadding }]}>
+            <View>
+              <Text style={styles.headerTitle}>Leave & Time-Off</Text>
+              <Text style={styles.headerSubtitle}>Advance scheduling & attendance management</Text>
+            </View>
             <View style={styles.headerRight}>
-               <ListFilter size={18} color="#64748b" />
+              <ListFilter size={18} color={Colors.primaryNavy} />
             </View>
           </View>
 
-          <ScrollView 
-            style={styles.container} 
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={[styles.scrollContent, { paddingHorizontal: hPadding }]}
             showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[Colors.primaryBlue]}
+                tintColor={Colors.primaryBlue}
+              />
+            }
           >
-            {/* --- SUBMISSION FORM --- */}
+            {/* --- SUBMISSION FORM CARD --- */}
             <View style={styles.formCard}>
-              <Text style={styles.formTitle}>New Leave Request</Text>
-              
+              <Text style={styles.formTitle}>Submit New Request</Text>
+
               <View style={styles.noticeBox}>
-                <ClockIcon size={16} color="#2563eb" />
+                <Info size={16} color={Colors.info} />
                 <Text style={styles.noticeText}>
-                  Policy: Leave requests must be booked at least 1 week in advance (Earliest: <Text style={{fontWeight: '700'}}>{minAllowedDateStr}</Text>). Backdating is strictly disabled.
+                  Internal Notice: Leave requests must be booked 1 week in advance (Earliest:{" "}
+                  <Text style={{ fontWeight: "700" }}>{minAllowedDateStr}</Text>).
                 </Text>
               </View>
 
+              {/* Type Selector Pills */}
               <View style={styles.typeSelector}>
-                 {["Vacation", "Sick Leave", "Emergency", "Other"].map(t => (
-                   <TouchableOpacity 
-                    key={t} 
+                {["Vacation", "Sick Leave", "Emergency", "Other"].map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    activeOpacity={0.7}
                     style={[styles.typeChip, requestType === t && styles.typeChipActive]}
                     onPress={() => setRequestType(t)}
-                   >
-                     <Text style={[styles.typeText, requestType === t && styles.typeTextActive]}>{t}</Text>
-                   </TouchableOpacity>
-                 ))}
+                  >
+                    <Text style={[styles.typeText, requestType === t && styles.typeTextActive]}>
+                      {t}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
+              {/* Start Date */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Start Date (Min: {minAllowedDateStr})</Text>
                 <View style={styles.inputWrapper}>
-                  <Calendar size={18} color="#2563eb" style={styles.inputIcon} />
-                  {Platform.OS === 'web' ? (
+                  <Calendar size={18} color={Colors.primaryNavy} style={styles.inputIcon} />
+                  {Platform.OS === "web" ? (
                     <input
                       type="date"
                       min={minAllowedDateStr}
@@ -203,20 +258,21 @@ export default function RequestsScreen() {
                       onChange={(e: any) => setStartDate(e.target.value)}
                       style={{
                         flex: 1,
-                        height: 48,
-                        border: 'none',
-                        background: 'transparent',
-                        outline: 'none',
-                        fontSize: 15,
-                        color: '#1e293b',
-                        fontFamily: 'inherit',
-                        paddingRight: 12
+                        height: 46,
+                        border: "none",
+                        background: "transparent",
+                        outline: "none",
+                        fontSize: 14,
+                        color: Colors.textPrimary,
+                        fontFamily: "inherit",
+                        paddingRight: 12,
                       }}
                     />
                   ) : (
                     <TextInput
                       style={styles.input}
                       placeholder={minAllowedDateStr}
+                      placeholderTextColor={Colors.textMuted}
                       value={startDate}
                       onChangeText={setStartDate}
                     />
@@ -224,11 +280,12 @@ export default function RequestsScreen() {
                 </View>
               </View>
 
+              {/* End Date */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>End Date (Cannot be before Start Date)</Text>
+                <Text style={styles.label}>End Date</Text>
                 <View style={styles.inputWrapper}>
-                  <Calendar size={18} color="#2563eb" style={styles.inputIcon} />
-                  {Platform.OS === 'web' ? (
+                  <Calendar size={18} color={Colors.primaryNavy} style={styles.inputIcon} />
+                  {Platform.OS === "web" ? (
                     <input
                       type="date"
                       min={startDate || minAllowedDateStr}
@@ -236,20 +293,21 @@ export default function RequestsScreen() {
                       onChange={(e: any) => setEndDate(e.target.value)}
                       style={{
                         flex: 1,
-                        height: 48,
-                        border: 'none',
-                        background: 'transparent',
-                        outline: 'none',
-                        fontSize: 15,
-                        color: '#1e293b',
-                        fontFamily: 'inherit',
-                        paddingRight: 12
+                        height: 46,
+                        border: "none",
+                        background: "transparent",
+                        outline: "none",
+                        fontSize: 14,
+                        color: Colors.textPrimary,
+                        fontFamily: "inherit",
+                        paddingRight: 12,
                       }}
                     />
                   ) : (
                     <TextInput
                       style={styles.input}
                       placeholder={startDate || minAllowedDateStr}
+                      placeholderTextColor={Colors.textMuted}
                       value={endDate}
                       onChangeText={setEndDate}
                     />
@@ -257,13 +315,15 @@ export default function RequestsScreen() {
                 </View>
               </View>
 
+              {/* Reason */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Reason</Text>
-                <View style={[styles.inputWrapper, { alignItems: 'flex-start', paddingTop: 12 }]}>
-                  <MessageSquare size={18} color="#94a3b8" style={styles.inputIcon} />
+                <Text style={styles.label}>Reason for Request</Text>
+                <View style={[styles.inputWrapper, { alignItems: "flex-start", paddingTop: 10 }]}>
+                  <MessageSquare size={18} color={Colors.textMuted} style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, { height: 80, textAlignVertical: "top" }]}
-                    placeholder="Provide details for your leave request..."
+                    style={[styles.input, { height: 75, textAlignVertical: "top" }]}
+                    placeholder="Provide justification for internal record..."
+                    placeholderTextColor={Colors.textMuted}
                     multiline
                     value={reason}
                     onChangeText={setReason}
@@ -271,25 +331,31 @@ export default function RequestsScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.submitBtn} onPress={submitRequest} disabled={submitting}>
+              {/* Submit Button */}
+              <TouchableOpacity
+                style={styles.submitBtn}
+                activeOpacity={0.8}
+                onPress={submitRequest}
+                disabled={submitting}
+              >
                 {submitting ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={Colors.textWhite} />
                 ) : (
                   <>
-                    <Send size={18} color="#fff" />
+                    <Send size={18} color={Colors.textWhite} />
                     <Text style={styles.submitBtnText}>Submit Leave Request</Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
 
-            {/* --- HISTORY LIST --- */}
-            <Text style={[styles.sectionTitle, { marginTop: 32 }]}>Request History</Text>
-            
+            {/* --- REQUEST HISTORY --- */}
+            <Text style={styles.sectionTitle}>Request History</Text>
+
             {requests.length === 0 ? (
               <View style={styles.empty}>
-                <FileClock size={48} color="#e2e8f0" />
-                <Text style={styles.emptyText}>No previous requests</Text>
+                <FileClock size={44} color={Colors.border} />
+                <Text style={styles.emptyText}>No previous leave requests submitted</Text>
               </View>
             ) : (
               requests.map((item) => {
@@ -297,31 +363,42 @@ export default function RequestsScreen() {
                 return (
                   <View key={item.id} style={styles.requestCard}>
                     <View style={styles.cardHeader}>
-                       <Text style={styles.requestType}>{item.request_type}</Text>
-                       <View style={[styles.statusBadge, { backgroundColor: s.bg, borderColor: s.border }]}>
-                          {s.icon}
-                          <Text style={[styles.statusText, { color: s.text }]}>{item.status}</Text>
-                       </View>
+                      <Text style={styles.requestType}>{item.request_type}</Text>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: s.bg, borderColor: s.border },
+                        ]}
+                      >
+                        {s.icon}
+                        <Text style={[styles.statusText, { color: s.text }]}>{item.status}</Text>
+                      </View>
                     </View>
-                    
+
                     <View style={styles.dateRange}>
-                       <Calendar size={14} color="#64748b" />
-                       <Text style={styles.dateText}>{item.start_date} to {item.end_date}</Text>
+                      <Calendar size={14} color={Colors.textSecondary} />
+                      <Text style={styles.dateText}>
+                        {item.start_date} → {item.end_date}
+                      </Text>
                     </View>
-                    
-                    <Text style={styles.reasonText} numberOfLines={2}>{item.reason}</Text>
-                    
+
+                    <Text style={styles.reasonText} numberOfLines={2}>
+                      {item.reason}
+                    </Text>
+
                     <View style={styles.cardFooterDivider} />
                     <View style={styles.cardFooter}>
-                       <Text style={styles.createdAt}>Sent {new Date(item.created_at).toLocaleDateString()}</Text>
-                       <ChevronRight size={16} color="#cbd5e1" />
+                      <Text style={styles.createdAt}>
+                        Filed: {new Date(item.created_at).toLocaleDateString()}
+                      </Text>
+                      <ChevronRight size={16} color={Colors.textMuted} />
                     </View>
                   </View>
                 );
               })
             )}
 
-            <View style={{ height: 40 }} />
+            <View style={{ height: 32 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -330,92 +407,257 @@ export default function RequestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: "#fff" },
-  safeArea: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 0 : 40, marginBottom: 12 },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: "#0f172a" },
-  headerRight: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
-  container: { flex: 1, paddingHorizontal: 20 },
-  formCard: {
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3
+  wrapper: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
-  formTitle: { fontSize: 18, fontWeight: "700", color: "#0f172a", marginBottom: 12 },
+  safeArea: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+  },
+  topHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: Platform.OS === "ios" ? 8 : 18,
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: moderateScale(22),
+    fontWeight: "800",
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  headerSubtitle: {
+    fontSize: moderateScale(12),
+    color: Colors.textSecondary,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  headerRight: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  formCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: Colors.primaryNavy,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  formTitle: {
+    fontSize: moderateScale(16),
+    fontWeight: "800",
+    color: Colors.textPrimary,
+    marginBottom: 12,
+  },
   noticeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    backgroundColor: '#eff6ff',
+    backgroundColor: Colors.infoSoft,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: Colors.infoBorder,
     marginBottom: 16,
   },
   noticeText: {
     flex: 1,
-    fontSize: 12,
-    color: '#1e40af',
+    fontSize: moderateScale(11),
+    color: Colors.infoText,
     lineHeight: 16,
   },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#0f172a", marginBottom: 16 },
-  typeSelector: { flexDirection: "row", gap: 10, marginBottom: 20 },
-  typeChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: "#f1f5f9" },
-  typeChipActive: { backgroundColor: "#1e40af" },
-  typeText: { fontSize: 13, fontWeight: "600", color: "#64748b" },
-  typeTextActive: { color: "#fff" },
-  inputGroup: { marginBottom: 16 },
-  label: { fontSize: 12, fontWeight: "700", color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 },
-  inputWrapper: { flexDirection: "row", alignItems: "center", backgroundColor: "#f8fafc", borderRadius: 12, borderWidth: 1, borderColor: "#e2e8f0" },
-  inputIcon: { marginLeft: 12, marginRight: 8 },
-  input: { flex: 1, height: 48, color: "#1e293b", fontSize: 15, fontWeight: "500" },
+  sectionTitle: {
+    fontSize: moderateScale(16),
+    fontWeight: "800",
+    color: Colors.textPrimary,
+    marginTop: 24,
+    marginBottom: 12,
+    letterSpacing: -0.2,
+  },
+  typeSelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  typeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: Colors.cardSecondary,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  typeChipActive: {
+    backgroundColor: Colors.primaryNavy,
+    borderColor: Colors.primaryNavy,
+  },
+  typeText: {
+    fontSize: moderateScale(12),
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  typeTextActive: {
+    color: Colors.textWhite,
+  },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  label: {
+    fontSize: moderateScale(11),
+    fontWeight: "700",
+    color: Colors.textSecondary,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  inputIcon: {
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    height: 46,
+    color: Colors.textPrimary,
+    fontSize: moderateScale(13),
+    fontWeight: "500",
+    paddingRight: 12,
+  },
   submitBtn: {
-    backgroundColor: "#1e40af",
-    height: 54,
-    borderRadius: 16,
+    backgroundColor: Colors.primaryNavy,
+    height: 50,
+    borderRadius: 14,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
-    marginTop: 8,
-    shadowColor: "#1e40af",
+    gap: 8,
+    marginTop: 6,
+    shadowColor: Colors.primaryNavy,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4
+    elevation: 3,
   },
-  submitBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  empty: { alignItems: "center", padding: 60, gap: 12 },
-  emptyText: { color: "#94a3b8", fontWeight: "500" },
-  requestCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
+  submitBtnText: {
+    color: Colors.textWhite,
+    fontWeight: "700",
+    fontSize: moderateScale(14),
+  },
+  empty: {
+    alignItems: "center",
+    padding: 40,
+    gap: 10,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#f1f5f9",
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1
+    borderColor: Colors.border,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  requestType: { fontSize: 15, fontWeight: "700", color: "#1e293b" },
-  statusBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
-  statusText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
-  dateRange: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
-  dateText: { fontSize: 13, color: "#475569", fontWeight: "600" },
-  reasonText: { fontSize: 14, color: "#64748b", marginBottom: 12, lineHeight: 20 },
-  cardFooterDivider: { height: 1, backgroundColor: "#f1f5f9", marginBottom: 12 },
-  cardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  createdAt: { fontSize: 11, color: "#94a3b8", fontWeight: "500" }
+  emptyText: {
+    color: Colors.textMuted,
+    fontWeight: "500",
+    fontSize: moderateScale(13),
+  },
+  requestCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: Colors.primaryNavy,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  requestType: {
+    fontSize: moderateScale(14),
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  statusText: {
+    fontSize: moderateScale(11),
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  dateRange: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  dateText: {
+    fontSize: moderateScale(12),
+    color: Colors.textSecondary,
+    fontWeight: "600",
+  },
+  reasonText: {
+    fontSize: moderateScale(13),
+    color: Colors.textSecondary,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  cardFooterDivider: {
+    height: 1,
+    backgroundColor: Colors.borderSubtle,
+    marginBottom: 10,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  createdAt: {
+    fontSize: moderateScale(11),
+    color: Colors.textMuted,
+    fontWeight: "500",
+  },
 });

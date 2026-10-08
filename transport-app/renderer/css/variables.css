@@ -1,38 +1,45 @@
 :root {
-  /* --- PALETTE FROM REFERENCE MOCKUP --- */
-  --primary-navy: #0D47A1;       /* Deep Navy Sidebar & Header */
-  --primary-blue: #1976D2;       /* Electric Blue (Active pills, primary buttons, charts) */
+  /* --- UNIFIED BRAND PALETTE (SHARED ACROSS WEB & MOBILE) --- */
+  --primary-navy: #0D47A1;       /* Deep Navy Sidebar & Primary Brand */
+  --primary-blue: #1976D2;       /* Vibrant Electric Blue (Buttons, Active Tabs, Charts) */
   --primary: #1976D2;
-  --primary-light: #42A5F5;
-  --primary-dark: #0D47A1;
+  --primary-hover: #1565C0;
+  --primary-active: #0D47A1;
+  --primary-light: #3B82F6;
+  --primary-soft: #E3F2FD;       /* Ice Blue Accent */
+  --primary-dark: #0A3578;
   
-  --success: #43A047;            /* Emerald Green (Delivered, active, growth) */
-  --success-light: #81C784;      /* Mint Green Accent */
-  --success-bg: #E8F5E9;
+  --success: #10B981;            /* Emerald Green (Delivered, active, growth) */
+  --success-light: #34D399;      /* Mint Green Accent */
+  --success-bg: #ECFDF5;
+  --success-border: #A7F3D0;
   
-  --warning: #F59E0B;            /* Amber/Orange (Pending, alerts) */
-  --warning-bg: #FFF8E1;
+  --warning: #F59E0B;            /* Amber/Orange (Pending, in-transit, alerts) */
+  --warning-bg: #FFFBEB;
   --warning-dark: #D97706;
+  --warning-border: #FDE68A;
   
   --error: #EF4444;              /* Coral Red */
   --error-bg: #FEF2F2;
   --error-dark: #DC2626;
+  --error-border: #FECACA;
   
-  --info: #1976D2;
-  --info-bg: #E3F2FD;
+  --info: #0284C7;
+  --info-bg: #F0F9FF;
+  --info-border: #BAE6FD;
   
   /* --- CANVAS & SURFACES --- */
-  --bg-main: #F1F5F9;            /* Clean light gray background */
+  --bg-main: #F8FAFC;            /* Clean, modern slate-50 background */
   --bg-side: #0D47A1;            /* Solid Deep Navy Sidebar */
   --card-bg: #FFFFFF;            /* Crisp Pure White Cards */
   --card-bg-solid: #FFFFFF;
   --border: #E2E8F0;             /* Subtle card & table border */
-  --border-subtle: #EDF2F7;
+  --border-subtle: #F1F5F9;
   
   /* --- TEXT & TYPOGRAPHY --- */
-  --text-main: #212121;          /* High-contrast charcoal/slate */
-  --text-muted: #64748B;         /* Slate secondary text */
-  --text-light: #94A3B8;         /* Subtext & placeholders */
+  --text-main: #0F172A;          /* Slate 900 high contrast */
+  --text-muted: #475569;         /* Slate 600 secondary text */
+  --text-light: #94A3B8;         /* Slate 400 subtext & placeholders */
   --text-white: #FFFFFF;
   
   /* --- SHADOWS & CORNER RADIUS --- */

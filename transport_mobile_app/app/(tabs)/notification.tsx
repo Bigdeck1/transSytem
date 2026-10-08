@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,19 +8,27 @@ import {
   ActivityIndicator,
   RefreshControl,
   SafeAreaView,
-  Platform
-} from 'react-native';
-import { DollarSign, Megaphone, AlertCircle, CheckCircle, Bell, Trash2, ChevronRight, Info } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+  Platform,
+} from "react-native";
+import {
+  Megaphone,
+  AlertCircle,
+  Bell,
+  Info,
+  Truck,
+  CheckCircle2,
+} from "lucide-react-native";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { Colors, moderateScale, isTablet, isSmallDevice } from "@/constants/theme";
 
 export interface Notification {
   id: string;
   employee_id: string;
   title: string;
   message: string;
-  type: 'paycheck' | 'announcement' | 'alert' | 'other';
-  urgency?: 'low' | 'normal' | 'urgent' | 'alarm';
+  type: "paycheck" | "announcement" | "alert" | "other";
+  urgency?: "low" | "normal" | "urgent" | "alarm";
   is_read: boolean;
   created_at: string;
 }
@@ -43,15 +51,15 @@ export default function NotificationsScreen() {
       setLoading(true);
       setError(null);
       const { data, error: fetchError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('employee_id', employee.id)
-        .order('created_at', { ascending: false });
+        .from("notifications")
+        .select("*")
+        .eq("employee_id", employee.id)
+        .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
       setNotifications((data as Notification[]) ?? []);
     } catch (err: any) {
-      setError('Unable to load notifications.');
+      setError("Unable to load notifications.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -59,10 +67,14 @@ export default function NotificationsScreen() {
   };
 
   const markAsRead = async (notificationId: string) => {
-    setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+    );
     try {
-      await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
-    } catch (err) { console.warn('Failed to sync read status'); }
+      await supabase.from("notifications").update({ is_read: true }).eq("id", notificationId);
+    } catch (err) {
+      console.warn("Failed to sync read status");
+    }
   };
 
   const formatTimestamp = (dateString: string) => {
@@ -73,82 +85,134 @@ export default function NotificationsScreen() {
     if (diffMins < 60) return `${diffMins}m ago`;
     const diffHours = Math.round(diffMs / 3600000);
     if (diffHours < 24) return `${diffHours}h ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  const getIcon = (type: Notification['type'], urgency?: Notification['urgency']) => {
-    if (urgency === 'alarm' || type === 'alert') {
-      return { icon: <AlertCircle size={20} color="#dc2626" />, bg: '#fee2e2' };
+  const getIcon = (type: Notification["type"], urgency?: Notification["urgency"]) => {
+    if (urgency === "alarm" || type === "alert") {
+      return {
+        icon: <AlertCircle size={20} color={Colors.danger} />,
+        bg: Colors.dangerSoft,
+      };
     }
     switch (type) {
-      case 'paycheck': return { icon: <DollarSign size={20} color="#1e40af" />, bg: '#eff6ff' };
-      case 'announcement': return { icon: <Megaphone size={20} color="#0891b2" />, bg: '#ecfeff' };
-      default: return { icon: <Info size={20} color="#16a34a" />, bg: '#f0fdf4' };
+      case "announcement":
+        return {
+          icon: <Megaphone size={20} color={Colors.info} />,
+          bg: Colors.infoSoft,
+        };
+      default:
+        return {
+          icon: <Truck size={20} color={Colors.primaryBlue} />,
+          bg: Colors.primarySoft,
+        };
     }
   };
 
   if (loading || authLoading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#1e40af" /></View>;
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={Colors.primaryBlue} />
+      </View>
+    );
   }
 
-  const unread = notifications.filter(n => !n.is_read);
+  const unread = notifications.filter((n) => !n.is_read);
+  const hPadding = isSmallDevice ? 14 : isTablet ? 28 : 18;
 
   return (
     <View style={styles.wrapper}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.topHeader}>
-          <Text style={styles.headerTitle}>Notifications & Alarms</Text>
+        {/* --- TOP HEADER --- */}
+        <View style={[styles.topHeader, { paddingHorizontal: hPadding }]}>
+          <View>
+            <Text style={styles.headerTitle}>Operational Alerts</Text>
+            <Text style={styles.headerSubtitle}>Live dispatch updates & alarms</Text>
+          </View>
           <View style={styles.headerRight}>
-             {unread.length > 0 && <View style={styles.unreadCountBadge}><Text style={styles.unreadCountText}>{unread.length}</Text></View>}
-             <Bell size={18} color="#64748b" />
+            {unread.length > 0 && (
+              <View style={styles.unreadCountBadge}>
+                <Text style={styles.unreadCountText}>{unread.length}</Text>
+              </View>
+            )}
+            <Bell size={18} color={Colors.primaryNavy} />
           </View>
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.container}
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: hPadding }]}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadNotifications} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={loadNotifications}
+              colors={[Colors.primaryBlue]}
+              tintColor={Colors.primaryBlue}
+            />
+          }
         >
           {error && <Text style={styles.errorText}>{error}</Text>}
 
           {notifications.length === 0 ? (
             <View style={styles.empty}>
-              <View style={styles.emptyIcon}><Bell size={48} color="#e2e8f0" /></View>
-              <Text style={styles.emptyTitle}>All caught up!</Text>
-              <Text style={styles.emptySub}>We'll notify you here when dispatches, alarms, or payroll updates happen.</Text>
+              <View style={styles.emptyIcon}>
+                <Bell size={40} color={Colors.border} />
+              </View>
+              <Text style={styles.emptyTitle}>All Caught Up</Text>
+              <Text style={styles.emptySub}>
+                You will receive real-time notifications here when new dispatches, route changes, or alarms occur.
+              </Text>
             </View>
           ) : (
             notifications.map((n) => {
-              const isAlarm = n.urgency === 'alarm' || n.type === 'alert';
+              const isAlarm = n.urgency === "alarm" || n.type === "alert";
               const { icon, bg } = getIcon(n.type, n.urgency);
               return (
-                <TouchableOpacity 
-                  key={n.id} 
+                <TouchableOpacity
+                  key={n.id}
                   style={[
-                    styles.notiCard, 
+                    styles.notiCard,
                     !n.is_read && styles.notiUnread,
-                    isAlarm && styles.alarmCard
+                    isAlarm && styles.alarmCard,
                   ]}
                   onPress={() => markAsRead(n.id)}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
                   <View style={[styles.iconBox, { backgroundColor: bg }]}>{icon}</View>
                   <View style={styles.content}>
                     <View style={styles.contentHeader}>
-                       <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-                         {isAlarm && <Text style={styles.alarmPill}>🚨 ALARM</Text>}
-                         <Text style={[styles.notiTitle, !n.is_read && { color: '#0f172a', fontWeight: '700' }]}>{n.title}</Text>
-                       </View>
-                       <Text style={styles.notiTime}>{formatTimestamp(n.created_at)}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
+                        {isAlarm && <Text style={styles.alarmPill}>🚨 ALARM</Text>}
+                        <Text
+                          style={[
+                            styles.notiTitle,
+                            !n.is_read && { color: Colors.textPrimary, fontWeight: "700" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {n.title}
+                        </Text>
+                      </View>
+                      <Text style={styles.notiTime}>{formatTimestamp(n.created_at)}</Text>
                     </View>
-                    <Text style={styles.notiMsg} numberOfLines={2}>{n.message}</Text>
+                    <Text style={styles.notiMsg} numberOfLines={2}>
+                      {n.message}
+                    </Text>
                   </View>
-                  {!n.is_read && <View style={[styles.blueDot, isAlarm && { backgroundColor: '#dc2626' }]} />}
+                  {!n.is_read && (
+                    <View
+                      style={[
+                        styles.blueDot,
+                        isAlarm && { backgroundColor: Colors.danger },
+                      ]}
+                    />
+                  )}
                 </TouchableOpacity>
               );
             })
           )}
-          <View style={{ height: 40 }} />
+          <View style={{ height: 32 }} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -156,30 +220,182 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: '#fff' },
-  safeArea: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 0 : 40, marginBottom: 12 },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: "#0f172a" },
-  headerRight: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  unreadCountBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: '#ef4444', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff', zIndex: 1 },
-  unreadCountText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  container: { flex: 1, paddingHorizontal: 16 },
-  errorText: { color: "#ef4444", textAlign: "center", margin: 16 },
-  notiCard: { flexDirection: 'row', padding: 16, borderRadius: 24, backgroundColor: '#fff', marginBottom: 10, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' },
-  notiUnread: { backgroundColor: '#f0f7ff', borderColor: '#dbeafe' },
-  alarmCard: { backgroundColor: '#fef2f2', borderColor: '#fca5a5', borderWidth: 1.5 },
-  alarmPill: { backgroundColor: '#ef4444', color: '#fff', fontSize: 9, fontWeight: '800', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
-  iconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  content: { flex: 1 },
-  contentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
-  notiTitle: { fontSize: 15, fontWeight: '600', color: '#475569' },
-  notiTime: { fontSize: 11, color: '#94a3b8', fontWeight: '500' },
-  notiMsg: { fontSize: 13, color: '#64748b', lineHeight: 18 },
-  blueDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#3b82f6', marginLeft: 8 },
-  empty: { alignItems: 'center', padding: 60, gap: 12 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#1e293b' },
-  emptySub: { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 20 }
+  wrapper: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+  },
+  topHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: Platform.OS === "ios" ? 8 : 18,
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: moderateScale(22),
+    fontWeight: "800",
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  headerSubtitle: {
+    fontSize: moderateScale(12),
+    color: Colors.textSecondary,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  headerRight: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  unreadCountBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: Colors.danger,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: Colors.card,
+    zIndex: 1,
+  },
+  unreadCountText: {
+    color: Colors.textWhite,
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  errorText: {
+    color: Colors.danger,
+    textAlign: "center",
+    margin: 16,
+    fontSize: moderateScale(13),
+  },
+  notiCard: {
+    flexDirection: "row",
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.card,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+    shadowColor: Colors.primaryNavy,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  notiUnread: {
+    backgroundColor: Colors.card,
+    borderColor: Colors.primaryLight,
+    borderLeftWidth: 3.5,
+    borderLeftColor: Colors.primaryNavy,
+  },
+  alarmCard: {
+    backgroundColor: Colors.dangerSoft,
+    borderColor: Colors.dangerBorder,
+    borderWidth: 1.5,
+  },
+  alarmPill: {
+    backgroundColor: Colors.danger,
+    color: Colors.textWhite,
+    fontSize: 9,
+    fontWeight: "800",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  iconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  content: {
+    flex: 1,
+  },
+  contentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 4,
+  },
+  notiTitle: {
+    fontSize: moderateScale(13),
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  notiTime: {
+    fontSize: moderateScale(10),
+    color: Colors.textMuted,
+    fontWeight: "500",
+    marginLeft: 6,
+  },
+  notiMsg: {
+    fontSize: moderateScale(12),
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  blueDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primaryBlue,
+    marginLeft: 8,
+  },
+  empty: {
+    alignItems: "center",
+    padding: 40,
+    gap: 10,
+    backgroundColor: Colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: moderateScale(16),
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  emptySub: {
+    fontSize: moderateScale(12),
+    color: Colors.textMuted,
+    textAlign: "center",
+    lineHeight: 18,
+  },
 });
-
