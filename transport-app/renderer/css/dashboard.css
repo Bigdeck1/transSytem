@@ -5,11 +5,11 @@
 
 /* Override margin-left to use sidebar-w from sidebar.css */
 .main-content {
-  margin-left: var(--sidebar-w, 260px);
+  margin-left: var(--sidebar-w, 250px);
   padding: 28px 32px;
   min-height: 100vh;
-  width: calc(100% - var(--sidebar-w, 260px));
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: calc(100% - var(--sidebar-w, 250px));
+  transition: margin-left 0.2s ease, width 0.2s ease;
 }
 
 /* ---- Page Header ---- */

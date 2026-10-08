@@ -3,19 +3,20 @@ function initSidebar() {
     // Ensure SIDEBAR_PATHS is loaded
     // ============================
     if (typeof SIDEBAR_PATHS === "undefined") {
-        console.warn(" SIDEBAR_PATHS is NOT loaded before sidebar.js. Navigation may be limited.");
+        console.warn("SIDEBAR_PATHS is NOT loaded before sidebar.js. Navigation may be limited.");
     }
 
     // ============================
-    // DYNAMIC SUPER ADMIN LINK FOR SUPER ADMINS
+    // DYNAMIC SUPER ADMIN LINK & USER PROFILE SYNC
     // ============================
     const currentPage = window.location.pathname.split("/").pop();
     let isSuperAdmin = false;
+    let currentUser = null;
     try {
         const userStr = localStorage.getItem("user");
         if (userStr) {
-            const user = JSON.parse(userStr);
-            if (user && user.role === "super_admin") {
+            currentUser = JSON.parse(userStr);
+            if (currentUser && currentUser.role === "super_admin") {
                 isSuperAdmin = true;
             }
         }
@@ -23,20 +24,46 @@ function initSidebar() {
         console.error("Failed to check user role in sidebar.js:", e);
     }
 
+    // Inject Super Admin item for super admins
     if (isSuperAdmin && currentPage !== "admin_panel.html") {
         const menuList = document.getElementById("menu-list");
         if (menuList && !document.getElementById("super-admin-nav-item")) {
             const superAdminItem = document.createElement("li");
             superAdminItem.id = "super-admin-nav-item";
             superAdminItem.innerHTML = `
-                <a href="admin_panel.html" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; font-weight: 700; border-left: 4px solid #3b82f6; display: flex; align-items: center; gap: 14px; padding: 14px 20px; text-decoration: none; border-radius: 16px; font-size: 14px; transition: all 0.3s ease;">
-                    <i data-lucide="shield-alert" style="color: #3b82f6; width: 20px;"></i>
+                <a href="admin_panel.html" class="super-admin-link" title="Super Admin Console">
+                    <i data-lucide="shield-alert"></i>
                     <span>Super Admin Console</span>
                 </a>
             `;
             menuList.insertBefore(superAdminItem, menuList.firstChild);
         }
     }
+
+    // Update user info display in footer for admin and super admin
+    if (currentUser) {
+        const nameEl = document.querySelector(".admin-text .name");
+        const emailEl = document.querySelector(".admin-text .email");
+        const avatarEl = document.querySelector(".admin-avatar");
+
+        if (isSuperAdmin) {
+            if (nameEl) nameEl.textContent = currentUser.full_name || "Super Admin";
+            if (emailEl && currentUser.email) emailEl.textContent = currentUser.email;
+            if (avatarEl) avatarEl.textContent = "SA";
+        } else {
+            if (nameEl) nameEl.textContent = currentUser.full_name || "Administrator";
+            if (emailEl && currentUser.email) emailEl.textContent = currentUser.email;
+            if (avatarEl) avatarEl.textContent = currentUser.full_name ? currentUser.full_name.substring(0, 2).toUpperCase() : "AD";
+        }
+    }
+
+    // Ensure all menu links have tooltip titles for collapsed mode
+    document.querySelectorAll("#menu-list li a").forEach(a => {
+        const span = a.querySelector("span");
+        if (span && !a.getAttribute("title")) {
+            a.setAttribute("title", span.textContent.trim());
+        }
+    });
 
     // ============================
     // INJECT LOGOUT MODAL
@@ -48,13 +75,13 @@ function initSidebar() {
             <div id="logout-modal" class="logout-modal">
                 <div class="logout-modal-content">
                     <div class="logout-icon-container">
-                        <i data-lucide="log-out" size="32"></i>
+                        <i data-lucide="log-out" size="26"></i>
                     </div>
                     <h3>Sign Out</h3>
-                    <p>Are you sure you want to log out of the JRR Transport portal? You will need to enter your credentials again to access your account.</p>
+                    <p>Are you sure you want to log out of the system? You will need to enter your credentials again to access your account.</p>
                     <div class="logout-actions">
-                        <button class="logout-btn-cancel" id="logout-cancel">Stay Logged In</button>
-                        <button class="logout-btn-confirm" id="logout-confirm">Yes, Sign Out</button>
+                        <button class="logout-btn-cancel" id="logout-cancel">Cancel</button>
+                        <button class="logout-btn-confirm" id="logout-confirm">Sign Out</button>
                     </div>
                 </div>
             </div>
@@ -81,7 +108,7 @@ function initSidebar() {
         const modal = document.getElementById("logout-modal");
         if (modal) {
             modal.style.display = "flex";
-            setTimeout(() => modal.classList.add("visible"), 10);
+            modal.classList.add("visible");
         }
     }
 
@@ -89,26 +116,19 @@ function initSidebar() {
         const modal = document.getElementById("logout-modal");
         if (modal) {
             modal.classList.remove("visible");
-            setTimeout(() => {
-                modal.style.display = "none";
-            }, 300);
+            modal.style.display = "none";
         }
     }
 
     function performLogout() {
         console.log("Logging out...");
-
-        // Clear session data
         localStorage.removeItem("user");
         sessionStorage.clear();
 
-        // Redirect to login page
-        // If we are in /renderer/html/, index.html is in the same dir
         const currentPath = window.location.pathname;
         if (currentPath.includes("/renderer/html/")) {
             window.location.replace("index.html");
         } else {
-            // Fallback for other locations (like landing page or root)
             window.location.replace("../html/index.html");
         }
     }
@@ -124,7 +144,7 @@ function initSidebar() {
             const targetPath = SIDEBAR_PATHS[pageKey];
 
             if (!targetPath) {
-                console.error(" No path found for:", pageKey);
+                console.error("No path found for:", pageKey);
                 return;
             }
 
@@ -137,12 +157,10 @@ function initSidebar() {
     // ============================
     if (typeof SIDEBAR_PATHS !== "undefined") {
         Object.entries(SIDEBAR_PATHS).forEach(([key, path]) => {
-            if (currentPage === path.split("/").pop()) { // Compare only file names
+            if (currentPage === path.split("/").pop()) {
                 const activeItem = document.querySelector(`#menu-list li[data-page="${key}"]`);
                 if (activeItem) {
-                    // Remove active from others
                     document.querySelectorAll("#menu-list li a").forEach(a => a.classList.remove("active"));
-                    // Add to this one (the anchor inside the li)
                     const anchor = activeItem.querySelector("a");
                     if (anchor) anchor.classList.add("active");
                     else activeItem.classList.add("active");
@@ -151,14 +169,21 @@ function initSidebar() {
         });
     }
 
+    // If on admin_panel.html and super admin item exists, make it active
+    if (currentPage === "admin_panel.html") {
+        const superAdminAnchor = document.querySelector("#super-admin-nav-item a");
+        if (superAdminAnchor) {
+            superAdminAnchor.classList.add("active");
+        }
+    }
+
     // ============================
     // LOGOUT BUTTON
     // ============================
     const logoutBtn = document.getElementById("logout-btn");
-
     if (logoutBtn) {
         logoutBtn.addEventListener("click", (e) => {
-            e.preventDefault(); // Prevent direct href navigation
+            e.preventDefault();
             showLogoutModal();
         });
     }

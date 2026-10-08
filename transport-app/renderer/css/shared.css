@@ -75,16 +75,15 @@ body {
    MAIN LAYOUT
 ============================================ */
 .main-content {
-  margin-left: var(--sidebar-w, 260px);
+  margin-left: var(--sidebar-w, 250px);
   padding: 28px 32px;
   min-height: 100vh;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: fadeIn 0.6s ease-out;
-  width: calc(100% - var(--sidebar-w, 260px));
+  transition: margin-left 0.2s ease, width 0.2s ease;
+  width: calc(100% - var(--sidebar-w, 250px));
 }
 
 .main-content.expanded {
-  --sidebar-w: 90px !important;
+  --sidebar-w: 74px !important;
 }
 
 .page-header {

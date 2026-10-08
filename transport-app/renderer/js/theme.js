@@ -55,12 +55,24 @@
             if (isCollapsed) {
                 sidebar.classList.add('collapsed');
                 mainContent.classList.add('expanded');
+                document.body.classList.add('sidebar-collapsed');
                 toggle.innerHTML = '<i data-lucide="chevron-right"></i>';
+                toggle.setAttribute('title', 'Expand Sidebar');
             } else {
                 sidebar.classList.remove('collapsed');
                 mainContent.classList.remove('expanded');
+                document.body.classList.remove('sidebar-collapsed');
                 toggle.innerHTML = '<i data-lucide="chevron-left"></i>';
+                toggle.setAttribute('title', 'Close Sidebar');
             }
+
+            // Set tooltips on menu items for collapsed icon mode
+            document.querySelectorAll('#menu-list li a').forEach(a => {
+                const span = a.querySelector('span');
+                if (span && !a.getAttribute('title')) {
+                    a.setAttribute('title', span.textContent.trim());
+                }
+            });
 
             // Trigger lucide to render icons in the toggle
             if (window.lucide) lucide.createIcons();
@@ -69,15 +81,18 @@
             const newToggle = toggle.cloneNode(true);
             toggle.parentNode.replaceChild(newToggle, toggle);
 
-            newToggle.addEventListener('click', () => {
+            newToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const collapsed = sidebar.classList.toggle('collapsed');
                 mainContent.classList.toggle('expanded');
+                document.body.classList.toggle('sidebar-collapsed', collapsed);
                 localStorage.setItem('sidebar-collapsed', collapsed);
                 
-                // Update Icon
+                // Update Icon & Title
                 newToggle.innerHTML = collapsed ? 
                     '<i data-lucide="chevron-right"></i>' : 
                     '<i data-lucide="chevron-left"></i>';
+                newToggle.setAttribute('title', collapsed ? 'Expand Sidebar' : 'Close Sidebar');
                 
                 if (window.lucide) lucide.createIcons();
             });
