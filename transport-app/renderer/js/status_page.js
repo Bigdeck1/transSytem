@@ -400,11 +400,196 @@ function updateSummaryCards() {
 }
 
 // =============================
-// LEAFLET LIVE FLEET TRACKING MAP
+// LEAFLET LIVE FLEET TRACKING MAP & DRIVER AUTO-CLEANUP
 // =============================
 let trackingMap = null;
 let driverMarkers = {};
 let hqMarker = null;
+
+// Drivers with no GPS pings within the last 3 minutes are considered offline (app closed or disconnected)
+const DRIVER_OFFLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes timeout
+
+// Map storing online enriched driver telemetry: driverId -> loc
+const activeFleetDrivers = new Map();
+let selectedDriverId = null;
+
+// Check whether driver is currently active and broadcasting
+function isDriverOnline(loc) {
+  if (!loc || !loc.latitude || !loc.longitude) return false;
+  if (loc.status === "offline") return false;
+  if (!loc.updated_at) return false;
+
+  const pingTime = new Date(loc.updated_at).getTime();
+  if (isNaN(pingTime)) return false;
+
+  const diffMs = Date.now() - pingTime;
+  // Online if ping is within last 3 minutes
+  return diffMs >= 0 && diffMs <= DRIVER_OFFLINE_THRESHOLD_MS;
+}
+
+// Relative time helper (e.g., "Just now", "45s ago", "2m ago")
+function formatTimeAgo(dateString) {
+  if (!dateString) return "N/A";
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  if (diffMs < 0 || isNaN(diffMs)) return "Just now";
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 20) return "Just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ago`;
+}
+
+// Remove driver marker and cleanup state
+function removeDriverFromMap(driverId) {
+  if (driverMarkers[driverId]) {
+    try {
+      trackingMap?.removeLayer(driverMarkers[driverId]);
+    } catch (e) {
+      console.warn("Error removing marker:", e);
+    }
+    delete driverMarkers[driverId];
+  }
+  activeFleetDrivers.delete(driverId);
+  if (selectedDriverId === driverId) {
+    selectedDriverId = null;
+  }
+}
+
+// Auto-prune offline drivers from map and side panel
+function pruneOfflineDrivers() {
+  let hasChanges = false;
+
+  // 1. Check all in-memory drivers
+  for (const [id, loc] of activeFleetDrivers.entries()) {
+    if (!isDriverOnline(loc)) {
+      removeDriverFromMap(id);
+      hasChanges = true;
+    }
+  }
+
+  // 2. Check any dangling map markers
+  for (const id of Object.keys(driverMarkers)) {
+    if (!activeFleetDrivers.has(id)) {
+      if (driverMarkers[id]) {
+        try { trackingMap?.removeLayer(driverMarkers[id]); } catch (e) {}
+        delete driverMarkers[id];
+      }
+      hasChanges = true;
+    }
+  }
+
+  // 3. Re-render side panel & counters
+  renderDriverSidePanel();
+  updateDriverCounts();
+}
+
+// Update driver counts in badges
+function updateDriverCounts() {
+  const count = activeFleetDrivers.size;
+  const countBadge = document.getElementById("mapDriverCountBadge");
+  const tabCount = document.getElementById("mapTabDriverCount");
+  if (countBadge) countBadge.textContent = count;
+  if (tabCount) tabCount.textContent = count;
+}
+
+// Focus on a driver on the map
+function focusDriverOnMap(driverId) {
+  const loc = activeFleetDrivers.get(driverId);
+  if (!loc || !trackingMap) return;
+
+  const lat = parseFloat(loc.latitude);
+  const lng = parseFloat(loc.longitude);
+  if (isNaN(lat) || isNaN(lng)) return;
+
+  selectedDriverId = driverId;
+  trackingMap.setView([lat, lng], 16, { animate: true });
+
+  if (driverMarkers[driverId]) {
+    driverMarkers[driverId].openPopup();
+  }
+
+  // Highlight card in panel
+  document.querySelectorAll(".map-driver-card").forEach(c => {
+    c.classList.toggle("selected", c.dataset.driverId === String(driverId));
+  });
+}
+
+// Render the small driver side panel inside the map
+function renderDriverSidePanel() {
+  const container = document.getElementById("mapDriverListContainer");
+  if (!container) return;
+
+  const searchVal = (document.getElementById("mapDriverSearchInput")?.value || "").toLowerCase().trim();
+
+  // Convert map to array and filter online
+  const drivers = Array.from(activeFleetDrivers.values())
+    .filter(d => isDriverOnline(d))
+    .filter(d => {
+      if (!searchVal) return true;
+      const name = (d.employees?.full_name || "").toLowerCase();
+      const plate = (d.vehicles?.plate || "").toLowerCase();
+      const trip = (d.trips?.trip_number || "").toLowerCase();
+      return name.includes(searchVal) || plate.includes(searchVal) || trip.includes(searchVal);
+    });
+
+  if (drivers.length === 0) {
+    container.innerHTML = `
+      <div class="map-panel-empty">
+        <i data-lucide="radio" size="24" style="color: var(--text-light); margin-bottom: 8px;"></i>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-main); margin: 0 0 4px;">No Active Drivers Online</p>
+        <small style="font-size: 11px; color: var(--text-muted); line-height: 1.4; display: block;">
+          Drivers who open the mobile app and broadcast GPS will appear here automatically. Offline drivers are removed after 3 mins.
+        </small>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  container.innerHTML = drivers.map(d => {
+    const isSelected = selectedDriverId === d.driver_id;
+    const name = d.employees?.full_name || "Active Driver";
+    const phone = d.employees?.phone || "";
+    const plate = d.vehicles?.plate || "No Vehicle";
+    const brandModel = d.vehicles?.brand && d.vehicles?.model ? `${d.vehicles.brand} ${d.vehicles.model}` : (d.vehicles?.vehicle_type || "");
+    const trip = d.trips?.trip_number ? `#${d.trips.trip_number}` : "Standby / Available";
+    const destination = d.trips?.delivery_location ? d.trips.delivery_location : "";
+    const speed = Math.round(d.speed || 0);
+    const isMoving = speed > 0;
+    const pingText = formatTimeAgo(d.updated_at);
+
+    return `
+      <div class="map-driver-card ${isSelected ? 'selected' : ''}" data-driver-id="${d.driver_id}" onclick="focusDriverOnMap('${d.driver_id}')">
+        <div class="driver-card-top">
+          <span class="driver-card-name">${name}</span>
+          <span class="driver-speed-badge ${isMoving ? 'speed-moving' : 'speed-idle'}">
+            ${isMoving ? `● ${speed} km/h` : '● Idle (0 km/h)'}
+          </span>
+        </div>
+
+        <div class="driver-card-details">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <span>🚗 <strong>${plate}</strong> ${brandModel ? `(${brandModel})` : ''}</span>
+            ${phone ? `<a href="tel:${phone}" onclick="event.stopPropagation();" style="color: #1976D2; text-decoration: none; font-weight: 700;" title="Call Driver">📞 Call</a>` : ''}
+          </div>
+          <div style="margin-top: 3px; font-size: 11px; color: var(--text-muted);">
+            <span>📦 Trip: <strong>${trip}</strong></span>
+            ${destination ? `<div style="font-size: 10.5px; color: var(--text-light); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">📍 ${destination}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="driver-card-footer">
+          <span>⏱️ ${pingText}</span>
+          <span style="color: #1976D2; font-weight: 700; cursor: pointer;">Locate ➔</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
 
 function initTrackingMap() {
   const mapContainer = document.getElementById("trackingMapContainer");
@@ -438,13 +623,51 @@ function initTrackingMap() {
     .addTo(trackingMap)
     .bindPopup("<strong>JRR Main Logistics HQ</strong><br>Malalim St, Sitio Malalim, Morong, 1960 Rizal");
 
+  // Load live fleet pings
   loadFleetLocations();
 
   // Refresh button
-  document.getElementById("refreshMapBtn")?.addEventListener("click", loadFleetLocations);
+  document.getElementById("refreshMapBtn")?.addEventListener("click", () => {
+    loadFleetLocations();
+  });
 
-  // Auto-refresh fleet pings every 15 seconds
-  setInterval(loadFleetLocations, 15000);
+  // Wire Driver Side Panel controls
+  const panel = document.getElementById("mapDriverSidePanel");
+  const toggleBtn = document.getElementById("toggleMapPanelBtn");
+  const expandTab = document.getElementById("mapPanelExpandTab");
+  const searchInput = document.getElementById("mapDriverSearchInput");
+
+  if (toggleBtn && panel && expandTab) {
+    toggleBtn.onclick = (e) => {
+      e.stopPropagation();
+      panel.classList.add("collapsed");
+      expandTab.style.display = "flex";
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    expandTab.onclick = (e) => {
+      e.stopPropagation();
+      panel.classList.remove("collapsed");
+      expandTab.style.display = "none";
+      renderDriverSidePanel();
+    };
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      renderDriverSidePanel();
+    });
+  }
+
+  // Periodic auto-prune offline drivers every 10 seconds
+  setInterval(() => {
+    pruneOfflineDrivers();
+  }, 10000);
+
+  // Periodic full server fetch every 20 seconds
+  setInterval(() => {
+    loadFleetLocations();
+  }, 20000);
 
   // Subscribe to Realtime driver_locations
   if (window.supabase?.createClient) {
@@ -459,9 +682,36 @@ function initTrackingMap() {
         "postgres_changes",
         { event: "*", schema: "public", table: "driver_locations" },
         (payload) => {
+          if (payload.eventType === "DELETE") {
+            const oldId = payload.old?.driver_id;
+            if (oldId) removeDriverFromMap(oldId);
+            pruneOfflineDrivers();
+            return;
+          }
+
           const loc = payload.new;
-          if (loc && loc.latitude && loc.longitude) {
-            updateDriverMarkerOnMap(loc);
+          if (!loc || !loc.driver_id) return;
+
+          if (!isDriverOnline(loc)) {
+            removeDriverFromMap(loc.driver_id);
+            pruneOfflineDrivers();
+          } else {
+            // Merge with existing enriched data if available
+            const existing = activeFleetDrivers.get(loc.driver_id) || {};
+            const merged = {
+              ...existing,
+              ...loc,
+              employees: loc.employees || existing.employees,
+              vehicles: loc.vehicles || existing.vehicles,
+              trips: loc.trips || existing.trips,
+            };
+
+            // If we don't have driver name, trigger a full background sync
+            if (!merged.employees?.full_name) {
+              loadFleetLocations();
+            } else {
+              updateDriverMarkerOnMap(merged);
+            }
           }
         }
       )
@@ -484,16 +734,33 @@ async function loadFleetLocations() {
       locations = json?.data || [];
     }
 
-    if (Array.isArray(locations) && locations.length > 0) {
+    if (Array.isArray(locations)) {
+      const activeIds = new Set();
       const allPoints = [[14.546827, 121.229383]]; // Include Morong HQ
+
       locations.forEach((loc) => {
-        updateDriverMarkerOnMap(loc);
-        if (loc.latitude && loc.longitude) {
-          allPoints.push([parseFloat(loc.latitude), parseFloat(loc.longitude)]);
+        if (isDriverOnline(loc)) {
+          activeIds.add(loc.driver_id);
+          updateDriverMarkerOnMap(loc);
+          if (loc.latitude && loc.longitude) {
+            allPoints.push([parseFloat(loc.latitude), parseFloat(loc.longitude)]);
+          }
+        } else {
+          // Explicitly remove driver if returned as offline or stale
+          removeDriverFromMap(loc.driver_id);
         }
       });
 
-      if (allPoints.length > 1) {
+      // Remove any markers that are no longer in active online list
+      for (const id of Object.keys(driverMarkers)) {
+        if (!activeIds.has(id)) {
+          removeDriverFromMap(id);
+        }
+      }
+
+      pruneOfflineDrivers();
+
+      if (allPoints.length > 1 && !selectedDriverId) {
         trackingMap.fitBounds(allPoints, { padding: [50, 50], maxZoom: 15 });
       }
     }
@@ -506,31 +773,43 @@ function updateDriverMarkerOnMap(loc) {
   if (!trackingMap || !loc.latitude || !loc.longitude) return;
 
   const driverId = loc.driver_id;
+  if (!isDriverOnline(loc)) {
+    removeDriverFromMap(driverId);
+    pruneOfflineDrivers();
+    return;
+  }
+
   const lat = parseFloat(loc.latitude);
   const lng = parseFloat(loc.longitude);
   if (isNaN(lat) || isNaN(lng)) return;
 
-  const speed = loc.speed || 0;
+  // Save to active in-memory fleet map
+  activeFleetDrivers.set(driverId, loc);
+
+  const speed = Math.round(loc.speed || 0);
   const driverName = loc.employees?.full_name || "Active Driver";
-  const driverPhone = loc.employees?.phone ? `📞 ${loc.employees.phone}<br>` : "";
+  const driverPhone = loc.employees?.phone ? `📞 <a href="tel:${loc.employees.phone}" style="color:#1976D2;font-weight:700;">${loc.employees.phone}</a><br>` : "";
   const vehiclePlate = loc.vehicles?.plate || "Fleet Vehicle";
+  const vehicleModel = loc.vehicles?.brand && loc.vehicles?.model ? ` (${loc.vehicles.brand} ${loc.vehicles.model})` : "";
   const tripNumber = loc.trips?.trip_number ? `Trip: <strong>#${loc.trips.trip_number}</strong><br>` : "";
+  const deliveryDest = loc.trips?.delivery_location ? `Destination: ${loc.trips.delivery_location}<br>` : "";
 
   const truckIcon = L.divIcon({
     className: "custom-truck-marker",
-    html: `<div style="background: #16a34a; color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(22,163,74,0.5); border: 2px solid white; animation: pulse 2s infinite;">🚚</div>`,
+    html: `<div style="background: #16a34a; color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(22,163,74,0.4); border: 2px solid white;">🚚</div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 17],
   });
 
   const popupContent = `
-    <div style="font-family: inherit; font-size: 12px; line-height: 1.5; min-width: 160px;">
-      <strong style="color: #1e40af; font-size: 13px;">${driverName}</strong><br>
+    <div style="font-family: inherit; font-size: 12px; line-height: 1.5; min-width: 170px;">
+      <strong style="color: #0D47A1; font-size: 13px;">${driverName}</strong><br>
       ${driverPhone}
-      <span>Vehicle: <strong>${vehiclePlate}</strong></span><br>
+      <span>Vehicle: <strong>${vehiclePlate}${vehicleModel}</strong></span><br>
       ${tripNumber}
-      <span>Speed: <strong>${speed} km/h</strong></span><br>
-      <small style="color: #64748b;">Ping: ${new Date(loc.updated_at || Date.now()).toLocaleTimeString()}</small>
+      ${deliveryDest}
+      <span>Speed: <strong>${speed} km/h</strong> (${speed > 0 ? 'Moving' : 'Idle'})</span><br>
+      <small style="color: #64748b;">Last ping: ${formatTimeAgo(loc.updated_at)}</small>
     </div>
   `;
 
@@ -541,7 +820,23 @@ function updateDriverMarkerOnMap(loc) {
     driverMarkers[driverId] = L.marker([lat, lng], { icon: truckIcon })
       .addTo(trackingMap)
       .bindPopup(popupContent);
+
+    // Clicking map marker selects driver in side panel
+    driverMarkers[driverId].on("click", () => {
+      selectedDriverId = driverId;
+      document.querySelectorAll(".map-driver-card").forEach(c => {
+        c.classList.toggle("selected", c.dataset.driverId === String(driverId));
+      });
+      const targetCard = document.querySelector(`.map-driver-card[data-driver-id="${driverId}"]`);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    });
   }
+
+  // Refresh side panel
+  renderDriverSidePanel();
+  updateDriverCounts();
 }
 
 // =============================
