@@ -79,8 +79,7 @@
     <nav class="sidebar-nav">
       <ul id="menu-list">
         <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
-        <li><a href="scheduling_page.html" class="active"><i data-lucide="map-pin"></i><span>Hauling Dispatches</span></a></li>
-        <li><a href="rentals_page.html"><i data-lucide="car"></i><span>Car Rental Services</span></a></li>
+        <li><a href="scheduling_page.html" class="active"><i data-lucide="map-pin"></i><span>Hauling & Rentals</span></a></li>
         <li><a href="status_page.html"><i data-lucide="activity"></i><span>Live Radar GPS</span></a></li>
         <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
         <li><a href="employee_management.html"><i data-lucide="users"></i><span>Drivers & Staff</span></a></li>
@@ -117,9 +116,19 @@
       </div>
       <button class="btn-primary" id="newTripBtn">
         <i data-lucide="plus-circle" size="18"></i>
-        Create New Trip
+        Create Service
       </button>
     </header>
+
+    <!-- SERVICE MODE SWITCHER TABS -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+      <a href="scheduling_page.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 700; font-size: 14px; background: var(--primary-navy); border: 1px solid var(--primary-navy); color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(13, 71, 161, 0.2);">
+        <i data-lucide="truck" size="16"></i> Hauling Dispatches
+      </a>
+      <a href="rentals_page.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 700; font-size: 14px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); text-decoration: none; transition: var(--transition);">
+        <i data-lucide="car" size="16"></i> Car Rental Services
+      </a>
+    </div>
 
     <div class="scheduling-grid">
       <!-- LIST COLUMN -->
@@ -275,6 +284,122 @@
 
           <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Initialize
             Dispatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  
+  <!-- ============================================================
+       MODAL: SERVICE TYPE SELECTION
+  ============================================================ -->
+  <div id="serviceOptionModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 580px; padding: 32px; border-radius: var(--radius-lg); text-align: center;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: var(--primary-navy);">Select Service Type</h2>
+        <span class="close-modal close-btn" id="closeServiceOptionBtn" style="cursor: pointer; font-size: 26px; color: var(--text-muted); line-height: 1;">&times;</span>
+      </div>
+      <p style="color: var(--text-muted); font-size: 14px; margin: 0 0 24px;">Choose the transport service workflow you want to create</p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- Option 1: Hauling Dispatch -->
+        <div id="cardSelectHauling" style="background: var(--card-bg); border: 2px solid var(--border); border-radius: 16px; padding: 24px 16px; cursor: pointer; text-align: center; transition: var(--transition);">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: #E3F2FD; color: #1976D2; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
+            <i data-lucide="truck" size="26"></i>
+          </div>
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0 0 6px;">Hauling Dispatch</h3>
+          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0 0 14px;">Cargo, equipment & delivery with route tracking & assigned driver</p>
+          <span style="display: inline-block; padding: 6px 14px; border-radius: 20px; background: #1976D2; color: #fff; font-size: 12px; font-weight: 700;">Create Trip ➔</span>
+        </div>
+
+        <!-- Option 2: Car Rental -->
+        <div id="cardSelectRental" style="background: var(--card-bg); border: 2px solid var(--border); border-radius: 16px; padding: 24px 16px; cursor: pointer; text-align: center; transition: var(--transition);">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: #EDE7F6; color: #673AB7; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
+            <i data-lucide="car" size="26"></i>
+          </div>
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0 0 6px;">Car Rental</h3>
+          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0 0 14px;">Vehicle hire for self-drive or chauffeur service with security deposit & rate</p>
+          <span style="display: inline-block; padding: 6px 14px; border-radius: 20px; background: #673AB7; color: #fff; font-size: 12px; font-weight: 700;">New Agreement ➔</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL: NEW CAR RENTAL AGREEMENT
+  ============================================================ -->
+  <div id="newRentalModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 620px; width: 92%; padding: 28px; border-radius: var(--radius-lg); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--primary-navy); display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="car" size="20"></i> New Vehicle Rental Agreement
+        </h2>
+        <span class="close-modal close-btn" id="closeRentalModalBtn" style="cursor: pointer; font-size: 24px; color: var(--text-muted);">&times;</span>
+      </div>
+
+      <form id="newRentalForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="grid-column: span 2;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Customer / Client *</label>
+            <select id="rentalClientSelect" required style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);">
+              <option value="">Select Customer...</option>
+            </select>
+          </div>
+
+          <div style="grid-column: span 2;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Select Rental Vehicle *</label>
+            <select id="rentalVehicleSelect" required style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);">
+              <option value="">Select Available Vehicle...</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Start Date & Time *</label>
+            <input type="datetime-local" id="rentalStartDateTime" required style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);" />
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Return Date & Time *</label>
+            <input type="datetime-local" id="rentalReturnDateTime" required style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);" />
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Rental Mode</label>
+            <select id="rentalTypeSelect" style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);">
+              <option value="self_drive">Self-Drive</option>
+              <option value="with_driver">Chauffeur / With Driver</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Daily Rate (₱) *</label>
+            <input type="number" id="rentalDailyRate" step="0.01" required style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);" />
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Security Deposit (₱)</label>
+            <input type="number" id="rentalSecurityDeposit" step="0.01" value="5000" style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);" />
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Est. Days</label>
+            <input type="number" id="rentalEstDays" readonly style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border); background: var(--bg-main);" />
+          </div>
+
+          <div style="grid-column: span 2; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 12px;">
+            <label style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase;">Estimated Total (₱)</label>
+            <input type="number" id="rentalTotalAmount" readonly style="width: 100%; border: none; background: transparent; font-size: 22px; font-weight: 800; color: #15803d;" />
+          </div>
+
+          <div style="grid-column: span 2;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Notes & Instructions</label>
+            <textarea id="rentalNotes" rows="2" placeholder="Special destination constraints, notes, etc..." style="width: 100%; padding: 10px; border-radius: var(--radius-xs); border: 1px solid var(--border);"></textarea>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn-secondary" id="cancelRentalBtn">Cancel</button>
+          <button type="submit" class="btn-primary">Create Rental Agreement</button>
         </div>
       </form>
     </div>

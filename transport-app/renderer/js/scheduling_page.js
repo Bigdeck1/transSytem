@@ -455,14 +455,163 @@ window.initScheduling_page = function () {
   });
   const closeModal = () => (modal.style.display = "none");
 
-  newTripBtn.addEventListener("click", openModal);
+  // --------------------
+  // Service Selector & Rental Modal Handling
+  // --------------------
+  const serviceOptionModal = document.getElementById("serviceOptionModal");
+  const closeServiceOptionBtn = document.getElementById("closeServiceOptionBtn");
+  const cardSelectHauling = document.getElementById("cardSelectHauling");
+  const cardSelectRental = document.getElementById("cardSelectRental");
+  const newRentalModal = document.getElementById("newRentalModal");
+  const closeRentalModalBtn = document.getElementById("closeRentalModalBtn");
+  const cancelRentalBtn = document.getElementById("cancelRentalBtn");
+  const newRentalForm = document.getElementById("newRentalForm");
+
+  const openServiceOptionModal = () => {
+    if (serviceOptionModal) {
+      serviceOptionModal.style.display = "flex";
+      if (window.lucide) window.lucide.createIcons();
+    } else {
+      openModal();
+    }
+  };
+
+  const closeServiceOptionModal = () => {
+    if (serviceOptionModal) serviceOptionModal.style.display = "none";
+  };
+
+  newTripBtn.addEventListener("click", openServiceOptionModal);
+  closeServiceOptionBtn?.addEventListener("click", closeServiceOptionModal);
+  serviceOptionModal?.addEventListener("click", (e) => {
+    if (e.target === serviceOptionModal) closeServiceOptionModal();
+  });
+
+  cardSelectHauling?.addEventListener("click", () => {
+    closeServiceOptionModal();
+    openModal();
+  });
+
+  // Rental Modal Logic
+  const openRentalModal = () => {
+    closeServiceOptionModal();
+    if (!newRentalModal) return;
+    newRentalForm?.reset();
+
+    // Populate dropdowns with current resources
+    const clientSelect = document.getElementById("rentalClientSelect");
+    if (clientSelect) {
+      clientSelect.innerHTML = '<option value="">Select Customer...</option>' +
+        clients.map(c => `<option value="${c.id}">${c.name || 'Client #' + c.id} (${c.email || c.phone || 'No Contact'})</option>`).join('');
+    }
+
+    const vehicleSelect = document.getElementById("rentalVehicleSelect");
+    if (vehicleSelect) {
+      vehicleSelect.innerHTML = '<option value="">Select Available Vehicle...</option>' +
+        vehicles.map(v => `<option value="${v.id}" data-rate="${v.rental_rate_per_day || 2500}" data-deposit="${v.security_deposit_amount || 5000}">${v.brand} ${v.model} (${v.plate}) - ₱${v.rental_rate_per_day || 2500}/day</option>`).join('');
+    }
+
+    const now = new Date();
+    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000 - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+    const startInput = document.getElementById("rentalStartDateTime");
+    const returnInput = document.getElementById("rentalReturnDateTime");
+    if (startInput) startInput.value = localNow;
+    if (returnInput) returnInput.value = tomorrow;
+
+    calculateRentalTotal();
+    newRentalModal.style.display = "flex";
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  const closeRentalModal = () => {
+    if (newRentalModal) newRentalModal.style.display = "none";
+  };
+
+  cardSelectRental?.addEventListener("click", openRentalModal);
+  closeRentalModalBtn?.addEventListener("click", closeRentalModal);
+  cancelRentalBtn?.addEventListener("click", closeRentalModal);
+  newRentalModal?.addEventListener("click", (e) => {
+    if (e.target === newRentalModal) closeRentalModal();
+  });
+
+  const onRentalVehicleChange = () => {
+    const select = document.getElementById("rentalVehicleSelect");
+    const selectedOption = select?.options[select.selectedIndex];
+    if (selectedOption?.dataset?.rate) {
+      const rateInput = document.getElementById("rentalDailyRate");
+      const depositInput = document.getElementById("rentalSecurityDeposit");
+      if (rateInput) rateInput.value = selectedOption.dataset.rate;
+      if (depositInput) depositInput.value = selectedOption.dataset.deposit || 5000;
+    }
+    calculateRentalTotal();
+  };
+
+  const calculateRentalTotal = () => {
+    const startVal = document.getElementById("rentalStartDateTime")?.value;
+    const returnVal = document.getElementById("rentalReturnDateTime")?.value;
+    const rateVal = Number(document.getElementById("rentalDailyRate")?.value || 0);
+
+    const daysInput = document.getElementById("rentalEstDays");
+    const totalInput = document.getElementById("rentalTotalAmount");
+
+    if (startVal && returnVal && new Date(returnVal) > new Date(startVal)) {
+      const diffTime = Math.abs(new Date(returnVal) - new Date(startVal));
+      const days = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      if (daysInput) daysInput.value = days;
+      if (totalInput) totalInput.value = (days * rateVal).toFixed(2);
+    } else {
+      if (daysInput) daysInput.value = 1;
+      if (totalInput) totalInput.value = rateVal.toFixed(2);
+    }
+  };
+
+  document.getElementById("rentalVehicleSelect")?.addEventListener("change", onRentalVehicleChange);
+  document.getElementById("rentalStartDateTime")?.addEventListener("change", calculateRentalTotal);
+  document.getElementById("rentalReturnDateTime")?.addEventListener("change", calculateRentalTotal);
+  document.getElementById("rentalDailyRate")?.addEventListener("input", calculateRentalTotal);
+
+  newRentalForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+      client_id: document.getElementById("rentalClientSelect")?.value,
+      vehicle_id: document.getElementById("rentalVehicleSelect")?.value,
+      start_datetime: document.getElementById("rentalStartDateTime")?.value,
+      expected_return_datetime: document.getElementById("rentalReturnDateTime")?.value,
+      rental_type: document.getElementById("rentalTypeSelect")?.value,
+      daily_rate: document.getElementById("rentalDailyRate")?.value,
+      security_deposit: document.getElementById("rentalSecurityDeposit")?.value,
+      total_days: document.getElementById("rentalEstDays")?.value,
+      base_rental_amount: document.getElementById("rentalTotalAmount")?.value,
+      notes: document.getElementById("rentalNotes")?.value,
+      rental_status: "Reserved"
+    };
+
+    if (window.api && window.api.rentals) {
+      const res = await window.api.rentals.create(payload);
+      if (res && res.success) {
+        alert("Rental agreement created successfully!");
+        closeRentalModal();
+        await loadResources();
+      } else {
+        alert("Error creating rental agreement: " + (res?.error || "Unknown error"));
+      }
+    } else {
+      alert("Rentals API is not available.");
+    }
+  });
+
   closeModalBtn.addEventListener("click", closeModal);
   modal.addEventListener("click", (e) => {
     if (e.target === modal) closeModal();
   });
   // Only close modal on Escape if it's currently visible
   const _schedulingEscapeHandler = (e) => {
-    if (e.key === "Escape" && modal && modal.style.display === "flex") closeModal();
+    if (e.key === "Escape") {
+      if (modal && modal.style.display === "flex") closeModal();
+      if (serviceOptionModal && serviceOptionModal.style.display === "flex") closeServiceOptionModal();
+      if (newRentalModal && newRentalModal.style.display === "flex") closeRentalModal();
+    }
   };
   document.addEventListener("keydown", _schedulingEscapeHandler);
 
@@ -671,6 +820,16 @@ window.initScheduling_page = function () {
       await loadResources();
       await loadTrips();
       if (window.lucide) window.lucide.createIcons();
+
+      // Check URL parameters for direct modal triggering
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("open") === "hauling") {
+        setTimeout(() => openModal(), 200);
+      } else if (urlParams.get("open") === "rental") {
+        setTimeout(() => openRentalModal(), 200);
+      } else if (urlParams.get("open") === "services") {
+        setTimeout(() => openServiceOptionModal(), 200);
+      }
     } finally {
       const delta = Date.now() - start;
       setTimeout(() => loader?.classList.remove("visible"), Math.max(0, 500 - delta));
