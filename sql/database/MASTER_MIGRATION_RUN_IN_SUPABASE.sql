@@ -149,7 +149,86 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.trip_expenses;
   EXCEPTION WHEN OTHERS THEN NULL;
   END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.iot_devices;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.driver_device_requests;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.api_configurations;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
 END $$;
 
--- 7. FORCE POSTGREST TO RELOAD SCHEMA CACHE IMMEDIATELY
+-- 8. IOT HARDWARE FLEET TELEMETRY TABLES
+CREATE TABLE IF NOT EXISTS public.iot_devices (
+  id BIGSERIAL PRIMARY KEY,
+  device_serial TEXT NOT NULL UNIQUE,
+  vehicle_id BIGINT REFERENCES public.vehicles(id) ON DELETE SET NULL,
+  device_type TEXT NOT NULL DEFAULT 'GPS + Cold-Chain Temp + Cargo Door',
+  connectivity_type TEXT DEFAULT '4G LTE / GSM (SIM800L / A7670)',
+  firmware_version TEXT DEFAULT 'v1.2.0-esp32',
+  status TEXT DEFAULT 'online' CHECK (status IN ('online', 'offline', 'maintenance', 'unpaired')),
+  battery_voltage NUMERIC(4, 2) DEFAULT 12.6,
+  last_ping TIMESTAMPTZ DEFAULT NOW(),
+  config JSONB DEFAULT '{"interval_seconds": 10, "temp_threshold_high": 8.0, "temp_threshold_low": 2.0}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+GRANT ALL ON TABLE public.iot_devices TO postgres, service_role, authenticated, anon;
+ALTER TABLE public.iot_devices ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all for iot_devices" ON public.iot_devices;
+CREATE POLICY "Allow all for iot_devices" ON public.iot_devices FOR ALL USING (true) WITH CHECK (true);
+
+-- 9. DRIVER PHONE EMBEDDING & DEVICE LOCK (1 DEVICE PER DRIVER)
+ALTER TABLE public.employees
+ADD COLUMN IF NOT EXISTS bound_device_id TEXT,
+ADD COLUMN IF NOT EXISTS bound_device_model TEXT,
+ADD COLUMN IF NOT EXISTS bound_device_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS device_lock_enabled BOOLEAN DEFAULT true;
+
+CREATE TABLE IF NOT EXISTS public.driver_device_requests (
+  id BIGSERIAL PRIMARY KEY,
+  driver_id UUID REFERENCES public.employees(id) ON DELETE CASCADE,
+  current_device_id TEXT,
+  new_device_id TEXT NOT NULL,
+  new_device_model TEXT,
+  reason TEXT DEFAULT 'Driver switched or replaced mobile device',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  requested_at TIMESTAMPTZ DEFAULT NOW(),
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  notes TEXT
+);
+
+GRANT ALL ON TABLE public.driver_device_requests TO postgres, service_role, authenticated, anon;
+ALTER TABLE public.driver_device_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all for driver_device_requests" ON public.driver_device_requests;
+CREATE POLICY "Allow all for driver_device_requests" ON public.driver_device_requests FOR ALL USING (true) WITH CHECK (true);
+
+-- 10. SUPER ADMIN API CONFIGURATION & GATEWAY MANAGEMENT
+CREATE TABLE IF NOT EXISTS public.api_configurations (
+  key TEXT PRIMARY KEY,
+  category TEXT NOT NULL CHECK (category IN ('backend', 'database', 'maps', 'iot', 'smtp', 'notifications')),
+  label TEXT NOT NULL,
+  endpoint_url TEXT NOT NULL,
+  api_key TEXT,
+  secret_key TEXT,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'testing', 'error')),
+  last_tested_at TIMESTAMPTZ,
+  last_status_code INTEGER DEFAULT 200,
+  updated_by TEXT DEFAULT 'super_admin',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+GRANT ALL ON TABLE public.api_configurations TO postgres, service_role, authenticated, anon;
+ALTER TABLE public.api_configurations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all for api_configurations" ON public.api_configurations;
+CREATE POLICY "Allow all for api_configurations" ON public.api_configurations FOR ALL USING (true) WITH CHECK (true);
+
+-- 11. FORCE POSTGREST TO RELOAD SCHEMA CACHE IMMEDIATELY
 NOTIFY pgrst, 'reload schema';

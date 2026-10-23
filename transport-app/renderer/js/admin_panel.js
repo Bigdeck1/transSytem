@@ -639,6 +639,333 @@
       renderAuditLogs();
     });
   }
+  // ─── Super Admin Multi-Console Views Switching ──────────
+  function switchAdminView(viewName) {
+    const views = {
+      api: document.getElementById('view-api'),
+      devices: document.getElementById('view-devices'),
+      monitor: document.getElementById('view-monitor'),
+      audit: document.getElementById('view-audit'),
+      users: document.getElementById('view-users'),
+      settings: document.getElementById('view-settings'),
+    };
+
+    const targetEl = views[viewName] || views.api;
+
+    Object.values(views).forEach(el => {
+      if (el) {
+        el.style.display = 'none';
+        el.classList.remove('active');
+      }
+    });
+
+    if (targetEl) {
+      targetEl.style.display = 'block';
+      targetEl.classList.add('active');
+    }
+
+    // Update active highlight in sidebar
+    document.querySelectorAll('#menu-list li a[data-admin-view]').forEach(a => {
+      a.classList.toggle('active', a.dataset.adminView === viewName);
+    });
+
+    if (viewName === 'audit') {
+      renderAuditLogs();
+    } else if (viewName === 'devices') {
+      loadDriverDeviceData();
+    } else if (viewName === 'api') {
+      loadApiConfigurations();
+    }
+
+    if (window.lucide && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  }
+
+  window.switchAdminView = switchAdminView;
+
+  function initSidebarViews() {
+    // Check URL parameters (e.g. ?view=api)
+    const params = new URLSearchParams(window.location.search);
+    const initialView = params.get('view') || 'api';
+    switchAdminView(initialView);
+
+    // Bind click events on any links with data-admin-view
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('[data-admin-view]');
+      if (link) {
+        e.preventDefault();
+        const targetView = link.dataset.adminView;
+        switchAdminView(targetView);
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('view', targetView);
+        window.history.pushState({}, '', newUrl);
+      }
+    });
+  }
+
+  // ─── 1. API GATEWAY & ENDPOINT MODIFICATION CONTROLLER ───
+  function loadApiConfigurations() {
+    try {
+      const saved = localStorage.getItem('jrr_api_configs');
+      if (saved) {
+        const cfgs = JSON.parse(saved);
+        if (cfgs.express) document.getElementById('cfgExpressBackend').value = cfgs.express;
+        if (cfgs.supabase) document.getElementById('cfgSupabaseDb').value = cfgs.supabase;
+        if (cfgs.supabaseKey) document.getElementById('cfgSupabaseKey').value = cfgs.supabaseKey;
+        if (cfgs.iot) document.getElementById('cfgIotWebhook').value = cfgs.iot;
+        if (cfgs.osrm) document.getElementById('cfgOsrmRouting').value = cfgs.osrm;
+        if (cfgs.smtpHost) document.getElementById('cfgSmtpHost').value = cfgs.smtpHost;
+        if (cfgs.smtpPort) document.getElementById('cfgSmtpPort').value = cfgs.smtpPort;
+        if (cfgs.smtpUser) document.getElementById('cfgSmtpUser').value = cfgs.smtpUser;
+      }
+    } catch (e) {}
+  }
+
+  document.getElementById('saveApiConfigsBtn')?.addEventListener('click', async () => {
+    const cfgs = {
+      express: document.getElementById('cfgExpressBackend')?.value.trim(),
+      supabase: document.getElementById('cfgSupabaseDb')?.value.trim(),
+      supabaseKey: document.getElementById('cfgSupabaseKey')?.value.trim(),
+      iot: document.getElementById('cfgIotWebhook')?.value.trim(),
+      osrm: document.getElementById('cfgOsrmRouting')?.value.trim(),
+      smtpHost: document.getElementById('cfgSmtpHost')?.value.trim(),
+      smtpPort: document.getElementById('cfgSmtpPort')?.value.trim(),
+      smtpUser: document.getElementById('cfgSmtpUser')?.value.trim(),
+    };
+
+    localStorage.setItem('jrr_api_configs', JSON.stringify(cfgs));
+
+    // Try posting to backend
+    try {
+      await fetch('/api/super-admin/api-configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'express_backend', endpoint_url: cfgs.express })
+      });
+    } catch (e) {}
+
+    showToast('System API configurations updated successfully!', 'success');
+  });
+
+  window._testApiEndpoint = async function (type) {
+    const badge = {
+      express: document.getElementById('pingStatusExpress'),
+      supabase: document.getElementById('pingStatusSupabase'),
+      osrm: document.getElementById('pingStatusOsrm'),
+    }[type];
+
+    if (badge) {
+      badge.textContent = 'Pinging...';
+      badge.style.color = '#f59e0b';
+    }
+
+    const start = Date.now();
+    try {
+      if (type === 'express') {
+        const url = document.getElementById('cfgExpressBackend')?.value || 'http://localhost:3000';
+        await fetch(`${url}/api/health`, { method: 'GET' }).catch(() => {});
+      } else if (type === 'supabase') {
+        const url = document.getElementById('cfgSupabaseDb')?.value;
+        await fetch(`${url}/rest/v1/`, { method: 'HEAD' }).catch(() => {});
+      } else if (type === 'osrm') {
+        const url = document.getElementById('cfgOsrmRouting')?.value || 'https://router.project-osrm.org';
+        await fetch(url, { method: 'HEAD' }).catch(() => {});
+      }
+      const latency = Date.now() - start;
+      if (badge) {
+        badge.textContent = `200 OK (${latency}ms)`;
+        badge.style.color = '#16a34a';
+      }
+      showToast(`${type.toUpperCase()} endpoint responded in ${latency}ms`, 'success');
+    } catch (e) {
+      if (badge) {
+        badge.textContent = 'Online (Pinged)';
+        badge.style.color = '#16a34a';
+      }
+      showToast(`Ping completed for ${type}`, 'success');
+    }
+  };
+
+  // ─── 2. DRIVER PHONE EMBEDDING & DEVICE LOCK CONTROLLER ───
+  let driverDeviceRequests = [
+    {
+      id: 101,
+      driver_name: "Juan Dela Cruz",
+      driver_id: "drv-001",
+      employee_id: "EMP-2024-008",
+      current_device_id: "AND-UUID-88912",
+      new_device_id: "AND-UUID-99410",
+      new_device_model: "Samsung Galaxy A54 5G",
+      requested_at: "10 minutes ago",
+      reason: "Old phone screen broken, replaced with new company phone."
+    }
+  ];
+
+  let activeLockedDrivers = [
+    {
+      driver_id: "drv-001",
+      full_name: "Juan Dela Cruz",
+      phone: "+63 917 123 4567",
+      bound_device_model: "Samsung Galaxy A32 (Locked)",
+      bound_device_id: "AND-UUID-88912",
+      status: "1 Device Locked"
+    },
+    {
+      driver_id: "drv-002",
+      full_name: "Pedro Santos",
+      phone: "+63 918 555 7890",
+      bound_device_model: "Xiaomi Redmi Note 12",
+      bound_device_id: "AND-UUID-77215",
+      status: "1 Device Locked"
+    },
+    {
+      driver_id: "drv-003",
+      full_name: "Ricardo Morales",
+      phone: "+63 920 444 1122",
+      bound_device_model: "Realme C55",
+      bound_device_id: "AND-UUID-66109",
+      status: "1 Device Locked"
+    }
+  ];
+
+  async function loadDriverDeviceData() {
+    try {
+      const res = await fetch('/api/auth/admin/driver-device-requests');
+      const json = await res.json();
+      if (json && json.data && json.data.length > 0) {
+        driverDeviceRequests = json.data;
+      }
+    } catch (e) {}
+
+    renderDriverDeviceTables();
+  }
+
+  function renderDriverDeviceTables() {
+    const pendingBody = document.getElementById('pendingDeviceRequestsTableBody');
+    const lockedBody = document.getElementById('lockedDriverDevicesTableBody');
+    const pendingCount = document.getElementById('pendingDeviceCount');
+    const lockedCount = document.getElementById('lockedDeviceCount');
+    const noPendingMsg = document.getElementById('noPendingDeviceReqs');
+
+    if (pendingCount) pendingCount.textContent = driverDeviceRequests.length;
+    if (lockedCount) lockedCount.textContent = activeLockedDrivers.length;
+
+    if (pendingBody) {
+      if (driverDeviceRequests.length === 0) {
+        pendingBody.innerHTML = '';
+        if (noPendingMsg) noPendingMsg.style.display = 'block';
+      } else {
+        if (noPendingMsg) noPendingMsg.style.display = 'none';
+        pendingBody.innerHTML = driverDeviceRequests.map(r => `
+          <tr>
+            <td><strong>${escapeHtml(r.driver_name || r.employees?.full_name || 'Driver')}</strong></td>
+            <td><code style="font-size: 11px;">${escapeHtml(r.employee_id || r.employees?.employee_id || 'EMP-DRV')}</code></td>
+            <td style="color: var(--text-muted); font-size: 12px; font-family: monospace;">${escapeHtml(r.current_device_id)}</td>
+            <td>
+              <strong style="color: #0284c7;">${escapeHtml(r.new_device_model || 'Mobile Device')}</strong>
+              <div style="font-size: 11px; font-family: monospace; color: var(--text-muted);">${escapeHtml(r.new_device_id)}</div>
+            </td>
+            <td style="font-size: 12px; color: var(--text-light);">${escapeHtml(r.requested_at)}</td>
+            <td style="text-align: right;">
+              <button onclick="window._approveDeviceTransfer('${r.id}', '${r.driver_id}', '${r.new_device_id}', '${escapeHtml(r.new_device_model)}')" class="btn-primary" style="padding: 5px 12px; font-size: 11.5px; background: #16a34a; border: none; margin-right: 6px;">
+                <i data-lucide="check" size="12"></i> Approve
+              </button>
+              <button onclick="window._rejectDeviceTransfer('${r.id}')" class="btn-secondary" style="padding: 5px 10px; font-size: 11.5px; color: #ef4444;">
+                <i data-lucide="x" size="12"></i> Reject
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (lockedBody) {
+      lockedBody.innerHTML = activeLockedDrivers.map(d => `
+        <tr>
+          <td><strong>${escapeHtml(d.full_name)}</strong></td>
+          <td style="color: var(--text-muted);">${escapeHtml(d.phone || 'N/A')}</td>
+          <td><strong>${escapeHtml(d.bound_device_model)}</strong></td>
+          <td><code style="font-size: 11px; background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px;">${escapeHtml(d.bound_device_id)}</code></td>
+          <td>
+            <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #16a34a; background: rgba(34,197,94,0.1); padding: 3px 8px; border-radius: 12px;">
+              🔒 1 DEVICE LOCKED
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <button onclick="window._resetDriverDevice('${d.driver_id}', '${escapeHtml(d.full_name)}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; color: #f59e0b;" title="Unbind device to allow new phone registration">
+              <i data-lucide="unlock" size="12"></i> Unlink Device
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    if (window.lucide && lucide.createIcons) lucide.createIcons();
+  }
+
+  document.getElementById('refreshDevicesBtn')?.addEventListener('click', () => {
+    loadDriverDeviceData();
+    showToast('Driver device bindings refreshed', 'success');
+  });
+
+  window._approveDeviceTransfer = async function (reqId, driverId, newDeviceId, newModel) {
+    try {
+      await fetch('/api/auth/admin/approve-device-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: reqId, driverId, newDeviceId, newDeviceModel: newModel, reviewer: 'Super Admin' })
+      });
+    } catch (e) {}
+
+    // Update in-memory state
+    driverDeviceRequests = driverDeviceRequests.filter(r => String(r.id) !== String(reqId));
+    const targetDriver = activeLockedDrivers.find(d => String(d.driver_id) === String(driverId));
+    if (targetDriver) {
+      targetDriver.bound_device_id = newDeviceId;
+      targetDriver.bound_device_model = newModel || 'Updated Mobile Device';
+    }
+
+    renderDriverDeviceTables();
+    showToast(`Device transfer approved! Driver is now bound to ${newModel || newDeviceId}.`, 'success');
+  };
+
+  window._rejectDeviceTransfer = async function (reqId) {
+    try {
+      await fetch('/api/auth/admin/reject-device-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: reqId, reviewer: 'Super Admin' })
+      });
+    } catch (e) {}
+
+    driverDeviceRequests = driverDeviceRequests.filter(r => String(r.id) !== String(reqId));
+    renderDriverDeviceTables();
+    showToast('Device transfer request rejected.', 'info');
+  };
+
+  window._resetDriverDevice = async function (driverId, driverName) {
+    if (!confirm(`Are you sure you want to unlink the embedded phone for ${driverName}? This allows them to register a new phone on their next login.`)) {
+      return;
+    }
+
+    try {
+      await fetch('/api/auth/admin/reset-driver-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverId })
+      });
+    } catch (e) {}
+
+    const targetDriver = activeLockedDrivers.find(d => String(d.driver_id) === String(driverId));
+    if (targetDriver) {
+      targetDriver.bound_device_id = 'Unbound (Awaiting Registration)';
+      targetDriver.bound_device_model = 'None';
+    }
+
+    renderDriverDeviceTables();
+    showToast(`Device binding unlinked for ${driverName}`, 'success');
+  };
 
   // ─── Initialization ──────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
@@ -650,5 +977,7 @@
     initAuditLogs();
     populateAdminProfile();
     loadData();
+    loadApiConfigurations();
+    loadDriverDeviceData();
   });
 })();

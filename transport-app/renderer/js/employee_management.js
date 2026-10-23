@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initLicenseScanner();
     initSyncButton();
     initCreateAccountForm();
+    initAdminApprovals();
   } finally {
     const elapsed = Date.now() - startTime;
     const remaining = Math.max(0, 500 - elapsed);
@@ -735,4 +736,225 @@ function initSyncButton() {
       if (statusEl) { statusEl.innerText = " Sync failed. Check console."; statusEl.style.color = "red"; }
     }
   });
+}
+
+// ------------------------------
+// ADMIN USER APPROVALS & DRIVER DEVICE LOCK CONTROLLER
+// ------------------------------
+function initAdminApprovals() {
+  const userModal = document.getElementById("adminUserApprovalsModal");
+  const deviceModal = document.getElementById("adminDeviceRequestsModal");
+
+  const openUserBtn = document.getElementById("adminUserApprovalsBtn");
+  const closeUserBtn = document.getElementById("closeUserApprovalsModalBtn");
+
+  const openDeviceBtn = document.getElementById("adminDeviceRequestsBtn");
+  const closeDeviceBtn = document.getElementById("closeDeviceRequestsModalBtn");
+
+  const userBadge = document.getElementById("adminPendingUserBadge");
+  const deviceBadge = document.getElementById("adminPendingDeviceBadge");
+
+  let pendingUsersList = [];
+  let pendingDeviceList = [];
+
+  async function loadPendingData() {
+    // 1. Fetch pending users
+    try {
+      if (window.supabase) {
+        const client = window.supabase.createClient(
+          "https://uocavssoqmwjstmvdgwq.supabase.co",
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvY2F2c3NvcW13anN0bXZkZ3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTg2NjEsImV4cCI6MjA3NzU3NDY2MX0.Ki2CEQ7Wqt4eTCOHs1o0mxKdcywtBh7eEk0JAe9H4xk"
+        );
+        const { data } = await client.from("users").select("*").eq("account_status", "pending");
+        pendingUsersList = data || [];
+      }
+    } catch (e) {
+      pendingUsersList = [];
+    }
+
+    // 2. Fetch pending driver device requests
+    try {
+      const res = await fetch("/api/auth/admin/driver-device-requests");
+      const json = await res.json();
+      pendingDeviceList = json?.data || [];
+    } catch (e) {
+      pendingDeviceList = [];
+    }
+
+    // Update badges
+    if (userBadge) {
+      if (pendingUsersList.length > 0) {
+        userBadge.textContent = pendingUsersList.length;
+        userBadge.style.display = "inline-block";
+      } else {
+        userBadge.style.display = "none";
+      }
+    }
+
+    if (deviceBadge) {
+      if (pendingDeviceList.length > 0) {
+        deviceBadge.textContent = pendingDeviceList.length;
+        deviceBadge.style.display = "inline-block";
+      } else {
+        deviceBadge.style.display = "none";
+      }
+    }
+  }
+
+  function renderPendingUsers() {
+    const tbody = document.getElementById("adminPendingUsersTableBody");
+    const emptyMsg = document.getElementById("noPendingUsersMsg");
+    if (!tbody) return;
+
+    if (pendingUsersList.length === 0) {
+      tbody.innerHTML = "";
+      if (emptyMsg) emptyMsg.style.display = "block";
+      return;
+    }
+
+    if (emptyMsg) emptyMsg.style.display = "none";
+    tbody.innerHTML = pendingUsersList.map(u => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 10px 14px;"><strong>${escapeHtml(u.firstname || '')} ${escapeHtml(u.lastname || u.username)}</strong></td>
+        <td style="padding: 10px 14px; color: var(--text-muted);">${escapeHtml(u.email)}</td>
+        <td style="padding: 10px 14px;"><span style="background: rgba(79,70,229,0.1); color: #4f46e5; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">${escapeHtml(u.role || 'user')}</span></td>
+        <td style="padding: 10px 14px; text-align: right;">
+          <button onclick="window._adminApproveUser('${u.id}', '${escapeHtml(u.email)}')" class="btn-primary" style="padding: 4px 10px; font-size: 11px; background: #16a34a; border: none; margin-right: 4px;">
+            Approve
+          </button>
+          <button onclick="window._adminRejectUser('${u.id}')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #ef4444;">
+            Reject
+          </button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  function renderPendingDevices() {
+    const tbody = document.getElementById("empModalPendingDeviceBody");
+    const emptyMsg = document.getElementById("empNoPendingDeviceMsg");
+    if (!tbody) return;
+
+    if (pendingDeviceList.length === 0) {
+      tbody.innerHTML = "";
+      if (emptyMsg) emptyMsg.style.display = "block";
+      return;
+    }
+
+    if (emptyMsg) emptyMsg.style.display = "none";
+    tbody.innerHTML = pendingDeviceList.map(r => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 8px 12px;"><strong>${escapeHtml(r.employees?.full_name || r.driver_name || 'Driver')}</strong></td>
+        <td style="padding: 8px 12px; font-family: monospace; font-size: 11.5px; color: var(--text-muted);">${escapeHtml(r.current_device_id || 'None')}</td>
+        <td style="padding: 8px 12px;">
+          <strong style="color: #0284c7;">${escapeHtml(r.new_device_model || 'Mobile Device')}</strong>
+          <div style="font-size: 10.5px; font-family: monospace; color: var(--text-muted);">${escapeHtml(r.new_device_id)}</div>
+        </td>
+        <td style="padding: 8px 12px; text-align: right;">
+          <button onclick="window._adminApproveDevice('${r.id}', '${r.driver_id}', '${r.new_device_id}', '${escapeHtml(r.new_device_model)}')" class="btn-primary" style="padding: 4px 10px; font-size: 11px; background: #16a34a; border: none; margin-right: 4px;">
+            Approve Transfer
+          </button>
+          <button onclick="window._adminRejectDevice('${r.id}')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #ef4444;">
+            Reject
+          </button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  // Open / Close User Approvals Modal
+  openUserBtn?.addEventListener("click", () => {
+    if (userModal) {
+      userModal.style.display = "flex";
+      renderPendingUsers();
+      if (window.lucide) lucide.createIcons();
+    }
+  });
+
+  closeUserBtn?.addEventListener("click", () => {
+    if (userModal) userModal.style.display = "none";
+  });
+
+  // Open / Close Device Requests Modal
+  openDeviceBtn?.addEventListener("click", () => {
+    if (deviceModal) {
+      deviceModal.style.display = "flex";
+      renderPendingDevices();
+      if (window.lucide) lucide.createIcons();
+    }
+  });
+
+  closeDeviceBtn?.addEventListener("click", () => {
+    if (deviceModal) deviceModal.style.display = "none";
+  });
+
+  window.addEventListener("click", (e) => {
+    if (e.target === userModal) userModal.style.display = "none";
+    if (e.target === deviceModal) deviceModal.style.display = "none";
+  });
+
+  // Global Actions for Window
+  window._adminApproveUser = async function (userId, email) {
+    try {
+      await fetch("/api/auth/admin/approve-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId })
+      });
+      pendingUsersList = pendingUsersList.filter(u => u.id !== userId);
+      renderPendingUsers();
+      loadPendingData();
+      alert(`User ${email} has been approved successfully!`);
+    } catch (e) {
+      alert("Failed to approve user.");
+    }
+  };
+
+  window._adminRejectUser = async function (userId) {
+    try {
+      await fetch("/api/auth/admin/reject-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId })
+      });
+      pendingUsersList = pendingUsersList.filter(u => u.id !== userId);
+      renderPendingUsers();
+      loadPendingData();
+    } catch (e) {
+      alert("Failed to reject user.");
+    }
+  };
+
+  window._adminApproveDevice = async function (reqId, driverId, newDeviceId, newModel) {
+    try {
+      await fetch("/api/auth/admin/approve-device-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: reqId, driverId, newDeviceId, newDeviceModel: newModel, reviewer: "Admin" })
+      });
+      pendingDeviceList = pendingDeviceList.filter(r => String(r.id) !== String(reqId));
+      renderPendingDevices();
+      loadPendingData();
+      alert(`Device transfer approved! Driver is now bound to ${newModel || newDeviceId}.`);
+    } catch (e) {
+      alert("Failed to approve device transfer.");
+    }
+  };
+
+  window._adminRejectDevice = async function (reqId) {
+    try {
+      await fetch("/api/auth/admin/reject-device-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: reqId, reviewer: "Admin" })
+      });
+      pendingDeviceList = pendingDeviceList.filter(r => String(r.id) !== String(reqId));
+      renderPendingDevices();
+      loadPendingData();
+    } catch (e) {
+      alert("Failed to reject device transfer.");
+    }
+  };
+
+  loadPendingData();
 }

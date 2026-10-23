@@ -25,6 +25,14 @@
 
     <nav class="sidebar-nav">
       <ul id="menu-list">
+        <li class="sidebar-section-header"><span>IT & GOVERNANCE</span></li>
+        <li><a href="admin_panel.html?view=api" data-admin-view="api" class="super-admin-link active" title="API Gateway & Endpoint Modification"><i data-lucide="webhook"></i><span>API Modification</span></a></li>
+        <li><a href="admin_panel.html?view=devices" data-admin-view="devices" class="super-admin-link" title="Driver Phone Embedding & 1-Device Lock"><i data-lucide="smartphone"></i><span>Driver Device Lock</span></a></li>
+        <li><a href="admin_panel.html?view=monitor" data-admin-view="monitor" class="super-admin-link" title="System Infrastructure Health"><i data-lucide="cpu"></i><span>System Diagnostics</span></a></li>
+        <li><a href="admin_panel.html?view=audit" data-admin-view="audit" class="super-admin-link" title="Administrative & Security Audit Trail"><i data-lucide="scroll-text"></i><span>Audit Trail</span></a></li>
+        <li><a href="admin_panel.html?view=users" data-admin-view="users" class="super-admin-link" title="User Management & Role Approvals"><i data-lucide="users"></i><span>User Approvals</span></a></li>
+
+        <li class="sidebar-section-header" style="margin-top: 10px;"><span>OPERATIONS</span></li>
         <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
         <li><a href="scheduling_page.html"><i data-lucide="map-pin"></i><span>Hauling & Rentals</span></a></li>
         <li><a href="status_page.html"><i data-lucide="activity"></i><span>Live Radar GPS</span></a></li>
@@ -398,6 +406,209 @@
             </thead>
             <tbody id="auditTableBody">
               <!-- Dynamically rendered simulated high-fidelity security events -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── 6. API CONFIGURATION & IT MANAGEMENT VIEW ─── -->
+    <div id="view-api" class="admin-view active">
+      <header class="admin-header">
+        <div class="header-left">
+          <h1>API Gateway & Integration Hub</h1>
+          <p class="header-subtitle">Super Admin control to configure, modify, and test system APIs, database webhooks, and routing engines.</p>
+        </div>
+        <div class="header-right">
+          <button class="btn-settings-save" id="saveApiConfigsBtn" style="padding: 10px 18px; font-size: 13px;">
+            <i data-lucide="save" size="16"></i> Save All API Modifications
+          </button>
+        </div>
+      </header>
+
+      <div class="settings-grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));">
+        <!-- Backend API Gateway -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="server"></i> JRR Express Backend Server</h3>
+            <span class="health-badge-status online" id="pingStatusExpress">Ready</span>
+          </div>
+          <div class="settings-form">
+            <div class="settings-row-input">
+              <label>Backend Base URL</label>
+              <input type="text" id="cfgExpressBackend" value="http://localhost:3000" style="font-family: monospace;" />
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+              <button class="btn-secondary" onclick="window._testApiEndpoint('express')" style="padding: 6px 12px; font-size: 12px;">
+                <i data-lucide="radio" size="13"></i> Test Ping
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Supabase Database Gateway -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="database"></i> Supabase Postgres DB & Auth</h3>
+            <span class="health-badge-status online" id="pingStatusSupabase">Connected</span>
+          </div>
+          <div class="settings-form">
+            <div class="settings-row-input">
+              <label>Database Endpoint URL</label>
+              <input type="text" id="cfgSupabaseDb" value="https://uocavssoqmwjstmvdgwq.supabase.co" style="font-family: monospace;" />
+            </div>
+            <div class="settings-row-input">
+              <label>Anon Client Public Key</label>
+              <input type="password" id="cfgSupabaseKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family: monospace;" />
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+              <button class="btn-secondary" onclick="window._testApiEndpoint('supabase')" style="padding: 6px 12px; font-size: 12px;">
+                <i data-lucide="radio" size="13"></i> Test Connection
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- IoT Ingestion Webhook -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="cpu"></i> IoT ESP32 Telemetry Webhook</h3>
+            <span class="health-badge-status online" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">Active</span>
+          </div>
+          <div class="settings-form">
+            <div class="settings-row-input">
+              <label>ESP32 Ingestion Endpoint</label>
+              <input type="text" id="cfgIotWebhook" value="/api/tracking/iot/telemetry" style="font-family: monospace;" />
+            </div>
+            <p style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0 0;">
+              Receives hardware telemetry from onboard ESP32 units (NEO-6M GPS, DHT22 reefer temperature, and reed cargo door sensors).
+            </p>
+          </div>
+        </div>
+
+        <!-- OSRM / Mapbox Route Gateway -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="map"></i> OSRM Navigation & Routing Engine</h3>
+            <span class="health-badge-status online">Active</span>
+          </div>
+          <div class="settings-form">
+            <div class="settings-row-input">
+              <label>OSRM Routing Server</label>
+              <input type="text" id="cfgOsrmRouting" value="https://router.project-osrm.org" style="font-family: monospace;" />
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+              <button class="btn-secondary" onclick="window._testApiEndpoint('osrm')" style="padding: 6px 12px; font-size: 12px;">
+                <i data-lucide="radio" size="13"></i> Ping Route Server
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SMTP Mail Server Gateway -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i data-lucide="mail"></i> SMTP Gmail Gateway</h3>
+            <span class="health-badge-status online">Ready</span>
+          </div>
+          <div class="settings-form">
+            <div class="settings-row-input">
+              <label>SMTP Host & Port</label>
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
+                <input type="text" id="cfgSmtpHost" value="smtp.gmail.com" />
+                <input type="text" id="cfgSmtpPort" value="587" />
+              </div>
+            </div>
+            <div class="settings-row-input">
+              <label>Sender Account Email</label>
+              <input type="text" id="cfgSmtpUser" value="jrr.transport.security@gmail.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 7. DRIVER PHONE EMBEDDING & DEVICE LOCK VIEW ─── -->
+    <div id="view-devices" class="admin-view" style="display: none;">
+      <header class="admin-header">
+        <div class="header-left">
+          <h1>Driver Phone Embedding & 1-Device Security</h1>
+          <p class="header-subtitle">Strict hardware device binding. Each driver is locked to exactly one phone, requiring Admin authorization to transfer devices.</p>
+        </div>
+        <div class="header-right">
+          <button class="btn-secondary" id="refreshDevicesBtn" style="padding: 8px 14px; font-size: 12px;">
+            <i data-lucide="refresh-cw" size="14"></i> Refresh Requests
+          </button>
+        </div>
+      </header>
+
+      <!-- Security Notice Card -->
+      <div style="background: rgba(30, 64, 175, 0.06); border: 1px solid rgba(30, 64, 175, 0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px;">
+        <i data-lucide="shield-alert" size="28" style="color: #1e40af; flex-shrink: 0;"></i>
+        <div>
+          <strong style="color: #1e40af; font-size: 14px;">Driver 1-Device Policy Enforced:</strong>
+          <span style="font-size: 12.5px; color: var(--text-main); margin-left: 4px;">
+            When a driver signs in on the mobile app, their unique hardware fingerprint is embedded. If they switch phones, login is blocked until Admin approves the request below.
+          </span>
+        </div>
+      </div>
+
+      <!-- Pending Device Transfer Requests -->
+      <section class="table-section" style="margin-bottom: 28px;">
+        <div class="table-header">
+          <div style="font-weight: 700; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="clock" size="18" style="color: #f59e0b;"></i>
+            Pending Device Change Requests
+            <span class="tab-count" id="pendingDeviceCount" style="background: #f59e0b; color: white;">0</span>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Driver Name</th>
+                <th>Employee ID</th>
+                <th>Current Locked Device</th>
+                <th>Requested New Device</th>
+                <th>Requested At</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="pendingDeviceRequestsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+          <div id="noPendingDeviceReqs" style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+            No pending device transfer requests. All drivers are verified.
+          </div>
+        </div>
+      </section>
+
+      <!-- Active Locked Driver Phones -->
+      <section class="table-section">
+        <div class="table-header">
+          <div style="font-weight: 700; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="smartphone" size="18" style="color: #16a34a;"></i>
+            Active Embedded Driver Phones
+            <span class="tab-count" id="lockedDeviceCount" style="background: #16a34a; color: white;">0</span>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Driver Name</th>
+                <th>Contact</th>
+                <th>Embedded Phone Model</th>
+                <th>Hardware Device UID</th>
+                <th>Binding Status</th>
+                <th style="text-align: right;">Security Action</th>
+              </tr>
+            </thead>
+            <tbody id="lockedDriverDevicesTableBody">
+              <!-- Dynamically populated -->
             </tbody>
           </table>
         </div>

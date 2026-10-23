@@ -24,19 +24,30 @@ function initSidebar() {
         console.error("Failed to check user role in sidebar.js:", e);
     }
 
-    // Inject Super Admin item for super admins
-    if (isSuperAdmin && currentPage !== "admin_panel.html") {
-        const menuList = document.getElementById("menu-list");
-        if (menuList && !document.getElementById("super-admin-nav-item")) {
-            const superAdminItem = document.createElement("li");
-            superAdminItem.id = "super-admin-nav-item";
-            superAdminItem.innerHTML = `
-                <a href="admin_panel.html" class="super-admin-link" title="Super Admin Console">
-                    <i data-lucide="shield-alert"></i>
-                    <span>Super Admin Console</span>
-                </a>
-            `;
-            menuList.insertBefore(superAdminItem, menuList.firstChild);
+    // Role-based sidebar menu items
+    const menuList = document.getElementById("menu-list");
+    if (menuList) {
+        if (isSuperAdmin) {
+            // For Super Admin on operational pages: prepend IT & GOVERNANCE menu items
+            if (currentPage !== "admin_panel.html" && !document.getElementById("super-admin-nav-group")) {
+                const navContainer = document.createElement("div");
+                navContainer.id = "super-admin-nav-group";
+                navContainer.innerHTML = `
+                    <li class="sidebar-section-header"><span>IT & GOVERNANCE</span></li>
+                    <li><a href="admin_panel.html?view=api" class="super-admin-link" title="API Gateway & Endpoint Modification"><i data-lucide="webhook"></i><span>API Modification</span></a></li>
+                    <li><a href="admin_panel.html?view=devices" class="super-admin-link" title="Driver Phone Embedding & 1-Device Lock"><i data-lucide="smartphone"></i><span>Driver Device Lock</span></a></li>
+                    <li><a href="admin_panel.html?view=monitor" class="super-admin-link" title="System Infrastructure Health"><i data-lucide="cpu"></i><span>System Diagnostics</span></a></li>
+                    <li><a href="admin_panel.html?view=audit" class="super-admin-link" title="Administrative & Security Audit Trail"><i data-lucide="scroll-text"></i><span>Audit Trail</span></a></li>
+                    <li><a href="admin_panel.html?view=users" class="super-admin-link" title="User Management & Role Approvals"><i data-lucide="users"></i><span>User Approvals</span></a></li>
+                    <li class="sidebar-section-header" style="margin-top: 8px;"><span>OPERATIONS</span></li>
+                `;
+                while (navContainer.firstChild) {
+                    menuList.insertBefore(navContainer.firstChild, menuList.firstChild);
+                }
+            }
+        } else {
+            // For Regular Admin: Strip any Super Admin links or headers
+            document.querySelectorAll(".super-admin-link, #super-admin-nav-item, #super-admin-nav-group").forEach(el => el.remove());
         }
     }
 

@@ -211,6 +211,23 @@ body.sidebar-collapsed {
   border-left: none;
 }
 
+/* Sidebar Section Headers */
+.sidebar-section-header {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 8px 12px 2px;
+  list-style: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sidebar.collapsed .sidebar-section-header {
+  display: none !important;
+}
+
 /* ============================================================
    SIDEBAR TOGGLE BUTTON (COLLAPSE / EXPAND)
 ============================================================ */

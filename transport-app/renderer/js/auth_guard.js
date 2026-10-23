@@ -32,11 +32,22 @@ window.Auth = {
 
   requireAuth() {
     const path = window.location.pathname;
-    const isPublicPage = path.endsWith("index.html") || path.endsWith("signup_page.html") || path.endsWith("forgot_password_page.html") || path.endsWith("admin_panel.html") || path.endsWith("/");
+    const isPublicPage = path.endsWith("index.html") || path.endsWith("signup_page.html") || path.endsWith("forgot_password_page.html") || path.endsWith("/");
 
     if (!this.check() && !isPublicPage) {
       window.location.replace("index.html");
       return;
+    }
+
+    // Role-based security: Only Super Admin can access admin_panel.html
+    if (path.endsWith("admin_panel.html")) {
+      const user = this.getUser();
+      if (!user || user.role !== "super_admin") {
+        console.warn("[AUTH] Access denied: Super Admin role required for admin_panel.html");
+        alert("Access Denied: Super Admin credentials required to access the Super Admin Console.");
+        window.location.replace("dashboard.html");
+        return;
+      }
     }
 
     // Start activity tracking on protected pages

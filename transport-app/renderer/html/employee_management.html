@@ -139,10 +139,22 @@
         <h1>Employee Directory</h1>
         <p style="color: var(--text-muted); margin-top: 4px;">Manage Drivers, Maintenance Crew, and Administrative Staff.</p>
       </div>
-      <button class="btn-primary" id="addEmployeeBtn">
-        <i data-lucide="user-plus" size="18"></i>
-        Register New Employee
-      </button>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button class="btn-secondary" id="adminUserApprovalsBtn" style="padding: 10px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+          <i data-lucide="user-check" size="16"></i>
+          <span>User Approvals</span>
+          <span id="adminPendingUserBadge" style="background: #ef4444; color: white; border-radius: 10px; padding: 1px 7px; font-size: 10px; font-weight: 800; display: none;">0</span>
+        </button>
+        <button class="btn-secondary" id="adminDeviceRequestsBtn" style="padding: 10px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+          <i data-lucide="smartphone" size="16"></i>
+          <span>Driver Phone Locks</span>
+          <span id="adminPendingDeviceBadge" style="background: #f59e0b; color: white; border-radius: 10px; padding: 1px 7px; font-size: 10px; font-weight: 800; display: none;">0</span>
+        </button>
+        <button class="btn-primary" id="addEmployeeBtn">
+          <i data-lucide="user-plus" size="18"></i>
+          Register New Employee
+        </button>
+      </div>
     </header>
 
     <div class="filters-row" style="display: flex; gap: 16px; margin-bottom: 24px;">
@@ -412,6 +424,83 @@
           Save Changes
         </button>
       </form>
+    </div>
+  <!-- ADMIN USER APPROVALS MODAL -->
+  <div id="adminUserApprovalsModal" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 9999;">
+    <div class="modal-content" style="max-width: 740px; width: 92%; max-height: 85vh; overflow-y: auto; padding: 24px; border-radius: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="background: rgba(79, 70, 229, 0.1); color: #4f46e5; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="user-check" size="22"></i>
+          </div>
+          <div>
+            <h2 style="margin: 0; font-size: 18px; font-weight: 800;">Pending User Registrations</h2>
+            <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Review and authorize staff and driver registration requests.</p>
+          </div>
+        </div>
+        <span class="close-btn" id="closeUserApprovalsModalBtn" style="font-size: 26px; cursor: pointer; color: var(--text-muted);">&times;</span>
+      </div>
+
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead style="background: var(--bg-main, #F8FAFC); border-bottom: 1px solid var(--border);">
+            <tr>
+              <th style="padding: 10px 14px; text-align: left;">Name</th>
+              <th style="padding: 10px 14px; text-align: left;">Email</th>
+              <th style="padding: 10px 14px; text-align: left;">Role</th>
+              <th style="padding: 10px 14px; text-align: right;">Authorization</th>
+            </tr>
+          </thead>
+          <tbody id="adminPendingUsersTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+        <div id="noPendingUsersMsg" style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+          No pending user registrations awaiting approval.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN DRIVER DEVICE LOCKS & TRANSFER MODAL -->
+  <div id="adminDeviceRequestsModal" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 9999;">
+    <div class="modal-content" style="max-width: 820px; width: 92%; max-height: 85vh; overflow-y: auto; padding: 24px; border-radius: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="smartphone" size="22"></i>
+          </div>
+          <div>
+            <h2 style="margin: 0; font-size: 18px; font-weight: 800;">Driver Phone Lock Security</h2>
+            <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Authorize mobile hardware device transfers and review bound driver phones.</p>
+          </div>
+        </div>
+        <span class="close-btn" id="closeDeviceRequestsModalBtn" style="font-size: 26px; cursor: pointer; color: var(--text-muted);">&times;</span>
+      </div>
+
+      <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; margin-bottom: 16px;">
+        🔒 <strong>1 Device per Driver Policy:</strong> Drivers can only sign in on their registered hardware device. When replacing phones, Admin must approve the change below.
+      </div>
+
+      <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 8px; color: var(--text-main);">Pending Phone Transfer Requests</h4>
+      <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead style="background: var(--bg-main, #F8FAFC); border-bottom: 1px solid var(--border);">
+            <tr>
+              <th style="padding: 8px 12px; text-align: left;">Driver</th>
+              <th style="padding: 8px 12px; text-align: left;">Current Device</th>
+              <th style="padding: 8px 12px; text-align: left;">New Requested Phone</th>
+              <th style="padding: 8px 12px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="empModalPendingDeviceBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+        <div id="empNoPendingDeviceMsg" style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px;">
+          No pending phone transfer requests.
+        </div>
+      </div>
     </div>
   </div>
 

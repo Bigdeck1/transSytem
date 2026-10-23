@@ -494,8 +494,42 @@ function updateDriverCounts() {
   if (tabCount) tabCount.textContent = count;
 }
 
-// Focus on a driver on the map
+// Auto Zoom Out to fit all active drivers on radar
+function zoomToFitAllDrivers() {
+  if (!trackingMap) return;
+  const points = [[14.546827, 121.229383]]; // JRR Morong HQ
+  for (const loc of activeFleetDrivers.values()) {
+    if (isDriverOnline(loc)) {
+      const lat = parseFloat(loc.latitude);
+      const lng = parseFloat(loc.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        points.push([lat, lng]);
+      }
+    }
+  }
+
+  if (points.length > 1) {
+    trackingMap.fitBounds(points, { padding: [60, 60], maxZoom: 15, animate: true });
+  } else {
+    trackingMap.setView([14.546827, 121.229383], 13, { animate: true });
+  }
+}
+
+// Deselect chosen driver and auto zoom out
+function deselectDriverAndZoomOut() {
+  selectedDriverId = null;
+  document.querySelectorAll(".map-driver-card").forEach(c => c.classList.remove("selected"));
+  zoomToFitAllDrivers();
+}
+
+// Focus on a driver on the map (Auto Zoom In), or toggle off and Auto Zoom Out
 function focusDriverOnMap(driverId) {
+  // If clicking already chosen driver, toggle off & auto zoom out
+  if (selectedDriverId === driverId) {
+    deselectDriverAndZoomOut();
+    return;
+  }
+
   const loc = activeFleetDrivers.get(driverId);
   if (!loc || !trackingMap) return;
 
@@ -504,6 +538,7 @@ function focusDriverOnMap(driverId) {
   if (isNaN(lat) || isNaN(lng)) return;
 
   selectedDriverId = driverId;
+  // Auto zoom in to driver location
   trackingMap.setView([lat, lng], 16, { animate: true });
 
   if (driverMarkers[driverId]) {
@@ -625,6 +660,19 @@ function initTrackingMap() {
 
   // Load live fleet pings
   loadFleetLocations();
+
+  // Auto Zoom Out (Fit Fleet) button
+  document.getElementById("fitFleetMapBtn")?.addEventListener("click", () => {
+    deselectDriverAndZoomOut();
+  });
+
+  // Clicking map canvas deselects driver and zooms out
+  trackingMap.on("click", (e) => {
+    // Only deselect if clicked on the map background, not directly on an interactive marker/popup
+    if (selectedDriverId && (!e.originalEvent.target || !e.originalEvent.target.closest(".leaflet-marker-icon, .leaflet-popup, .leaflet-control"))) {
+      deselectDriverAndZoomOut();
+    }
+  });
 
   // Refresh button
   document.getElementById("refreshMapBtn")?.addEventListener("click", () => {
@@ -821,15 +869,16 @@ function updateDriverMarkerOnMap(loc) {
       .addTo(trackingMap)
       .bindPopup(popupContent);
 
-    // Clicking map marker selects driver in side panel
+    // Clicking map marker selects driver, auto zooms in, or toggles off & zooms out
     driverMarkers[driverId].on("click", () => {
-      selectedDriverId = driverId;
-      document.querySelectorAll(".map-driver-card").forEach(c => {
-        c.classList.toggle("selected", c.dataset.driverId === String(driverId));
-      });
-      const targetCard = document.querySelector(`.map-driver-card[data-driver-id="${driverId}"]`);
-      if (targetCard) {
-        targetCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (selectedDriverId === driverId) {
+        deselectDriverAndZoomOut();
+      } else {
+        focusDriverOnMap(driverId);
+        const targetCard = document.querySelector(`.map-driver-card[data-driver-id="${driverId}"]`);
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
       }
     });
   }
@@ -946,6 +995,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadEmployees();
     await loadRequests();
     initTrackingMap();
+    initIotFleetHub();
     if (window.lucide) lucide.createIcons();
   } finally {
     const elapsed = Date.now() - startTime;
@@ -953,3 +1003,365 @@ document.addEventListener("DOMContentLoaded", async () => {
     setTimeout(() => { if (loader) loader.classList.remove("visible"); }, remaining);
   }
 });
+
+// =============================
+// IOT FLEET HARDWARE & TELEMETRY CONTROLLER
+// =============================
+let iotDevices = [];
+
+const DEFAULT_IOT_DEVICES = [
+  {
+    id: "ESP32-FLT-TRK01",
+    plate: "TRK-8821",
+    model: "Isuzu Giga 10-Wheeler",
+    type: "GPS + Cold-Chain Temp + Cargo Door",
+    status: "online",
+    temp: 3.6,
+    humidity: 62,
+    doorClosed: true,
+    voltage: 12.7,
+    sats: 9,
+    signal: -65,
+    lastPing: Date.now() - 8000,
+    lat: 14.5492,
+    lng: 121.2260
+  },
+  {
+    id: "ESP32-FLT-VAN02",
+    plate: "VAN-4029",
+    model: "Toyota Hiace Commuter",
+    type: "GPS High-Accuracy Tracker",
+    status: "online",
+    temp: null,
+    humidity: null,
+    doorClosed: true,
+    voltage: 13.2,
+    sats: 11,
+    signal: -58,
+    lastPing: Date.now() - 15000,
+    lat: 14.5510,
+    lng: 121.2325
+  }
+];
+
+function loadIotDevices() {
+  try {
+    const saved = localStorage.getItem("jrr_iot_devices");
+    if (saved) {
+      iotDevices = JSON.parse(saved);
+    } else {
+      iotDevices = [...DEFAULT_IOT_DEVICES];
+      localStorage.setItem("jrr_iot_devices", JSON.stringify(iotDevices));
+    }
+  } catch (e) {
+    iotDevices = [...DEFAULT_IOT_DEVICES];
+  }
+}
+
+function saveIotDevices() {
+  try {
+    localStorage.setItem("jrr_iot_devices", JSON.stringify(iotDevices));
+  } catch (e) {
+    console.warn("Could not save iot devices:", e);
+  }
+}
+
+function initIotFleetHub() {
+  loadIotDevices();
+
+  const modal = document.getElementById("iotTelemetryModal");
+  const openBtn = document.getElementById("openIotModalBtn");
+  const closeBtn = document.getElementById("closeIotModalBtn");
+  const badgeCount = document.getElementById("iotBadgeCount");
+
+  if (badgeCount) {
+    badgeCount.textContent = `${iotDevices.length} Online`;
+  }
+
+  // Open / Close Modal
+  openBtn?.addEventListener("click", () => {
+    if (modal) {
+      modal.style.display = "flex";
+      renderIotDevices();
+      populateVehicleDropdown();
+      if (window.lucide) window.lucide.createIcons();
+    }
+  });
+
+  closeBtn?.addEventListener("click", () => {
+    if (modal) modal.style.display = "none";
+  });
+
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) modal.style.display = "none";
+  });
+
+  // Tab switching
+  const tabTelemetryBtn = document.getElementById("iotTabTelemetryBtn");
+  const tabPairingBtn = document.getElementById("iotTabPairingBtn");
+  const tabGuideBtn = document.getElementById("iotTabGuideBtn");
+
+  const tabTelemetryContent = document.getElementById("iotTabTelemetryContent");
+  const tabPairingContent = document.getElementById("iotTabPairingContent");
+  const tabGuideContent = document.getElementById("iotTabGuideContent");
+
+  function switchIotTab(activeTab) {
+    [tabTelemetryBtn, tabPairingBtn, tabGuideBtn].forEach(b => b?.classList.remove("active"));
+    if (tabTelemetryContent) tabTelemetryContent.style.display = activeTab === "telemetry" ? "block" : "none";
+    if (tabPairingContent) tabPairingContent.style.display = activeTab === "pairing" ? "block" : "none";
+    if (tabGuideContent) tabGuideContent.style.display = activeTab === "guide" ? "block" : "none";
+
+    if (activeTab === "telemetry") tabTelemetryBtn?.classList.add("active");
+    if (activeTab === "pairing") tabPairingBtn?.classList.add("active");
+    if (activeTab === "guide") tabGuideBtn?.classList.add("active");
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  tabTelemetryBtn?.addEventListener("click", () => switchIotTab("telemetry"));
+  tabPairingBtn?.addEventListener("click", () => switchIotTab("pairing"));
+  tabGuideBtn?.addEventListener("click", () => switchIotTab("guide"));
+  document.getElementById("cancelPairBtn")?.addEventListener("click", () => switchIotTab("telemetry"));
+
+  // Copy code button
+  document.getElementById("copyEspCodeBtn")?.addEventListener("click", () => {
+    const code = document.getElementById("esp32CodeBlock")?.innerText || "";
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.getElementById("copyEspCodeBtn");
+      if (btn) {
+        btn.innerHTML = `<i data-lucide="check" size="12"></i> Copied!`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = `<i data-lucide="copy" size="12"></i> Copy Code`;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
+      }
+    });
+  });
+
+  // Pairing Form Submit
+  const pairForm = document.getElementById("iotPairForm");
+  pairForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const serial = document.getElementById("newIotSerial")?.value.trim();
+    const vehicleSelect = document.getElementById("newIotVehicleSelect");
+    const plate = vehicleSelect?.value;
+    const model = vehicleSelect?.options[vehicleSelect.selectedIndex]?.dataset.model || "Fleet Vehicle";
+    const devType = document.getElementById("newIotDeviceType")?.value;
+
+    if (!serial || !plate) {
+      alert("Please enter the Device Serial and choose a vehicle.");
+      return;
+    }
+
+    const newDevice = {
+      id: serial,
+      plate: plate,
+      model: model,
+      type: devType,
+      status: "online",
+      temp: devType.includes("Temp") ? 4.0 : null,
+      humidity: devType.includes("Temp") ? 60 : null,
+      doorClosed: true,
+      voltage: 12.6,
+      sats: 8,
+      signal: -62,
+      lastPing: Date.now(),
+      lat: 14.5468 + (Math.random() - 0.5) * 0.02,
+      lng: 121.2293 + (Math.random() - 0.5) * 0.02
+    };
+
+    iotDevices.push(newDevice);
+    saveIotDevices();
+
+    if (badgeCount) badgeCount.textContent = `${iotDevices.length} Online`;
+    pairForm.reset();
+    switchIotTab("telemetry");
+    renderIotDevices();
+    alert(`Device ${serial} paired with vehicle ${plate} successfully!`);
+  });
+
+  // Periodic Telemetry Simulation to bring the IoT feed alive
+  setInterval(() => {
+    iotDevices.forEach(d => {
+      d.lastPing = Date.now();
+      if (d.temp !== null) {
+        d.temp = +(d.temp + (Math.random() * 0.2 - 0.1)).toFixed(1);
+      }
+      d.voltage = +(12.5 + Math.random() * 0.4).toFixed(1);
+    });
+    // Only re-render if modal is currently open and telemetry tab is visible
+    if (modal && modal.style.display === "flex" && tabTelemetryContent && tabTelemetryContent.style.display !== "none") {
+      renderIotDevices();
+    }
+  }, 6000);
+}
+
+function populateVehicleDropdown() {
+  const select = document.getElementById("newIotVehicleSelect");
+  if (!select) return;
+
+  // Preserve first option
+  select.innerHTML = '<option value="">-- Choose Fleet Vehicle --</option>';
+
+  // Gather vehicles from activeFleetDrivers or defaults
+  const vehicleList = [];
+  activeFleetDrivers.forEach(loc => {
+    if (loc.vehicles?.plate) {
+      vehicleList.push({
+        plate: loc.vehicles.plate,
+        model: loc.vehicles.brand && loc.vehicles.model ? `${loc.vehicles.brand} ${loc.vehicles.model}` : (loc.vehicles.vehicle_type || "Truck")
+      });
+    }
+  });
+
+  // Add default fleet if empty
+  if (vehicleList.length === 0) {
+    vehicleList.push(
+      { plate: "TRK-8821", model: "Isuzu Giga 10-Wheeler" },
+      { plate: "VAN-4029", model: "Toyota Hiace Commuter" },
+      { plate: "TRK-3011", model: "Hino 500 Wing Van" },
+      { plate: "PUV-1982", model: "Modern Jeepney Class 2" }
+    );
+  }
+
+  vehicleList.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v.plate;
+    opt.dataset.model = v.model;
+    opt.textContent = `${v.plate} — ${v.model}`;
+    select.appendChild(opt);
+  });
+}
+
+function renderIotDevices() {
+  const container = document.getElementById("iotDeviceListContainer");
+  if (!container) return;
+
+  const totalUnitsEl = document.getElementById("iotTotalActiveUnits");
+  const avgTempEl = document.getElementById("iotAvgReeferTemp");
+  const doorsStatusEl = document.getElementById("iotDoorsStatusText");
+
+  if (totalUnitsEl) totalUnitsEl.textContent = `${iotDevices.length} Units`;
+
+  const temps = iotDevices.filter(d => d.temp !== null).map(d => d.temp);
+  if (avgTempEl) {
+    if (temps.length > 0) {
+      const avg = (temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(1);
+      avgTempEl.textContent = `${avg} °C`;
+    } else {
+      avgTempEl.textContent = "N/A";
+    }
+  }
+
+  const anyDoorOpen = iotDevices.some(d => d.doorClosed === false);
+  if (doorsStatusEl) {
+    if (anyDoorOpen) {
+      doorsStatusEl.textContent = "Door Open Alert!";
+      doorsStatusEl.style.color = "#ef4444";
+    } else {
+      doorsStatusEl.textContent = "All Secured";
+      doorsStatusEl.style.color = "#16a34a";
+    }
+  }
+
+  if (iotDevices.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 30px; border: 1px dashed var(--border); border-radius: 12px; color: var(--text-muted);">
+        <i data-lucide="cpu" size="32" style="margin-bottom: 8px; color: #0284c7;"></i>
+        <p style="font-weight: 700; margin: 0 0 4px;">No IoT Hardware Devices Registered</p>
+        <span style="font-size: 12px;">Click "Pair New Hardware" tab to connect your first ESP32 microcontroller.</span>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  container.innerHTML = iotDevices.map(d => {
+    const tempText = d.temp !== null ? `${d.temp} °C` : "No Probe";
+    const doorText = d.doorClosed ? "SECURED (Closed)" : "ALERT: OPEN";
+    const doorColor = d.doorClosed ? "#16a34a" : "#ef4444";
+    const tempColor = d.temp !== null ? (d.temp <= 6 ? "#0284c7" : "#ea580c") : "var(--text-muted)";
+
+    return `
+      <div class="iot-device-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="background: rgba(2,132,199,0.1); color: #0284c7; padding: 6px; border-radius: 8px; font-weight: 800; font-size: 11px; font-family: monospace;">
+              ${d.id}
+            </div>
+            <div>
+              <strong style="font-size: 14px; color: var(--text-main);">${d.plate}</strong>
+              <span style="font-size: 12px; color: var(--text-muted); margin-left: 6px;">(${d.model})</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #16a34a; background: rgba(34,197,94,0.1); padding: 3px 8px; border-radius: 12px;">
+              ● ONLINE
+            </span>
+            <button onclick="window._locateIotOnMap('${d.id}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
+              <i data-lucide="map-pin" size="12"></i> Locate on Radar
+            </button>
+          </div>
+        </div>
+
+        <div class="iot-metric-grid">
+          <div class="iot-metric-box">
+            <span class="iot-metric-label">🛰️ GPS Fix</span>
+            <span class="iot-metric-val" style="color: #0284c7;">${d.sats} Sats</span>
+          </div>
+          <div class="iot-metric-box">
+            <span class="iot-metric-label">❄️ Cargo Temp</span>
+            <span class="iot-metric-val" style="color: ${tempColor};">${tempText}</span>
+          </div>
+          <div class="iot-metric-box">
+            <span class="iot-metric-label">🚪 Cargo Door</span>
+            <span class="iot-metric-val" style="color: ${doorColor}; font-size: 12px;">${doorText}</span>
+          </div>
+          <div class="iot-metric-box">
+            <span class="iot-metric-label">⚡ Battery</span>
+            <span class="iot-metric-val">${d.voltage} V</span>
+          </div>
+          <div class="iot-metric-box">
+            <span class="iot-metric-label">📶 Signal RSSI</span>
+            <span class="iot-metric-val">${d.signal} dBm</span>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 2px;">
+          <span>Type: <strong>${d.type}</strong></span>
+          <span>Last Telemetry: Just now</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+window._locateIotOnMap = function(deviceId) {
+  const d = iotDevices.find(x => x.id === deviceId);
+  if (!d || !trackingMap) return;
+
+  const modal = document.getElementById("iotTelemetryModal");
+  if (modal) modal.style.display = "none";
+
+  const lat = d.lat || 14.5468;
+  const lng = d.lng || 121.2293;
+
+  trackingMap.setView([lat, lng], 17, { animate: true });
+
+  // Add pulse popup for the IoT hardware
+  L.popup()
+    .setLatLng([lat, lng])
+    .setContent(`
+      <div style="font-size: 12px; line-height: 1.4;">
+        <strong style="color: #0284c7;">⚡ IoT Hardware: ${d.id}</strong><br>
+        Vehicle: <strong>${d.plate}</strong><br>
+        Temp: <strong>${d.temp !== null ? d.temp + ' °C' : 'N/A'}</strong><br>
+        Door: <strong>${d.doorClosed ? 'Closed' : 'Open'}</strong><br>
+        Battery: <strong>${d.voltage}V</strong>
+      </div>
+    `)
+    .openOn(trackingMap);
+};

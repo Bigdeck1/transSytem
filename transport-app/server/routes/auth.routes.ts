@@ -27,7 +27,7 @@ const SUPER_ADMIN_PASSWORD = "admin";
 // ─── LOGIN ───
 authRouter.post("/login", async (req: Request, res: Response) => {
   try {
-    let { email, password } = req.body;
+    let { email, password, device_id, device_model } = req.body;
     email = (email || "").trim().toLowerCase();
     password = (password || "").trim();
 
@@ -64,6 +64,8 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       password,
     });
 
+    let authenticatedUser: any = null;
+
     if (!authErr && authData?.user) {
       loginAttempts.delete(email);
 
@@ -89,48 +91,137 @@ authRouter.post("/login", async (req: Request, res: Response) => {
         .eq("supabase_user_id", authData.user.id)
         .maybeSingle();
 
-      if (empData) {
-        return res.json({ ...empData, session: authData.session });
+      authenticatedUser = empData
+        ? { ...empData, session: authData.session }
+        : {
+            id: authData.user.id,
+            email: authData.user.email,
+            role: userRow?.role || "user",
+            session: authData.session,
+          };
+    } else {
+      // Fallback check to users table
+      const { data: userRecord, error: dbErr } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .eq("password", password)
+        .maybeSingle();
+
+      if (!userRecord) {
+        const current = loginAttempts.get(email) || { count: 0, lockedUntil: 0 };
+        const newCount = current.count + 1;
+        if (newCount >= MAX_LOGIN_ATTEMPTS) {
+          loginAttempts.set(email, { count: newCount, lockedUntil: Date.now() + LOGIN_LOCK_DURATION });
+          return res.status(429).json({ error: `Too many failed attempts. Account locked for 15 minutes.` });
+        } else {
+          loginAttempts.set(email, { count: newCount, lockedUntil: 0 });
+          const remaining = MAX_LOGIN_ATTEMPTS - newCount;
+          return res.status(401).json({ error: `Invalid email or password. ${remaining} attempt(s) remaining.` });
+        }
       }
 
-      return res.json({
-        id: authData.user.id,
-        email: authData.user.email,
-        role: userRow?.role || "user",
-        session: authData.session,
-      });
+      if (userRecord.email_verified === false) {
+        return res.status(403).json({ error: "Please verify your email before logging in." });
+      }
+      if (userRecord.account_status !== "approved") {
+        return res.status(403).json({ error: "Your account is pending admin approval." });
+      }
+
+      loginAttempts.delete(email);
+      authenticatedUser = userRecord;
     }
 
-    // Fallback check to users table
-    const { data: userRecord, error: dbErr } = await supabase
-      .from("users")
-      .select("*")
-      .eq("email", email)
-      .eq("password", password)
-      .maybeSingle();
+    // ─── DRIVER PHONE HARDWARE EMBEDDING & DEVICE LOCK (1 Device per Driver) ───
+    const isDriverRole = authenticatedUser && (authenticatedUser.role === "driver" || authenticatedUser.job_title === "Driver");
+    if (isDriverRole && device_id && authenticatedUser) {
+      const boundDeviceId = authenticatedUser.bound_device_id;
+      const boundModel = authenticatedUser.bound_device_model || "Registered Mobile Device";
 
-    if (!userRecord) {
-      const current = loginAttempts.get(email) || { count: 0, lockedUntil: 0 };
-      const newCount = current.count + 1;
-      if (newCount >= MAX_LOGIN_ATTEMPTS) {
-        loginAttempts.set(email, { count: newCount, lockedUntil: Date.now() + LOGIN_LOCK_DURATION });
-        return res.status(429).json({ error: `Too many failed attempts. Account locked for 15 minutes.` });
-      } else {
-        loginAttempts.set(email, { count: newCount, lockedUntil: 0 });
-        const remaining = MAX_LOGIN_ATTEMPTS - newCount;
-        return res.status(401).json({ error: `Invalid email or password. ${remaining} attempt(s) remaining.` });
+      if (!boundDeviceId) {
+        // Initial Driver Login: Automatically embed & bind this mobile hardware ID
+        console.log(`[AUTH-LOCK] Binding driver ${email} to mobile device: ${device_id} (${device_model || 'Mobile Device'})`);
+        try {
+          await supabaseAdmin.from("employees").update({
+            bound_device_id: device_id,
+            bound_device_model: device_model || "Mobile Device",
+            bound_device_at: new Date().toISOString()
+          }).eq("id", authenticatedUser.id);
+
+          await supabaseAdmin.from("users").update({
+            bound_device_id: device_id,
+            bound_device_model: device_model || "Mobile Device",
+            bound_device_at: new Date().toISOString()
+          }).eq("email", email);
+        } catch (e) {
+          console.warn("[AUTH-LOCK] Error recording bound device:", e);
+        }
+
+        authenticatedUser.bound_device_id = device_id;
+        authenticatedUser.bound_device_model = device_model || "Mobile Device";
+      } else if (boundDeviceId !== device_id) {
+        // Different phone detected! Check if Admin approved a device transfer request
+        const { data: approvedReq } = await supabaseAdmin
+          .from("driver_device_requests")
+          .select("*")
+          .eq("new_device_id", device_id)
+          .eq("status", "approved")
+          .order("reviewed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (approvedReq) {
+          // Admin authorization verified! Update bound device to new phone
+          console.log(`[AUTH-LOCK] Admin-authorized transfer to ${device_id} for driver ${email}`);
+          try {
+            await supabaseAdmin.from("employees").update({
+              bound_device_id: device_id,
+              bound_device_model: device_model || approvedReq.new_device_model || "Mobile Device",
+              bound_device_at: new Date().toISOString()
+            }).eq("id", authenticatedUser.id);
+
+            await supabaseAdmin.from("users").update({
+              bound_device_id: device_id,
+              bound_device_model: device_model || approvedReq.new_device_model || "Mobile Device",
+              bound_device_at: new Date().toISOString()
+            }).eq("email", email);
+          } catch (e) {}
+
+          authenticatedUser.bound_device_id = device_id;
+        } else {
+          // Device mismatch and not yet approved by Admin: Block login & log transfer request
+          try {
+            const { data: existingReq } = await supabaseAdmin
+              .from("driver_device_requests")
+              .select("id")
+              .eq("driver_id", authenticatedUser.id)
+              .eq("new_device_id", device_id)
+              .eq("status", "pending")
+              .maybeSingle();
+
+            if (!existingReq) {
+              await supabaseAdmin.from("driver_device_requests").insert({
+                driver_id: authenticatedUser.id,
+                current_device_id: boundDeviceId,
+                new_device_id: device_id,
+                new_device_model: device_model || "Unrecognized Mobile Device",
+                reason: "Driver attempted login on a secondary phone. Awaiting Admin transfer authorization.",
+                status: "pending"
+              });
+            }
+          } catch (e) {}
+
+          return res.status(403).json({
+            error: `Security Lock: This driver account is bound to another phone (${boundModel}). Only one registered device per driver is permitted. A device transfer request has been submitted for Admin approval.`,
+            device_locked: true,
+            bound_device_model: boundModel,
+            pending_admin_approval: true
+          });
+        }
       }
     }
 
-    if (userRecord.email_verified === false) {
-      return res.status(403).json({ error: "Please verify your email before logging in." });
-    }
-    if (userRecord.account_status !== "approved") {
-      return res.status(403).json({ error: "Your account is pending admin approval." });
-    }
-
-    loginAttempts.delete(email);
-    return res.json(userRecord);
+    return res.json(authenticatedUser);
   } catch (err: any) {
     const msg = getErrorMessage(err);
     // Detect DNS or network connectivity errors to Supabase
@@ -494,6 +585,159 @@ authRouter.delete("/admin/user/:userId", async (req: Request, res: Response) => 
     } catch {}
     return res.json({ success: true });
   } catch (err) {
+    return res.status(500).json({ success: false, error: getErrorMessage(err) });
+  }
+});
+
+// ─── DRIVER DEVICE TRANSFER & PHONE LOCK APPROVALS ───
+authRouter.get("/admin/driver-device-requests", async (_req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("driver_device_requests")
+      .select(`
+        *,
+        employees:driver_id ( full_name, employee_id, phone, bound_device_id, bound_device_model )
+      `)
+      .order("requested_at", { ascending: false });
+
+    if (error) {
+      // Fallback in-memory or empty array if table not yet migrated
+      return res.json({ success: true, data: [] });
+    }
+    return res.json({ success: true, data: data || [] });
+  } catch (err: any) {
+    return res.json({ success: true, data: [] });
+  }
+});
+
+authRouter.post("/admin/approve-device-request", async (req: Request, res: Response) => {
+  try {
+    const { requestId, driverId, newDeviceId, newDeviceModel, reviewer } = req.body;
+    if (!requestId || !driverId || !newDeviceId) {
+      return res.status(400).json({ success: false, error: "Missing required parameters." });
+    }
+
+    // 1. Mark request approved
+    await supabaseAdmin
+      .from("driver_device_requests")
+      .update({
+        status: "approved",
+        reviewed_by: reviewer || "Admin",
+        reviewed_at: new Date().toISOString()
+      })
+      .eq("id", requestId);
+
+    // 2. Transfer driver binding to new phone
+    await supabaseAdmin
+      .from("employees")
+      .update({
+        bound_device_id: newDeviceId,
+        bound_device_model: newDeviceModel || "Mobile Device",
+        bound_device_at: new Date().toISOString()
+      })
+      .eq("id", driverId);
+
+    await supabaseAdmin
+      .from("users")
+      .update({
+        bound_device_id: newDeviceId,
+        bound_device_model: newDeviceModel || "Mobile Device",
+        bound_device_at: new Date().toISOString()
+      })
+      .eq("id", driverId);
+
+    return res.json({ success: true, message: "Device transfer authorized successfully." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: getErrorMessage(err) });
+  }
+});
+
+authRouter.post("/admin/reject-device-request", async (req: Request, res: Response) => {
+  try {
+    const { requestId, reviewer } = req.body;
+    await supabaseAdmin
+      .from("driver_device_requests")
+      .update({
+        status: "rejected",
+        reviewed_by: reviewer || "Admin",
+        reviewed_at: new Date().toISOString()
+      })
+      .eq("id", requestId);
+
+    return res.json({ success: true, message: "Device transfer request rejected." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: getErrorMessage(err) });
+  }
+});
+
+authRouter.post("/admin/reset-driver-device", async (req: Request, res: Response) => {
+  try {
+    const { driverId } = req.body;
+    if (!driverId) return res.status(400).json({ success: false, error: "driverId is required." });
+
+    await supabaseAdmin.from("employees").update({
+      bound_device_id: null,
+      bound_device_model: null,
+      bound_device_at: null
+    }).eq("id", driverId);
+
+    await supabaseAdmin.from("users").update({
+      bound_device_id: null,
+      bound_device_model: null,
+      bound_device_at: null
+    }).eq("id", driverId);
+
+    return res.json({ success: true, message: "Driver phone unlinked successfully. Driver can now bind a new device on next login." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: getErrorMessage(err) });
+  }
+});
+
+// ─── SUPER ADMIN IT API GATEWAY MODIFICATION ───
+authRouter.get("/super-admin/api-configs", async (_req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin.from("api_configurations").select("*");
+    if (error || !data || data.length === 0) {
+      // Default baseline configurations
+      return res.json({
+        success: true,
+        data: [
+          { key: "express_backend", category: "backend", label: "JRR Backend Server", endpoint_url: "http://localhost:3000", status: "active" },
+          { key: "supabase_db", category: "database", label: "Supabase Postgres DB", endpoint_url: "https://uocavssoqmwjstmvdgwq.supabase.co", status: "active" },
+          { key: "osrm_routing", category: "maps", label: "OSRM Route Optimization", endpoint_url: "https://router.project-osrm.org", status: "active" },
+          { key: "iot_telemetry", category: "iot", label: "IoT ESP32 Webhook", endpoint_url: "/api/tracking/iot/telemetry", status: "active" },
+          { key: "smtp_mail", category: "smtp", label: "SMTP Gmail Gateway", endpoint_url: "smtp://smtp.gmail.com:587", status: "active" }
+        ]
+      });
+    }
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    return res.json({ success: true, data: [] });
+  }
+});
+
+authRouter.post("/super-admin/api-configs", async (req: Request, res: Response) => {
+  try {
+    const { key, endpoint_url, api_key, status } = req.body;
+    if (!key || !endpoint_url) {
+      return res.status(400).json({ success: false, error: "key and endpoint_url are required." });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("api_configurations")
+      .upsert({
+        key,
+        endpoint_url,
+        api_key: api_key || null,
+        status: status || "active",
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ success: false, error: error.message });
+    return res.json({ success: true, data });
+  } catch (err: any) {
     return res.status(500).json({ success: false, error: getErrorMessage(err) });
   }
 });

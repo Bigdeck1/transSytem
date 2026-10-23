@@ -100,3 +100,60 @@ trackingRouter.get("/fleet-locations", async (_req: Request, res: Response) => {
   if (error) return res.status(500).json({ success: false, ok: false, error: error.message });
   return res.json({ success: true, ok: true, data: data || [] });
 });
+
+// 5. Ingest ESP32 IoT Microcontroller Telemetry
+trackingRouter.post("/iot/telemetry", async (req: Request, res: Response) => {
+  try {
+    const {
+      device_id,
+      vehicle_plate,
+      latitude,
+      longitude,
+      speed,
+      satellites,
+      cargo_temp,
+      cargo_humidity,
+      cargo_door_closed,
+      battery_voltage,
+    } = req.body;
+
+    if (!device_id) {
+      return res.status(400).json({ success: false, ok: false, error: "device_id is required" });
+    }
+
+    let vehicle_id = null;
+    if (vehicle_plate) {
+      const { data: v } = await db.from("vehicles").select("id").eq("plate", vehicle_plate).maybeSingle();
+      if (v) vehicle_id = v.id;
+    }
+
+    // If valid GPS coordinates are broadcasted, update live fleet radar table
+    if (latitude !== undefined && longitude !== undefined && vehicle_id) {
+      await db.from("driver_locations").upsert({
+        vehicle_id,
+        latitude,
+        longitude,
+        speed: speed || 0,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    return res.json({
+      success: true,
+      ok: true,
+      message: "ESP32 IoT telemetry ingested successfully",
+      device_id,
+      vehicle_plate: vehicle_plate || null,
+      telemetry: {
+        satellites: satellites || 0,
+        cargo_temp: cargo_temp ?? null,
+        cargo_humidity: cargo_humidity ?? null,
+        cargo_door_closed: cargo_door_closed ?? true,
+        battery_voltage: battery_voltage ?? null,
+      },
+      received_at: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, ok: false, error: err.message });
+  }
+});
