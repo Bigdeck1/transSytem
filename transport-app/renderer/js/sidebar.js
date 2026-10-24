@@ -28,26 +28,28 @@ function initSidebar() {
     const menuList = document.getElementById("menu-list");
     if (menuList) {
         if (isSuperAdmin) {
-            // For Super Admin on operational pages: prepend IT & GOVERNANCE menu items
-            if (currentPage !== "admin_panel.html" && !document.getElementById("super-admin-nav-group")) {
-                const navContainer = document.createElement("div");
-                navContainer.id = "super-admin-nav-group";
-                navContainer.innerHTML = `
-                    <li class="sidebar-section-header"><span>IT & GOVERNANCE</span></li>
-                    <li><a href="admin_panel.html?view=api" class="super-admin-link" title="API Gateway & Endpoint Modification"><i data-lucide="webhook"></i><span>API Modification</span></a></li>
-                    <li><a href="admin_panel.html?view=devices" class="super-admin-link" title="Driver Phone Embedding & 1-Device Lock"><i data-lucide="smartphone"></i><span>Driver Device Lock</span></a></li>
-                    <li><a href="admin_panel.html?view=monitor" class="super-admin-link" title="System Infrastructure Health"><i data-lucide="cpu"></i><span>System Diagnostics</span></a></li>
-                    <li><a href="admin_panel.html?view=audit" class="super-admin-link" title="Administrative & Security Audit Trail"><i data-lucide="scroll-text"></i><span>Audit Trail</span></a></li>
-                    <li><a href="admin_panel.html?view=users" class="super-admin-link" title="User Management & Role Approvals"><i data-lucide="users"></i><span>User Approvals</span></a></li>
-                    <li class="sidebar-section-header" style="margin-top: 8px;"><span>OPERATIONS</span></li>
-                `;
-                while (navContainer.firstChild) {
-                    menuList.insertBefore(navContainer.firstChild, menuList.firstChild);
-                }
-            }
+            // Super Admin is exclusively confined to admin_panel.html.
+            // No operational sidebar items or cross-navigation.
         } else {
             // For Regular Admin: Strip any Super Admin links or headers
             document.querySelectorAll(".super-admin-link, #super-admin-nav-item, #super-admin-nav-group").forEach(el => el.remove());
+
+            // Add User Approvals link for Admin users
+            if (currentUser && (currentUser.role === "admin" || currentUser.role === "operations_admin") && !document.getElementById("admin-user-approvals-link")) {
+                const logoutItem = document.getElementById("logout-btn")?.closest("li");
+                if (logoutItem) {
+                    const approvalHeader = document.createElement("li");
+                    approvalHeader.className = "sidebar-section-header";
+                    approvalHeader.innerHTML = `<span>USER MANAGEMENT</span>`;
+
+                    const approvalItem = document.createElement("li");
+                    approvalItem.id = "admin-user-approvals-link";
+                    approvalItem.innerHTML = `<a href="user_approvals.html" title="Approve or reject new user registrations"><i data-lucide="user-check"></i><span>User Approvals</span></a>`;
+
+                    menuList.insertBefore(approvalHeader, logoutItem);
+                    menuList.insertBefore(approvalItem, logoutItem);
+                }
+            }
         }
     }
 

@@ -30,18 +30,9 @@
         <li><a href="admin_panel.html?view=devices" data-admin-view="devices" class="super-admin-link" title="Driver Phone Embedding & 1-Device Lock"><i data-lucide="smartphone"></i><span>Driver Device Lock</span></a></li>
         <li><a href="admin_panel.html?view=monitor" data-admin-view="monitor" class="super-admin-link" title="System Infrastructure Health"><i data-lucide="cpu"></i><span>System Diagnostics</span></a></li>
         <li><a href="admin_panel.html?view=audit" data-admin-view="audit" class="super-admin-link" title="Administrative & Security Audit Trail"><i data-lucide="scroll-text"></i><span>Audit Trail</span></a></li>
-        <li><a href="admin_panel.html?view=users" data-admin-view="users" class="super-admin-link" title="User Management & Role Approvals"><i data-lucide="users"></i><span>User Approvals</span></a></li>
 
-        <li class="sidebar-section-header" style="margin-top: 10px;"><span>OPERATIONS</span></li>
-        <li><a href="dashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
-        <li><a href="scheduling_page.html"><i data-lucide="map-pin"></i><span>Hauling & Rentals</span></a></li>
-        <li><a href="status_page.html"><i data-lucide="activity"></i><span>Live Radar GPS</span></a></li>
-        <li><a href="vehicles_page.html"><i data-lucide="truck"></i><span>Fleet Assets</span></a></li>
-        <li><a href="employee_management.html"><i data-lucide="users"></i><span>Drivers & Staff</span></a></li>
-        <li><a href="client_history_page.html"><i data-lucide="user-check"></i><span>Customers</span></a></li>
-        <li><a href="graph_page.html"><i data-lucide="pie-chart"></i><span>Analytics</span></a></li>
-        <li><a href="report_page.html"><i data-lucide="file-text"></i><span>Reports</span></a></li>
-        <li><a href="index.html" id="logout-btn"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+        <li class="sidebar-section-header" style="margin-top: 16px;"><span>SESSION</span></li>
+        <li><a href="index.html" id="logout-btn" title="Sign out of Super Admin Console"><i data-lucide="log-out"></i><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -63,115 +54,7 @@
   <!-- MAIN CONTENT -->
   <main class="main-content admin-main">
     
-    <!-- ─── 1. USER MANAGEMENT VIEW ─── -->
-    <div id="view-users" class="admin-view active">
-      <!-- Header -->
-      <header class="admin-header">
-        <div class="header-left">
-          <h1>Super Admin Panel</h1>
-          <p class="header-subtitle">Manage user accounts, approvals, and system access control.</p>
-        </div>
-        <div class="header-right">
-          <div class="header-badge">
-            <div class="badge-dot"></div>
-            System Online
-          </div>
-        </div>
-      </header>
-
-      <!-- Stats Cards -->
-      <section class="stats-row" id="statsRow">
-        <div class="admin-stat-card stat-total">
-          <div class="stat-icon-wrap">
-            <i data-lucide="users" size="24"></i>
-          </div>
-          <div class="stat-info">
-            <p class="stat-number" id="statTotal">—</p>
-            <p class="stat-label">Total Users</p>
-          </div>
-        </div>
-        <div class="admin-stat-card stat-pending">
-          <div class="stat-icon-wrap">
-            <i data-lucide="clock" size="24"></i>
-          </div>
-          <div class="stat-info">
-            <p class="stat-number" id="statPending">—</p>
-            <p class="stat-label">Pending Approval</p>
-          </div>
-        </div>
-        <div class="admin-stat-card stat-approved">
-          <div class="stat-icon-wrap">
-            <i data-lucide="check-circle" size="24"></i>
-          </div>
-          <div class="stat-info">
-            <p class="stat-number" id="statApproved">—</p>
-            <p class="stat-label">Approved</p>
-          </div>
-        </div>
-        <div class="admin-stat-card stat-rejected">
-          <div class="stat-icon-wrap">
-            <i data-lucide="x-circle" size="24"></i>
-          </div>
-          <div class="stat-info">
-            <p class="stat-number" id="statRejected">—</p>
-            <p class="stat-label">Rejected</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Table Section -->
-      <section class="table-section">
-        <div class="table-header">
-          <div class="table-tabs">
-            <button class="tab-btn active" data-tab="pending">
-              <i data-lucide="clock" size="16"></i>
-              Pending Approval
-              <span class="tab-count" id="pendingCount">0</span>
-            </button>
-            <button class="tab-btn" data-tab="all">
-              <i data-lucide="users" size="16"></i>
-              All Users
-              <span class="tab-count" id="allCount">0</span>
-            </button>
-          </div>
-          <div class="table-search">
-            <i data-lucide="search" size="16"></i>
-            <input type="text" id="searchInput" placeholder="Search users..." />
-          </div>
-        </div>
-
-        <!-- Loading Skeleton -->
-        <div class="table-loading" id="tableLoading">
-          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-        </div>
-
-        <!-- Table -->
-        <div class="table-wrapper" id="tableWrapper" style="display: none;">
-          <table class="users-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Full Name</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="usersTableBody">
-              <!-- Dynamic rows -->
-            </tbody>
-          </table>
-          <div class="table-empty" id="tableEmpty" style="display: none;">
-            <i data-lucide="inbox" size="48"></i>
-            <p>No users found</p>
-          </div>
-        </div>
-      </section>
-    </div>
+    <!-- User Management View removed — transferred to Admin (user_approvals.html) -->
 
     <!-- ─── 2. SYSTEM MONITOR VIEW ─── -->
     <div id="view-monitor" class="admin-view" style="display: none;">
@@ -532,8 +415,8 @@
     <div id="view-devices" class="admin-view" style="display: none;">
       <header class="admin-header">
         <div class="header-left">
-          <h1>Driver Phone Embedding & 1-Device Security</h1>
-          <p class="header-subtitle">Strict hardware device binding. Each driver is locked to exactly one phone, requiring Admin authorization to transfer devices.</p>
+          <h1>Employee Account & Hardware Device Locking</h1>
+          <p class="header-subtitle">Strict hardware device binding. Each employee account can only log in on a specific designated device, requiring Admin authorization to transfer devices.</p>
         </div>
         <div class="header-right">
           <button class="btn-secondary" id="refreshDevicesBtn" style="padding: 8px 14px; font-size: 12px;">
@@ -546,9 +429,9 @@
       <div style="background: rgba(30, 64, 175, 0.06); border: 1px solid rgba(30, 64, 175, 0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px;">
         <i data-lucide="shield-alert" size="28" style="color: #1e40af; flex-shrink: 0;"></i>
         <div>
-          <strong style="color: #1e40af; font-size: 14px;">Driver 1-Device Policy Enforced:</strong>
+          <strong style="color: #1e40af; font-size: 14px;">Employee Specific Device Policy Enforced:</strong>
           <span style="font-size: 12.5px; color: var(--text-main); margin-left: 4px;">
-            When a driver signs in on the mobile app, their unique hardware fingerprint is embedded. If they switch phones, login is blocked until Admin approves the request below.
+            Employee accounts are cryptographically bound to a specific physical device. Login attempts from any other device or hardware are strictly rejected until an Administrator approves a transfer request below.
           </span>
         </div>
       </div>

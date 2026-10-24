@@ -9,6 +9,46 @@ import {
 import { supabase } from "@/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getOrCreateDeviceId,
+  getDeviceModel,
+  checkDeviceLockStatus,
+  submitDeviceTransferRequest,
+} from "@/lib/deviceService";
+
+/* =======================
+   CUSTOM ERRORS
+======================= */
+export class DeviceLockError extends Error {
+  isDeviceLocked = true;
+  driverId: string;
+  driverName: string;
+  boundDeviceId: string;
+  boundDeviceModel: string;
+  currentDeviceId: string;
+  currentDeviceModel: string;
+  pendingRequest: any;
+
+  constructor(payload: {
+    driverId: string;
+    driverName: string;
+    boundDeviceId: string;
+    boundDeviceModel: string;
+    currentDeviceId: string;
+    currentDeviceModel: string;
+    pendingRequest?: any;
+  }) {
+    super("Device Lock: This employee account can only log in on its specific registered device.");
+    this.name = "DeviceLockError";
+    this.driverId = payload.driverId;
+    this.driverName = payload.driverName;
+    this.boundDeviceId = payload.boundDeviceId;
+    this.boundDeviceModel = payload.boundDeviceModel;
+    this.currentDeviceId = payload.currentDeviceId;
+    this.currentDeviceModel = payload.currentDeviceModel;
+    this.pendingRequest = payload.pendingRequest;
+  }
+}
 
 /* =======================
    TYPES
@@ -30,6 +70,11 @@ export type EmployeeData = {
   supabase_user_id?: string | null;
   daily_rate?: number | null;
   avatar_url?: string | null;
+  // Device Locking
+  bound_device_id?: string | null;
+  bound_device_model?: string | null;
+  bound_device_at?: string | null;
+  device_lock_enabled?: boolean | null;
 };
 
 type AuthContextType = {
@@ -37,10 +82,12 @@ type AuthContextType = {
   employee: EmployeeData | null;
   setEmployee: (employee: EmployeeData | null) => void;
   loading: boolean;
+  deviceId: string | null;
+  deviceModel: string;
   signIn: (employeeId: string, pin: string) => Promise<void>;
-
   signOut: () => Promise<void>;
   refreshEmployeeData: () => Promise<void>;
+  requestDeviceTransfer: (reason: string) => Promise<{ success: boolean; error?: string }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +123,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [employee, setEmployee] = useState<EmployeeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [deviceModel, setDeviceModel] = useState<string>(getDeviceModel());
+
+  // Load hardware device identity on mount
+  useEffect(() => {
+    getOrCreateDeviceId().then((id) => setDeviceId(id));
+  }, []);
 
   const fetchEmployeeBySupabaseId = useCallback(async (supabaseUserId: string) => {
     console.debug("[DEBUG] fetchEmployeeBySupabaseId:", supabaseUserId);
@@ -349,6 +403,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("Invalid PIN");
         }
 
+        // --- 1-DEVICE DRIVER PHONE LOCK ENFORCEMENT ---
+        const currentDeviceId = await getOrCreateDeviceId();
+        const currentDeviceModel = getDeviceModel();
+
+        if (employeeRow.device_lock_enabled !== false) {
+          if (!employeeRow.bound_device_id) {
+            // First Login: Automatically bind this hardware device to the driver
+            console.log("[SECURITY] First login for driver: Binding hardware device...", {
+              driver: employeeRow.full_name,
+              deviceId: currentDeviceId,
+              deviceModel: currentDeviceModel,
+            });
+
+            try {
+              await supabase
+                .from("employees")
+                .update({
+                  bound_device_id: currentDeviceId,
+                  bound_device_model: currentDeviceModel,
+                  bound_device_at: new Date().toISOString(),
+                  device_lock_enabled: true,
+                })
+                .eq("id", employeeRow.id);
+
+              employeeRow.bound_device_id = currentDeviceId;
+              employeeRow.bound_device_model = currentDeviceModel;
+              employeeRow.bound_device_at = new Date().toISOString();
+              employeeRow.device_lock_enabled = true;
+            } catch (bindErr) {
+              console.warn("[SECURITY] Device binding warning:", bindErr);
+            }
+          } else if (employeeRow.bound_device_id !== currentDeviceId) {
+            // Device Mismatch: 1-Device Lock Policy Triggered!
+            console.warn("[SECURITY] 1-Device lock violation:", {
+              driver: employeeRow.full_name,
+              boundDeviceId: employeeRow.bound_device_id,
+              attemptedDeviceId: currentDeviceId,
+            });
+
+            const lockStatus = await checkDeviceLockStatus(
+              employeeRow.id,
+              employeeRow.bound_device_id,
+              employeeRow.bound_device_model,
+              true
+            );
+
+            throw new DeviceLockError({
+              driverId: employeeRow.id,
+              driverName: employeeRow.full_name,
+              boundDeviceId: employeeRow.bound_device_id,
+              boundDeviceModel: employeeRow.bound_device_model || "Registered Device",
+              currentDeviceId,
+              currentDeviceModel,
+              pendingRequest: lockStatus.pendingRequest,
+            });
+          }
+        }
+
         const password = pinToPassword(storedPin);
 
         console.log("[DEBUG] signIn auth payload =", {
@@ -502,6 +614,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session, fetchEmployeeBySupabaseId]);
 
+  const requestDeviceTransfer = useCallback(
+    async (reason: string) => {
+      if (!employee?.id) {
+        return { success: false, error: "No authenticated driver found" };
+      }
+      const curId = await getOrCreateDeviceId();
+      const curModel = getDeviceModel();
+      return submitDeviceTransferRequest(
+        employee.id,
+        employee.bound_device_id || "unknown",
+        curId,
+        curModel,
+        reason
+      );
+    },
+    [employee]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -509,10 +639,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         employee,
         setEmployee,
         loading,
+        deviceId,
+        deviceModel,
         signIn,
-
         signOut,
         refreshEmployeeData,
+        requestDeviceTransfer,
       }}
     >
       {children}

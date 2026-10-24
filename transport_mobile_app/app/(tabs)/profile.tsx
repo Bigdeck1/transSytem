@@ -33,8 +33,13 @@ import {
   X,
   Camera,
   IdCard,
+  Smartphone,
+  ShieldCheck,
+  Clock,
+  CheckCircle2,
 } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
+import { getOrCreateDeviceId, getDeviceModel, submitDeviceTransferRequest } from "@/lib/deviceService";
 import { Colors, moderateScale, isTablet, isSmallDevice } from "@/constants/theme";
 
 export default function ProfileTab() {
@@ -47,6 +52,11 @@ export default function ProfileTab() {
   const [isNotifModalVisible, setIsNotifModalVisible] = useState(false);
   const [isPrivacyModalVisible, setIsPrivacyModalVisible] = useState(false);
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
+  const [isDeviceModalVisible, setIsDeviceModalVisible] = useState(false);
+
+  const [deviceTransferReason, setDeviceTransferReason] = useState("");
+  const [isSubmittingTransfer, setIsSubmittingTransfer] = useState(false);
+  const [transferSuccess, setTransferSuccess] = useState("");
 
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -325,6 +335,13 @@ export default function ProfileTab() {
                 bg: Colors.warningSoft,
               },
               {
+                icon: <Smartphone size={18} color="#0284C7" />,
+                label: "Hardware Device Lock",
+                value: employee?.bound_device_id ? "Protected (1-Device Policy)" : "Not Bound",
+                onPress: () => setIsDeviceModalVisible(true),
+                bg: "#E0F2FE",
+              },
+              {
                 icon: <Shield size={18} color={Colors.success} />,
                 label: "Security & Privacy",
                 onPress: () => setIsPrivacyModalVisible(true),
@@ -495,6 +512,132 @@ export default function ProfileTab() {
             >
               <Text style={styles.saveBtnText}>Close</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- HARDWARE DEVICE LOCK MODAL --- */}
+      <Modal visible={isDeviceModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxWidth: 440 }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Smartphone size={22} color="#0284C7" />
+                <Text style={styles.modalTitle}>Hardware Device Lock</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsDeviceModalVisible(false);
+                  setTransferSuccess("");
+                }}
+                style={styles.closeBtn}
+              >
+                <X size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
+              <View style={{ backgroundColor: "#F0FDF4", padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#BBF7D0", marginBottom: 14 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <ShieldCheck size={18} color="#16A34A" />
+                  <Text style={{ fontWeight: "700", color: "#166534", fontSize: 13 }}>
+                    1-Driver, 1-Device Policy Active
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 12, color: "#15803D", lineHeight: 16 }}>
+                  Your driver portal is cryptographically bound to this physical mobile hardware to prevent credential sharing and unauthorized access.
+                </Text>
+              </View>
+
+              <View style={{ backgroundColor: "#F8FAFC", padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0", marginBottom: 14 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", textTransform: "uppercase" }}>Registered Device Model</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#0F172A", marginTop: 2 }}>
+                  {employee?.bound_device_model || getDeviceModel()}
+                </Text>
+
+                <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B", textTransform: "uppercase", marginTop: 10 }}>Hardware Device ID</Text>
+                <Text style={{ fontSize: 12, color: "#0284C7", fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", marginTop: 2 }}>
+                  {employee?.bound_device_id || "Auto-detected on sign in"}
+                </Text>
+              </View>
+
+              <Text style={{ fontWeight: "700", fontSize: 13, color: "#0F172A", marginBottom: 4 }}>
+                Need to Switch Phones?
+              </Text>
+              <Text style={{ fontSize: 12, color: "#64748B", marginBottom: 8, lineHeight: 16 }}>
+                If you are replacing your mobile device, submit a transfer request so your Administrator can approve the hardware change.
+              </Text>
+
+              <TextInput
+                style={{
+                  backgroundColor: "#F8FAFC",
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: "#CBD5E1",
+                  padding: 10,
+                  fontSize: 13,
+                  color: "#0F172A",
+                  minHeight: 50,
+                  marginBottom: 10,
+                }}
+                placeholder="Reason for changing device (e.g. Upgrading phone)..."
+                placeholderTextColor="#94A3B8"
+                value={deviceTransferReason}
+                onChangeText={setDeviceTransferReason}
+                multiline
+              />
+
+              {transferSuccess ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F0FDF4", padding: 8, borderRadius: 6, marginBottom: 10 }}>
+                  <CheckCircle2 size={15} color="#16A34A" />
+                  <Text style={{ fontSize: 12, color: "#166534" }}>{transferSuccess}</Text>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#0D47A1",
+                  padding: 12,
+                  borderRadius: 10,
+                  alignItems: "center",
+                  opacity: isSubmittingTransfer ? 0.7 : 1,
+                }}
+                disabled={isSubmittingTransfer}
+                onPress={async () => {
+                  if (!employee?.id) return;
+                  setIsSubmittingTransfer(true);
+                  try {
+                    const curId = await getOrCreateDeviceId();
+                    const curModel = getDeviceModel();
+                    const res = await submitDeviceTransferRequest(
+                      employee.id,
+                      employee.bound_device_id || "unknown",
+                      curId,
+                      curModel,
+                      deviceTransferReason || "Driver submitted phone replacement request"
+                    );
+                    if (res.success) {
+                      setTransferSuccess("Transfer request submitted for Admin approval!");
+                      setDeviceTransferReason("");
+                    } else {
+                      Alert.alert("Error", res.error || "Failed to submit request.");
+                    }
+                  } catch (e: any) {
+                    Alert.alert("Error", e.message || "Failed to submit transfer request.");
+                  } finally {
+                    setIsSubmittingTransfer(false);
+                  }
+                }}
+              >
+                {isSubmittingTransfer ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
+                    Request Phone Transfer
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>

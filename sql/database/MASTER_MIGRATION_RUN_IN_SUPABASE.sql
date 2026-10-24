@@ -230,5 +230,56 @@ ALTER TABLE public.api_configurations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow all for api_configurations" ON public.api_configurations;
 CREATE POLICY "Allow all for api_configurations" ON public.api_configurations FOR ALL USING (true) WITH CHECK (true);
 
--- 11. FORCE POSTGREST TO RELOAD SCHEMA CACHE IMMEDIATELY
+-- 11. USER GOVERNANCE & APPROVAL SYSTEM
+DO $$
+BEGIN
+  ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
+  ALTER TABLE public.users ADD CONSTRAINT users_role_check 
+    CHECK (role IN ('super_admin', 'admin', 'operations_admin', 'dispatcher', 'rental_manager', 'billing_clerk', 'driver', 'user'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS approved_by TEXT,
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
+  ADD COLUMN IF NOT EXISTS bound_device_id TEXT,
+  ADD COLUMN IF NOT EXISTS bound_device_model TEXT,
+  ADD COLUMN IF NOT EXISTS bound_device_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS device_lock_enabled BOOLEAN DEFAULT true;
+
+-- Auto-approve any existing super_admin/admin accounts
+UPDATE public.users 
+SET status = 'approved', is_approved = true, email_verified = true 
+WHERE role IN ('super_admin', 'admin') AND status = 'pending';
+
+-- 12. AUTOMATIC TRIGGER FOR DRIVER DEVICE LOCK ENFORCEMENT
+CREATE OR REPLACE FUNCTION public.apply_driver_device_lock()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+    UPDATE public.employees
+    SET bound_device_id = NEW.new_device_id,
+        bound_device_model = COALESCE(NEW.new_device_model, bound_device_model),
+        bound_device_at = NOW(),
+        device_lock_enabled = true
+    WHERE id = NEW.driver_id;
+    
+    NEW.reviewed_at = COALESCE(NEW.reviewed_at, NOW());
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_driver_device_lock ON public.driver_device_requests;
+CREATE TRIGGER trg_driver_device_lock
+  BEFORE UPDATE ON public.driver_device_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION public.apply_driver_device_lock();
+
+-- 13. FORCE POSTGREST TO RELOAD SCHEMA CACHE IMMEDIATELY
 NOTIFY pgrst, 'reload schema';

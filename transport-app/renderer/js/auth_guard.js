@@ -39,12 +39,30 @@ window.Auth = {
       return;
     }
 
-    // Role-based security: Only Super Admin can access admin_panel.html
-    if (path.endsWith("admin_panel.html")) {
-      const user = this.getUser();
-      if (!user || user.role !== "super_admin") {
+    // Role-based security: Strict role separation between Super Admin (IT) and Admin (Operations)
+    const user = this.getUser();
+    if (user && user.role === "super_admin") {
+      // Super Admin is strictly confined to the IT & Governance Console (admin_panel.html)
+      if (!path.endsWith("admin_panel.html") && !isPublicPage) {
+        console.warn("[AUTH] Super Admin is restricted exclusively to the IT & Governance Console.");
+        window.location.replace("admin_panel.html");
+        return;
+      }
+    } else {
+      // Operational staff and Admins cannot access Super Admin IT panel
+      if (path.endsWith("admin_panel.html")) {
         console.warn("[AUTH] Access denied: Super Admin role required for admin_panel.html");
         alert("Access Denied: Super Admin credentials required to access the Super Admin Console.");
+        window.location.replace("dashboard.html");
+        return;
+      }
+    }
+
+    // User Approvals is dedicated to Admin (transferred from Super Admin)
+    if (path.endsWith("user_approvals.html")) {
+      if (!user || (user.role !== "admin" && user.role !== "operations_admin")) {
+        console.warn("[AUTH] Access denied: Admin role required for user_approvals.html");
+        alert("Access Denied: Administrator credentials required to manage user approvals.");
         window.location.replace("dashboard.html");
         return;
       }

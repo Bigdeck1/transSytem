@@ -32,21 +32,6 @@
 
   // ─── DOM References ────────────────────────────────────
   const DOM = {
-    // Stats cards
-    statTotal: document.getElementById('statTotal'),
-    statPending: document.getElementById('statPending'),
-    statApproved: document.getElementById('statApproved'),
-    statRejected: document.getElementById('statRejected'),
-    pendingCount: document.getElementById('pendingCount'),
-    allCount: document.getElementById('allCount'),
-    
-    // User Table
-    tableBody: document.getElementById('usersTableBody'),
-    tableLoading: document.getElementById('tableLoading'),
-    tableWrapper: document.getElementById('tableWrapper'),
-    tableEmpty: document.getElementById('tableEmpty'),
-    searchInput: document.getElementById('searchInput'),
-    
     // Confirm modal
     confirmModal: document.getElementById('confirmModal'),
     confirmIcon: document.getElementById('confirmIcon'),
@@ -641,12 +626,16 @@
   }
   // ─── Super Admin Multi-Console Views Switching ──────────
   function switchAdminView(viewName) {
+    // User management has been transferred to admin — redirect if requested
+    if (viewName === 'users') {
+      viewName = 'api';
+    }
+
     const views = {
       api: document.getElementById('view-api'),
       devices: document.getElementById('view-devices'),
       monitor: document.getElementById('view-monitor'),
       audit: document.getElementById('view-audit'),
-      users: document.getElementById('view-users'),
       settings: document.getElementById('view-settings'),
     };
 
@@ -969,14 +958,11 @@
 
   // ─── Initialization ──────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    initTabs();
-    initSearch();
     initModalBackdrop();
     initSidebarViews();
     initSettings();
     initAuditLogs();
     populateAdminProfile();
-    loadData();
     loadApiConfigurations();
     loadDriverDeviceData();
   });

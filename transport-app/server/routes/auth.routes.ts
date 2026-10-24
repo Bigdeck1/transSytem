@@ -132,15 +132,23 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       authenticatedUser = userRecord;
     }
 
-    // ─── DRIVER PHONE HARDWARE EMBEDDING & DEVICE LOCK (1 Device per Driver) ───
-    const isDriverRole = authenticatedUser && (authenticatedUser.role === "driver" || authenticatedUser.job_title === "Driver");
-    if (isDriverRole && device_id && authenticatedUser) {
+    // ─── EMPLOYEE HARDWARE DEVICE LOCK (Account Can Only Login in a Specific Device) ───
+    const isEmployeeAccount = authenticatedUser && (
+      authenticatedUser.role !== "super_admin" &&
+      (authenticatedUser.role === "driver" ||
+       authenticatedUser.role === "employee" ||
+       authenticatedUser.role === "user" ||
+       authenticatedUser.job_title === "Driver" ||
+       authenticatedUser.employee_id)
+    );
+
+    if (isEmployeeAccount && device_id && authenticatedUser) {
       const boundDeviceId = authenticatedUser.bound_device_id;
-      const boundModel = authenticatedUser.bound_device_model || "Registered Mobile Device";
+      const boundModel = authenticatedUser.bound_device_model || "Specific Registered Device";
 
       if (!boundDeviceId) {
-        // Initial Driver Login: Automatically embed & bind this mobile hardware ID
-        console.log(`[AUTH-LOCK] Binding driver ${email} to mobile device: ${device_id} (${device_model || 'Mobile Device'})`);
+        // Initial Login: Lock and bind employee account specifically to this device
+        console.log(`[AUTH-LOCK] Locking employee account ${email} to specific device: ${device_id} (${device_model || 'Mobile Device'})`);
         try {
           await supabaseAdmin.from("employees").update({
             bound_device_id: device_id,
@@ -160,7 +168,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
         authenticatedUser.bound_device_id = device_id;
         authenticatedUser.bound_device_model = device_model || "Mobile Device";
       } else if (boundDeviceId !== device_id) {
-        // Different phone detected! Check if Admin approved a device transfer request
+        // Different device detected! Check if Admin approved a device transfer request
         const { data: approvedReq } = await supabaseAdmin
           .from("driver_device_requests")
           .select("*")
@@ -172,7 +180,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 
         if (approvedReq) {
           // Admin authorization verified! Update bound device to new phone
-          console.log(`[AUTH-LOCK] Admin-authorized transfer to ${device_id} for driver ${email}`);
+          console.log(`[AUTH-LOCK] Admin-authorized device transfer to ${device_id} for employee ${email}`);
           try {
             await supabaseAdmin.from("employees").update({
               bound_device_id: device_id,
@@ -204,15 +212,15 @@ authRouter.post("/login", async (req: Request, res: Response) => {
                 driver_id: authenticatedUser.id,
                 current_device_id: boundDeviceId,
                 new_device_id: device_id,
-                new_device_model: device_model || "Unrecognized Mobile Device",
-                reason: "Driver attempted login on a secondary phone. Awaiting Admin transfer authorization.",
+                new_device_model: device_model || "Unrecognized Device",
+                reason: "Employee attempted login on an unauthorized device. Account can only log in on its specific assigned device.",
                 status: "pending"
               });
             }
           } catch (e) {}
 
           return res.status(403).json({
-            error: `Security Lock: This driver account is bound to another phone (${boundModel}). Only one registered device per driver is permitted. A device transfer request has been submitted for Admin approval.`,
+            error: `Device Locked: This employee account can only log in on its specific registered device (${boundModel}). Login from other devices is blocked without Admin authorization.`,
             device_locked: true,
             bound_device_model: boundModel,
             pending_admin_approval: true
