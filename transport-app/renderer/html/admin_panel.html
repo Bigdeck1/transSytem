@@ -1,17 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https:;">
   <title>Admin Panel | JRR Transport</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap&family=Inter:wght@400;500;600" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap&family=Inter:wght@400;500;600"
+    rel="stylesheet">
   <link rel="stylesheet" href="../css/sidebar.css" />
   <link rel="stylesheet" href="../css/admin_panel.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/web_api.js"></script>
   <script src="../js/auth_guard.js"></script>
 </head>
+
 <body>
 
   <!-- SIDEBAR -->
@@ -25,14 +30,22 @@
 
     <nav class="sidebar-nav">
       <ul id="menu-list">
-        <li class="sidebar-section-header"><span>IT & GOVERNANCE</span></li>
-        <li><a href="admin_panel.html?view=api" data-admin-view="api" class="super-admin-link active" title="API Gateway & Endpoint Modification"><i data-lucide="webhook"></i><span>API Modification</span></a></li>
-        <li><a href="admin_panel.html?view=devices" data-admin-view="devices" class="super-admin-link" title="Driver Phone Embedding & 1-Device Lock"><i data-lucide="smartphone"></i><span>Driver Device Lock</span></a></li>
-        <li><a href="admin_panel.html?view=monitor" data-admin-view="monitor" class="super-admin-link" title="System Infrastructure Health"><i data-lucide="cpu"></i><span>System Diagnostics</span></a></li>
-        <li><a href="admin_panel.html?view=audit" data-admin-view="audit" class="super-admin-link" title="Administrative & Security Audit Trail"><i data-lucide="scroll-text"></i><span>Audit Trail</span></a></li>
+        <li class="sidebar-section-header"><span></span></li>
+        <li><a href="admin_panel.html?view=api" data-admin-view="api" class="super-admin-link active"
+            title="API Gateway & Endpoint Modification"><i data-lucide="webhook"></i><span>API Modification</span></a>
+        </li>
+        <li><a href="admin_panel.html?view=devices" data-admin-view="devices" class="super-admin-link"
+            title="Driver Phone Embedding & 1-Device Lock"><i data-lucide="smartphone"></i><span>Driver Device
+              Lock</span></a></li>
+        <li><a href="admin_panel.html?view=monitor" data-admin-view="monitor" class="super-admin-link"
+            title="System Infrastructure Health"><i data-lucide="cpu"></i><span>System Diagnostics</span></a></li>
+        <li><a href="admin_panel.html?view=audit" data-admin-view="audit" class="super-admin-link"
+            title="Administrative & Security Audit Trail"><i data-lucide="scroll-text"></i><span>Audit Trail</span></a>
+        </li>
 
         <li class="sidebar-section-header" style="margin-top: 16px;"><span>SESSION</span></li>
-        <li><a href="index.html" id="logout-btn" title="Sign out of Super Admin Console"><i data-lucide="log-out"></i><span>Logout</span></a></li>
+        <li><a href="index.html" id="logout-btn" title="Sign out of Super Admin Console"><i
+              data-lucide="log-out"></i><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -53,7 +66,7 @@
 
   <!-- MAIN CONTENT -->
   <main class="main-content admin-main">
-    
+
     <!-- User Management View removed — transferred to Admin (user_approvals.html) -->
 
     <!-- ─── 2. SYSTEM MONITOR VIEW ─── -->
@@ -62,7 +75,8 @@
       <header class="admin-header">
         <div class="header-left">
           <h1>System Diagnostics & Health</h1>
-          <p class="header-subtitle">Real-time status updates of server infrastructure, database, and background workers.</p>
+          <p class="header-subtitle">Real-time status updates of server infrastructure, database, and background
+            workers.</p>
         </div>
         <div class="header-right">
           <div class="header-badge">
@@ -99,7 +113,8 @@
         <div class="admin-card">
           <div class="admin-card-header">
             <h3><i data-lucide="cpu"></i> Server Resources</h3>
-            <span class="health-badge-status online" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">Normal Load</span>
+            <span class="health-badge-status online"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">Normal Load</span>
           </div>
           <div class="resource-usage">
             <div class="usage-metric">
@@ -136,9 +151,12 @@
         <div class="admin-card" style="grid-column: span 2;">
           <div class="admin-card-header">
             <h3><i data-lucide="terminal"></i> Live Security & Event Log Stream</h3>
-            <span style="font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Streaming Live</span>
+            <span
+              style="font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Streaming
+              Live</span>
           </div>
-          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Displays real-time server security handshakes, IPC channels invocation, and audit alerts.</p>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Displays real-time server security
+            handshakes, IPC channels invocation, and audit alerts.</p>
           <div class="log-console" id="logConsole">
             <!-- Dynamic rolling logs here -->
           </div>
@@ -152,7 +170,8 @@
       <header class="admin-header">
         <div class="header-left">
           <h1>Portal Access Configuration</h1>
-          <p class="header-subtitle">Configure registration gating, SMTP security constraints, and Supabase client fallbacks.</p>
+          <p class="header-subtitle">Configure registration gating, SMTP security constraints, and Supabase client
+            fallbacks.</p>
         </div>
       </header>
 
@@ -214,7 +233,7 @@
           </div>
           <div class="settings-form">
             <div class="settings-group-title">SMTP Mail Configuration</div>
-            
+
             <div class="settings-row-input">
               <label for="setSmtpHost">SMTP Mail Server Host</label>
               <input type="text" id="setSmtpHost" value="smtp.gmail.com" disabled />
@@ -257,14 +276,16 @@
       <header class="admin-header">
         <div class="header-left">
           <h1>Security & Administrative Audit Trail</h1>
-          <p class="header-subtitle">Chronological logs of administrative approvals, rejections, password resets, and login locks.</p>
+          <p class="header-subtitle">Chronological logs of administrative approvals, rejections, password resets, and
+            login locks.</p>
         </div>
       </header>
 
       <section class="table-section">
         <div class="table-header">
           <div style="font-weight: 700; font-size: 15px; color: var(--text-main);">
-            <i data-lucide="scroll-text" style="vertical-align: middle; margin-right: 6px; color: var(--primary-light);"></i>
+            <i data-lucide="scroll-text"
+              style="vertical-align: middle; margin-right: 6px; color: var(--primary-light);"></i>
             Security Events Ledger
           </div>
           <div style="display: flex; gap: 12px;">
@@ -300,7 +321,8 @@
       <header class="admin-header">
         <div class="header-left">
           <h1>API Gateway & Integration Hub</h1>
-          <p class="header-subtitle">Super Admin control to configure, modify, and test system APIs, database webhooks, and routing engines.</p>
+          <p class="header-subtitle">Super Admin control to configure, modify, and test system APIs, database webhooks,
+            and routing engines.</p>
         </div>
         <div class="header-right">
           <button class="btn-settings-save" id="saveApiConfigsBtn" style="padding: 10px 18px; font-size: 13px;">
@@ -322,7 +344,8 @@
               <input type="text" id="cfgExpressBackend" value="http://localhost:3000" style="font-family: monospace;" />
             </div>
             <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-              <button class="btn-secondary" onclick="window._testApiEndpoint('express')" style="padding: 6px 12px; font-size: 12px;">
+              <button class="btn-secondary" onclick="window._testApiEndpoint('express')"
+                style="padding: 6px 12px; font-size: 12px;">
                 <i data-lucide="radio" size="13"></i> Test Ping
               </button>
             </div>
@@ -338,14 +361,17 @@
           <div class="settings-form">
             <div class="settings-row-input">
               <label>Database Endpoint URL</label>
-              <input type="text" id="cfgSupabaseDb" value="https://uocavssoqmwjstmvdgwq.supabase.co" style="font-family: monospace;" />
+              <input type="text" id="cfgSupabaseDb" value="https://uocavssoqmwjstmvdgwq.supabase.co"
+                style="font-family: monospace;" />
             </div>
             <div class="settings-row-input">
               <label>Anon Client Public Key</label>
-              <input type="password" id="cfgSupabaseKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family: monospace;" />
+              <input type="password" id="cfgSupabaseKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                style="font-family: monospace;" />
             </div>
             <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-              <button class="btn-secondary" onclick="window._testApiEndpoint('supabase')" style="padding: 6px 12px; font-size: 12px;">
+              <button class="btn-secondary" onclick="window._testApiEndpoint('supabase')"
+                style="padding: 6px 12px; font-size: 12px;">
                 <i data-lucide="radio" size="13"></i> Test Connection
               </button>
             </div>
@@ -356,15 +382,18 @@
         <div class="admin-card">
           <div class="admin-card-header">
             <h3><i data-lucide="cpu"></i> IoT ESP32 Telemetry Webhook</h3>
-            <span class="health-badge-status online" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">Active</span>
+            <span class="health-badge-status online"
+              style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">Active</span>
           </div>
           <div class="settings-form">
             <div class="settings-row-input">
               <label>ESP32 Ingestion Endpoint</label>
-              <input type="text" id="cfgIotWebhook" value="/api/tracking/iot/telemetry" style="font-family: monospace;" />
+              <input type="text" id="cfgIotWebhook" value="/api/tracking/iot/telemetry"
+                style="font-family: monospace;" />
             </div>
             <p style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0 0;">
-              Receives hardware telemetry from onboard ESP32 units (NEO-6M GPS, DHT22 reefer temperature, and reed cargo door sensors).
+              Receives hardware telemetry from onboard ESP32 units (NEO-6M GPS, DHT22 reefer temperature, and reed cargo
+              door sensors).
             </p>
           </div>
         </div>
@@ -378,10 +407,12 @@
           <div class="settings-form">
             <div class="settings-row-input">
               <label>OSRM Routing Server</label>
-              <input type="text" id="cfgOsrmRouting" value="https://router.project-osrm.org" style="font-family: monospace;" />
+              <input type="text" id="cfgOsrmRouting" value="https://router.project-osrm.org"
+                style="font-family: monospace;" />
             </div>
             <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-              <button class="btn-secondary" onclick="window._testApiEndpoint('osrm')" style="padding: 6px 12px; font-size: 12px;">
+              <button class="btn-secondary" onclick="window._testApiEndpoint('osrm')"
+                style="padding: 6px 12px; font-size: 12px;">
                 <i data-lucide="radio" size="13"></i> Ping Route Server
               </button>
             </div>
@@ -416,7 +447,8 @@
       <header class="admin-header">
         <div class="header-left">
           <h1>Employee Account & Hardware Device Locking</h1>
-          <p class="header-subtitle">Strict hardware device binding. Each employee account can only log in on a specific designated device, requiring Admin authorization to transfer devices.</p>
+          <p class="header-subtitle">Strict hardware device binding. Each employee account can only log in on a specific
+            designated device, requiring Admin authorization to transfer devices.</p>
         </div>
         <div class="header-right">
           <button class="btn-secondary" id="refreshDevicesBtn" style="padding: 8px 14px; font-size: 12px;">
@@ -426,12 +458,14 @@
       </header>
 
       <!-- Security Notice Card -->
-      <div style="background: rgba(30, 64, 175, 0.06); border: 1px solid rgba(30, 64, 175, 0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px;">
+      <div
+        style="background: rgba(30, 64, 175, 0.06); border: 1px solid rgba(30, 64, 175, 0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px;">
         <i data-lucide="shield-alert" size="28" style="color: #1e40af; flex-shrink: 0;"></i>
         <div>
           <strong style="color: #1e40af; font-size: 14px;">Employee Specific Device Policy Enforced:</strong>
           <span style="font-size: 12.5px; color: var(--text-main); margin-left: 4px;">
-            Employee accounts are cryptographically bound to a specific physical device. Login attempts from any other device or hardware are strictly rejected until an Administrator approves a transfer request below.
+            Employee accounts are cryptographically bound to a specific physical device. Login attempts from any other
+            device or hardware are strictly rejected until an Administrator approves a transfer request below.
           </span>
         </div>
       </div>
@@ -439,7 +473,8 @@
       <!-- Pending Device Transfer Requests -->
       <section class="table-section" style="margin-bottom: 28px;">
         <div class="table-header">
-          <div style="font-weight: 700; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <div
+            style="font-weight: 700; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
             <i data-lucide="clock" size="18" style="color: #f59e0b;"></i>
             Pending Device Change Requests
             <span class="tab-count" id="pendingDeviceCount" style="background: #f59e0b; color: white;">0</span>
@@ -462,7 +497,8 @@
               <!-- Dynamically populated -->
             </tbody>
           </table>
-          <div id="noPendingDeviceReqs" style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+          <div id="noPendingDeviceReqs"
+            style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
             No pending device transfer requests. All drivers are verified.
           </div>
         </div>
@@ -471,7 +507,8 @@
       <!-- Active Locked Driver Phones -->
       <section class="table-section">
         <div class="table-header">
-          <div style="font-weight: 700; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <div
+            style="font-weight: 700; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
             <i data-lucide="smartphone" size="18" style="color: #16a34a;"></i>
             Active Embedded Driver Phones
             <span class="tab-count" id="lockedDeviceCount" style="background: #16a34a; color: white;">0</span>
@@ -526,4 +563,5 @@
   <script src="../js/admin_panel.js"></script>
   <script>lucide.createIcons();</script>
 </body>
+
 </html>
